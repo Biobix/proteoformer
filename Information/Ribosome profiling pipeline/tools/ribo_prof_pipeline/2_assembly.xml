@@ -1,0 +1,85 @@
+<tool id="2_assembly" name="Step 6: Translation assembly" version="1.0">
+	
+    <description>Assembles all translation products</description>
+    
+    <command interpreter="perl">
+        #if $tisids.assembl == "all"
+            ./2_assembly.pl --sqliteRES "${sqlite_db}" --snp "${snp}" --tis_ids $tisids.all --out_sqlite "${out_sqlite}"
+        #else if $tisids.assembl == "specific"
+        ./2_assembly.pl --sqliteRES "${sqlite_db}" --snp "${snp}" --tis_ids $tisids.specific --out_sqlite "${out_sqlite}"
+        #end if
+    </command>
+	
+    <inputs>
+        
+        <param name="sqlite_db" type="data" format="sqlitedb" size="30" label="Sqlite DB with information of steps 1-2-3, optionally 5" help="The sqlite results database should contain output from the mapping (step 1), the transcript calling (step 2), TIS calling (step 3) and optionally SNP calling (step 5)."/>
+        <param name="snp" type="select" size="15" multiple="false">
+            <option value="NO" selected="true">NO</option>
+            <option value="samtools">samtools</option>
+            <option value="samtools_dbSNP">samtools_dbSNP</option>
+        </param>
+        
+        <conditional name="tisids">
+            <param name="assembl" type="select" label="Select options for assembly based on TIS calling analysis">
+                <option value="all">Perform assembly for all TIS-analysis ids</option>
+                <option value="specific">Perform assembly for specific TIS-analysis ids</option>
+            </param>
+            <when value="specific">
+                <param name="overview_in" type="data" size="30" format="tis" label="TIS overview file (Sqlite DB specific, see data number)" help="if your history does not contain the correct TIS overview file, first run the TIS overview tool selected Sqlite DB, see above."/>
+                <param name="specific" type="select" display="checkboxes" label="TIS ids - Pick IDs for assembly" multiple="true">
+                    <options>
+                        <filter type="data_meta" ref="overview_in" key="args" />
+                    </options>
+                </param>
+            </when>
+            <when value="all">
+                <param name="all" type="hidden" value ="all" />
+            </when>
+            
+        </conditional>
+    </inputs>
+    
+    <outputs>
+        <data format="sqlitedb" name="out_sqlite" label="SQLite database with mapping/tr and TIS (and SNP) calling and protein assembly (step1-2-3-4(-5)-6)"/>
+    </outputs>
+    
+    <help>
+        
+.. class:: infomark
+        
+**What it does**
+
+This tool assembles all translation products based on all information derived from the ribosome profiling.
+
+-----
+
+.. class:: infomark
+
+**Input**
+
+An sqlite database holding experimental data from previous steps: i.e. 1.mapping, 2.transcript calling, 3.TIS calling, 4. SNP calling (optional)
+
+A species and annotation-version specific sqlite Ensembl database. The location of this database should be included in the ENS_db.loc file, located in the main tool directory.
+
+The Igenomes root folder. The location of this directory should be included in the igenomes.loc file, located in the main tool directory.
+
+-----
+        
+.. class:: infomark
+        
+**Output**
+        
+An sqlite database holding all experimental data resulting from the 1.mapping, 2.transcript calling, 3.TIS calling, 4. SNP calling (optional) and 5.translation product assembly. After assembly step an extra table will be added:
+
+An extra TIS_id_transcripts table with all translation products.
+::
+
+    tr_stable_id        chr         strand      start       start_codon  dist_to_transcript_start  dist_to_aTIS  annotation      peak_shift  count       Rltm_min_Rchx      coverage    FPKM        SNP_        tr_seq                                                                                                                                                                                                                                                               aa_seq
+    ------------------  ----------  ----------  ----------  -----------  ------------------------  ------------  --------------  ----------  ----------  -----------------  ----------  ----------  ----------  ---------------------------------------------------------------------------------------------                                                                                                                                                                        ----------
+    ENSMUST00000134291  1           -1          178335900   GTG          414                       NA            no_translation  -1 0        14.0        0.148350964210667                                      GTGGTTTGTCTTGATACTTGTAAGTGAGGCGGACTTTCCCGCTCTTTGCTAGTTTTCAAGTGCAGTGTTAACATTGGTTTTAAGTGTTAGGAAAAATGTGTTGATCTTAAAGTGGAAAAAACCAGTTAAGAAACTTATTTTAAAGCAGGAAGGTAGTAGCTTAATGCTCAGGCTACAGTAGTTTAATATTAATACCACTTCAGTTGTATTGATTTAACAAGCTCTAGTAATTGGTAATATTTACGAGTTGAAACTTCTC  MVCLDTCK*
+    ...
+
+
+    </help>
+
+</tool>

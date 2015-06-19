@@ -1,0 +1,10 @@
+# This is a sample file distributed with Galaxy that is used to define a
+# list of igenomes, using four columns tab separated
+# (longer whitespace are TAB characters):
+
+# Information on downloading igenomes from ……….
+
+#<value>	<dbkey>	<name>	<path>
+
+igenome_mmu_GRCm38	mm10	igenome Mouse GRCm38	/home/galaxy/data/igenomes/Mus_musculus/Ensembl/GRCm38
+igenomes	igroot	igenomes root folder	/home/galaxy/data/igenomes

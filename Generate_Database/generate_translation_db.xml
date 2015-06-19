@@ -1,0 +1,249 @@
+<tool id="Generate derived translation product database" name="Step 7: Translation Database" version="0.1">
+	<description>Generates a Translation Product database </description>
+	<command interpreter="perl">
+
+		generate_translation_db.pl --result_db "${sqlite_db}" --tis_call "${tis_call}" 
+		
+		#if $tisids.assembl == "all"
+			--tis_ids "${tisids.assembl}"
+		#else if $tisids.assembl == "specific"
+			--tis_ids "${tisids.specific}"
+		#end if
+
+		#if $map_can.map_can_op == "id":
+
+			--mflag $map_can.mapped_file.mflag
+
+			#if $map_can.mapped_file.mflag == "1":
+				--external_ref "${map_can.mapped_file.external_ref}" 
+				--extra_info "${map_can.mapped_file.extra_field}" 
+				--mapping "${map_can.mapped_file.mapping_db}" 
+				--db_config_version "${map_can.mapped_file.db_config_version}"
+
+			#else if $map_can.mapped_file.mflag == "2":
+				--mapping "${map_can.mapped_file.mapping_file}"
+			#end if
+
+		#else if $map_can.map_can_op == "seq":
+
+			--mflag 3 
+			--blast_pgm $map_can.seq_mapping.pgm 
+			--blast_db "${map_can.seq_mapping.blast_db.fields.path}"
+
+			#if str($map_can.detailPrameter.parameters) == "advance":
+
+				--min_blast_length $map_can.detailPrameter.min_blast_length
+				--mslenght $map_can.detailPrameter.mslenght
+				--gapopen $map_can.detailPrameter.gapopen
+				--gapextend $map_can.detailPrameter.gapextend
+				--matrix "${map_can.detailPrameter.matrix}"
+				--identity $map_can.detailPrameter.identity
+				--coverage $map_can.detailPrameter.coverage
+				--evalue $map_can.detailPrameter.evalue
+
+			#end if
+
+		#else if $map_can.map_can_op == "none":
+			--mflag 4
+		#end if
+
+		--translation_db "${translation_db}"
+
+	</command>
+	<inputs>
+		<param name="sqlite_db" type="data" format="sqlitedb" label="Enter SQlite translation product database" help="SQlite containing derived protei products "/>
+           	<param name="tis_call" type="select" label="Allow annotated Transcripts that do not pass the TIS calling algorithm into derived database?">
+                	<option value="Y">Yes</option>
+                	<option value="N">No</option>
+            	</param>		
+        	<conditional name="tisids">  <!-- Start tis_ids select -->
+           		<param name="assembl" type="select" label="Select options for assembly based on TIS calling analysis">
+                		<option value="all">Generate translation database for all TIS-analysis ids</option>
+                		<option value="specific">Generate translation database for specific TIS-analysis ids</option>
+            		</param>
+            		<when value="specific">
+                		<param name="overview_in" type="data" size="30" format="tis" label="TIS overview file (Sqlite DB specific, see data number)" help="if your history does not contain the correct TIS overview file, first run the TIS overview tool selected Sqlite DB, see above."/>
+                		<param name="specific" type="select" display="checkboxes" label="TIS ids - Pick IDs for assembly" multiple="true">
+                    			<options>
+                        			<filter type="data_meta" ref="overview_in" key="args" />
+                    			</options>
+                		</param>
+            		</when>
+            		<when value="all">
+                		<param name="all" type="hidden" value ="all" />
+            		</when>            
+        	</conditional> <!-- End tis_ids select -->
+		
+        	<conditional name="map_can">  <!-- Start Mapping option -->
+           		<param name="map_can_op" type="select" label="Select option for mapping to canonical protein sequences">
+                		<option value="id">ID based mapping</option>
+                		<option value="seq">Sequence based mapping</option>
+                		<option value="none">None</option>
+            		</param>
+            		<when value="id"> <!-- Start ID based mapping -->
+				<conditional name="mapped_file"> <!-- Start mapped_file -->
+					<param name="mflag" type="select" label="Select source to map Ensembl transcripts to an external reference" multiple="false" help="You can either download the mapping to external reference directly from Biomart, used a comma delimited file already uploaded in the history or no mapping.">
+						<option value="1" selected="true">Download from Biomart</option>
+						<option value="2">User defined file</option>
+				    	</param>
+					<when value="1"> <!-- Biomart download -->
+						<param name="db_config_version" type="float" value="0.6" label="Enter the configuration version of the Ensembl database" help="Ensembl databset confirguration version "/>
+						<param name="mapping_db" size="30" type="select"   label="Choose Biomart database" help="Select the biomart database to download pre-mapped Ensembl to an external reference.">
+							<option value="hsapiens_gene_ensembl">Homo sapiens</option>
+							<option value="mmusculus_gene_ensembl" selected="true">Mus musculus</option>
+							<option value="athaliana_eg_gene">Arabidopsis thaliana</option>
+							<option value="dmelanogaster_gene_ensembl">Drosophila melanogaster</option>
+						</param>
+						<param name="external_ref" size="30" type="select" label="Choose external reference for Ensembl Transcript mapping" help="Select an external referece field in biomart for the pre-mapping">
+							<option value="uniprot_swissprot_accession"  selected="true" >UniProt/Swissprot Accession</option>
+							<option value="refseq_peptide" >RefSeq Protein ID</option>
+							<option value="pdb" >PDB ID</option>
+							<option value="protein_id" >Protein (Genbank) ID</option>
+							<option value="rfam" >Rfam ID</option>
+							<option value="uniprot_swissprot" >UniProt/SwissProt ID</option>
+							<option value="uniprot_genename" >UniProt Gene Name</option>
+							<option value="entrezgene" >EntrezGene ID</option>
+							<option value="embl" >EMBL (Genbank) ID</option>
+							<option value="ccds" >CCDS ID</option>
+							<option value="unigene" >Unigene ID</option>
+							<option value="ottg" >VEGA gene ID(s) (OTTG)</option>
+							<option value="ottt" >VEGA transcript ID(s) (OTTT)</option>
+						</param>
+						<param name="extra_field" size="30" type="select"   label="Extra information">
+							<option value="" selected="true">None</option>
+							<option value="uniprot_swissprot_accession" >UniProt/Swissprot Accession</option>
+							<option value="refseq_peptide" >RefSeq Protein ID</option>
+							<option value="pdb" >PDB ID</option>
+							<option value="protein_id" >Protein (Genbank) ID</option>
+							<option value="rfam" >Rfam ID</option>
+							<option value="uniprot_swissprot" >UniProt/SwissProt ID</option>
+							<option value="uniprot_genename" >UniProt Gene Name</option>
+							<option value="entrezgene" >EntrezGene ID</option>
+							<option value="embl" >EMBL (Genbank) ID</option>
+							<option value="ccds" >CCDS ID</option>
+							<option value="unigene" >Unigene ID</option>
+							<option value="ottg" >VEGA gene ID(s) (OTTG)</option>
+							<option value="ottt" >VEGA transcript ID(s) (OTTT)</option>
+						</param>
+					</when>	<!-- End Biomart download-->
+
+					<when value="2"> <!-- Start local file -->
+						<param name="mapping_file" size="30" type="data" format="txt" label="Select mapping file from history" />
+					</when>
+				</conditional> <!-- End mapped_file -->
+
+            		</when>   <!-- End ID based mapping -->
+            		<when value="seq"> <!-- Start Seq based mapping -->
+				<conditional name="seq_mapping"> <!-- Start blast_pgm -->
+					<param name="pgm" type="select" label="Choose the BLAST Algorithm">
+						<option value="blastp" >blastp</option>
+						<option value="ublast" selected="true">ublast</option>
+					</param>
+					<when value="blastp"> <!-- Start blast_pgm = "blastp" -->
+						<param name="blast_db" type="select" label="Select the database for blastp search" help="The Blast databases is a blast formated database of protein sequences located in the Ribosome Profiling tool_data folder.">
+						    <options from_data_table="PROTEOFORMER_blastp_db" />
+						</param>
+					</when> <!-- End blast_pgm = "blastp" -->
+					<when value="ublast"> <!-- Start blast_pgm = "ublast" -->
+						<param name="blast_db" type="select" label="Select the database for ublast search" help="The Blast databases is a blast formated database of protein sequences located in the Ribosome Profiling tool_data folder.">
+						    <options from_data_table="PROTEOFORMER_ublast_db" />
+						</param>
+					</when> <!-- End blast_pgm = "ublast" -->
+
+				</conditional> <!-- End blast_pgm -->
+				<conditional name="detailPrameter"> <!-- Start detailPrameter -->
+					<param name="parameters" type="select" label="Detail Parameters" multiple="false">
+						<option value="default" selected="true">Default parameter</option>
+						<option value="advance">Advance Parameter</option>
+					</param>
+					<when value="default"></when> <!-- when detailPrameter = default -->
+					<when value="advance"> <!-- when detailPrameter = advance -->
+						<param name="min_blast_length" type="integer" value="32" label="Minimum transcript length to perform blast search" />
+						<param name="mslenght" type="integer" value="6"  label="Minimum transcript length" />
+						<param name="identity" type="float" value="80" label="Minimum percentage of similarity between matched pairs" />
+						<param name="coverage" type="integer" value="30" label="Minimum number of identical positions" />
+						<param name="evalue" type="float" value='1e-10' label="Expectation value (E) threshold for saving hits" />
+						<param name="gapopen" type="float" value='11' label="Cost to open a gap" />
+						<param name="gapextend" type="float" value='1' label="Cost to extend a gap" />
+						<param name="matrix" type="select" label="Scoring matrix name (only BLOSUM62 allowed for ublast)">
+							<option value="BLOSUM62" selected="true">BLOSUM62</option>
+							<option value="PAM30">PAM30</option>
+						</param>
+						<param name="word_size" type="integer" value="3" label="Word size for wordfinder algorithm" />
+						<param name="user" type="text"  value=""  label="SQLite database User's name" />
+						<param name="password" type="text" value=""  label="SQlite database Password" />
+					</when>
+				</conditional> <!-- End detailPrameter -->
+            		</when> <!-- End Seq based mapping -->
+			<when value="none"> <!-- start blast = none -->
+				<param name="mapped_file" type="hidden" value="none" />
+				<param name="seq_mapping" type="hidden" value="none" />
+			</when> <!-- end blast = none -->         
+        	</conditional> <!-- End Blast option -->
+		
+    	</inputs>
+   	<outputs>
+    		<!-- <data format="text" name="blast_report" value="blast_report.txt"  label="Blast search result" /> -->
+		<data format="fasta" name="translation_db" value="translation_db.fasta" label="Database of non redundant protein sequences" >
+			<discover_datasets pattern="__designation__" ext="fasta" directory="derived_db" visible="true" />
+		</data>
+   	</outputs>
+
+	<help>
+
+
+.. class:: infomark
+
+**What it does**
+
+
+This tool generates a non redundant custom protein sequence database from transclation products generated based on known Ensemble transcripts. It removes all duplicate and sub-sequences of the generated transclation products taking into considerations the highrarchy in the table below.
+It performs a Local BLAST search (using blastp or ublast) against a canonical protein database to map the protein sequences to already annotated proteins.
+
+-----
+
+.. class:: infomark
+
+**Input**
+
+A SQLite database with a table containing the tranacript ID, annotation, chromosomes, start positions and start codon.
+A Blast or USearch formated canonical protein database (e.g. SWISSPROT).
+An ensemble databse name selected from the list to download biomart mapped Ensembl to Swissprot IDs or a comma seperated text file containing the mapped IDS in the following structure.
+::
+
+  Ensemble_transcript_ID,Swissprot_Accession,Gene_name
+  ENSMUST00000000033,P09535,IGF2_MOUSE
+
+The annotations are ranked according to the table below with 1 the most important.
+
+::
+
+         Annotation                                     |  Rank 	
+   --------------------------------------------------------------
+   aTIS (annotated TIS)                                 |    1	  	
+   5UTR (5'untransalted region)                         |    2	  			
+   CDS (transclation starting within a coding sequence) |    3	  			
+   ntr (translation evidence at pseudo-genes)           |    4	  			
+   3UTR (3'untransalted region)                         |    5
+   ...
+ 
+
+.. class:: infomark
+
+**Output**
+        
+A Fasta file of non redundnt translation products database.
+
+------
+
+**Citation:**
+
+For the underlying tool and it's use in Galaxy, please cite *In preparation*
+
+PROTEOFORMER is licensed under the GPL v3.
+
+For more information visit http://www.biobix.be/PROTEOFORMER
+
+    </help>
+</tool>
+

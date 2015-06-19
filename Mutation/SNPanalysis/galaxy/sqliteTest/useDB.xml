@@ -1,0 +1,38 @@
+<tool id="useDB_test1" name="Use an SQLite database" version="1.0">
+    
+    <description>that was saved as a History object</description>
+    
+    <command interpreter="bash">
+        
+        useDB --input "${database}" --output "${result_file}" --name $table_name
+        
+    </command>
+    
+    <inputs>
+        <param type="data" format="txt" name="database" label="select the SQLite database" />
+        <param type="text" size="10" value="batman" name="table_name" label="enter the table name" />
+    </inputs>
+    
+    <outputs>
+        <data format="txt" name="result_file" />
+    </outputs>
+    
+    <help>
+
+.. class:: infomark
+
+**What it does**
+
+This tool extracts data from an SQLite database that was saved in the Galaxy History.
+
+-----
+
+.. class:: infomark
+
+**Output**
+
+If everything goes well, this tool should result in a ";" separated text file with the contents of the "batman" table.
+
+    </help>
+    
+</tool>

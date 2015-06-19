@@ -1,0 +1,12 @@
+# This is a sample file distributed with Galaxy that is used to define a
+# list of SNPdb variant files, using three columns tab separated
+# (longer whitespace are TAB characters):
+
+# Download tool specific variant data from NCBI
+
+#<value>	<dbkey>	<name>	<path>
+
+snpdb_mmu_GRCm38	mm10	SNPdb Mouse GRCm38 	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/snpdb_mouse_GRCm38.vcf
+snpdb_hsa_GRCh37	hg19	SNPdb Human GRCh37	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/snpdb_human_GRCh37.vcf
+snpdb_dme_BDGPr5	dm3	SNPdb Fruit Fly BDGPr5	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/snpdb_fruitfly_BDGPr5.vcf
+

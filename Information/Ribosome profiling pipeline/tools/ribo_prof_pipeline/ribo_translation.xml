@@ -1,0 +1,49 @@
+<tool id="transcript_calling" name="Step 2: Transcript calling">
+	<description>for all ribosome profiles</description>
+	<command interpreter="perl">
+        ribo_translation.pl --in_sqlite "${sqlite_db}" --ens_db "${ensembl_db.fields.path}" --out_sqlite "${out_sqlite_db}"
+    </command>
+	<inputs>
+		<param name="sqlite_db" type="data" format="sqlitedb" size="50" label="Sqlite DB with RIBO-seq data after mapping" help="The sqlite results database should at least contain output from the RNA-seq mapping (RIBO-seq)."/>
+		<param name="ensembl_db" type="select" label="Select the correct ensembl annotation DB" help="The Ensembl sqlite databases are species and annotation version specific. If your genome of interest is not listed - contact your administrator.">
+            <options from_data_table="ribo_prof_ENS" />
+        </param>
+	</inputs>
+    <outputs>
+        <data format="sqlitedb" name="out_sqlite_db" label="SQLite DB with mapping/tr_calling results (step1-2)"/>
+    </outputs>
+	<help>
+        .. class:: infomark
+        
+        **What it does**
+        
+        Based on the sqlite database holding the experimental data from RNA-mapping (RIBO-seq) and using the species specific Ensembl annotation bundles (from the corresponding IGenomes) this tool determines the translation-level of transcripts (exon_level) for a given untreated/CHX/EMT-treated ribosome profiling data set (=DATA1 from RNA-mapping in 'Step 1: Mapping (both RNA-seq and RIBO-seq)').
+        
+        -----
+        
+        .. class:: infomark
+        
+        **Input**
+        
+        An sqlite database holding experimental data from the RNA-mapping (RIBO-seq).
+        
+        A species and annotation-version specific sqlite Ensembl database. The location of this database should be included in the ENS_db.loc file, located in the main tool directory.
+        
+        -----
+        
+        .. class:: infomark
+        
+        **Output**
+        
+        An sqlite database holding all experimental data from the RNA-mapping (RIBO-seq) and transcript calling/translation tool. After the transcript calling an extra table will be added:
+        
+        ::
+        
+        transcript_id   |   stable_id               |   chr |   seq_region_id   | strand    |   seq_region_start    |   seq_region_end    | read_counts |   normalized_counts   |   biotype             |   exon_coverage   |   gene_stable_id
+        ---------------- --------------------------- ------- ------------------- ----------- ----------------------- --------------------- ------------- ----------------------- ----------------------- ------------------- -------------------
+        423279          |    ENSMUST00000066279     |   1   |   20598           |   1       |   89070415.0          |   89155068.0        | 415.0       |   0.145155648828262   |   protein_coding      |   Yes             |   ENSMUSG00000036206
+        423286          |    ENSMUST00000123745     |   1   |   20598           |   1       |   89070453.0          |   89112860.0        | 47.0        |   0.13782991202346    |   processed_tran      |   No              |   ENSMUSG00000036206
+        ...
+        
+	</help>
+</tool>

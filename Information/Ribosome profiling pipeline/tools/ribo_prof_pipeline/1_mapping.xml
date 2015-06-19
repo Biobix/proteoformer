@@ -1,0 +1,140 @@
+<tool id="mapping" name="Step 1: Mapping (both RNA-seq and RIBO-seq)" version="0.1">
+    
+    <description>using fastq files as input</description>
+    
+    <command interpreter="perl">
+        #if $readtype.riboSinPair == "ribo"
+        1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root.fields.path}"
+        # else if $readtype.riboSinPair == "PE_polyA"
+        1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root.fields.path}"
+        # else if $readtype.riboSinPair == "PE_total"
+        1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root.fields.path}"
+        #end if
+    </command>
+    
+    <inputs>
+        <param name="experimentname" size="20" type="text"   label="enter the experiment name" />
+        <param name="igenomes_root" type="select"   label="Select the corresponding igenome" help="The igenomes are species and annotation version specific. If your genome of interest is not listed - contact your administrator.">
+            <options from_data_table="ribo_prof_igenomes" />
+        </param>
+        <param name="organism"                 type="select" label="select the organism" multiple="false">
+            <option value="mouse" selected="true">mouse</option>
+            <option value="human">human</option>
+            <option value="fruitfly">fruitfly</option>
+        </param>
+        <param name="ensembl"  size="5"   value="72"             type="integer"   label="select the ensembl annotation version"/>
+        <param name="mapper" type="select" label="select the transcriptome mapper" multiple="false">
+            <option value="STAR" selected="true">STAR</option>
+            <option value="TopHat2">TopHat2</option>
+        </param>
+        <param name="unique" type="select" label="select unique or multi-mapper reads" multiple="false">
+            <option value="N" selected="true">all, both unique and multi-mapper reads</option>
+            <option value="Y">uniquely mapping reads only</option>
+        </param>
+        
+        <conditional name="readtype">
+            <param name="riboSinPair" type="select" label="Is this a RIBO-seq or Paired RNA-seq library?">
+                <option value="ribo" selected="true">Ribo-seq</option>
+                <option value="PE_polyA">Paired-end polyA pulled RNA-seq</option>
+                <option value="PE_total">Paired-end total RNA-seq</option>
+            </param>
+            <when value="ribo">
+                <param name="input_file1" type="data" format="fastq" label="choose the FASTQ file (untreated RIBO-seq: no drug or CHX)" help="Must have ASCII encoded quality scores"/>
+                <param name="input_file2" type="data" format="fastq" label="choose the FASTQ file (treated RIBO-seq: PUR, LTM, HAR)" help="Must have ASCII encoded quality scores"/>
+                <param name="adaptor" size="45" type="text" value="CTGTAGGCACCATCAATAGATCGGAAGA" label="enter the adaptor sequence that needs to be clipped"/>
+                <param name="readlength" value="36" type="hidden" label="choose the read length"/>
+            </when> <!-- ribo -->
+            <when value="PE_polyA">
+                <param name="input_file1" type="data" format="fastq" label="Forward FASTQ file" help="Must have ASCII encoded quality scores"/>
+                <param name="input_file2" type="data" format="fastq" label="Reverse FASTQ file" help="File format must match the Forward FASTQ file"/>
+                <param name="adaptor" value="CTGTAGGCACCATCAATAGATCGGAAGA" type="hidden" label="enter the adaptor sequence that needs to be clipped"/>
+                <param name="readlength" type="text" value="50" label="choose the read length"/>
+            </when> <!-- PE_polyA -->
+            <when value="PE_total">
+                <param name="input_file1" type="data" format="fastq" label="Forward FASTQ file" help="Must have ASCII encoded quality scores"/>
+                <param name="input_file2" type="data" format="fastq" label="Reverse FASTQ file" help="File format must match the Forward FASTQ file"/>
+                <param name="adaptor" value="CTGTAGGCACCATCAATAGATCGGAAGA" type="hidden" label="enter the adaptor sequence that needs to be clipped"/>
+                <param name="readlength" type="text" value="50" label="choose the read length"/>
+            </when> <!-- PE_total -->
+        </conditional> <!-- riboSinPair -->
+        
+        <param name="cores" type="integer" size="5" value="8" label="enter the number of cores to run the transcriptome mapping"/>
+    </inputs>
+    
+    <outputs>
+        <data format="sam" name="untreat_sam" label="${mapper} on ${on_string}: alignment un_CHX_EMT RIBO-seq reads">
+        <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+        <data format="sam" name="treat_sam"   label="${mapper} on ${on_string}: alignment PUR_HAR_LTM RIBO-seq reads">
+            <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+        <data format="bedGraph" name="untreat_s_bg" label="RIBO-seq footprint count data un_CHX_EMT (s)">
+            <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+        <data format="bedGraph" name="untreat_as_bg" label="RIBO-seq footprint count data un_CHX_EMT (as)">
+            <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+        <data format="bedGraph" name="treat_s_bg"    label="RIBO-seq footprint count data PUR_HAR_LTM (s)">
+            <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+        <data format="bedGraph" name="treat_as_bg"   label="RIBO-seq footprint count data data PUR_HAR_LTM (as)">
+        <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+        <data format="sqlitedb" name="out_sqlite"  label="SQLite DB with mapping results (step1).">
+        <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+
+    </outputs>
+    
+    <help>
+        
+.. class:: infomark
+        
+**What it does**
+        
+This tool uses transcriptome mappers (STAR or TopHat2) to map RIBO-seq or RNA-seq next-generation sequencing reads against the reference genome using Ensembl annotation bundles (from the corresponding IGenomes: http://support.illumina.com/sequencing/sequencing_software/igenome.ilmn).
+        
+*For RIBO-seq*
+        
+1)  The footprints are mapped
+
+    both the NGS-reads of the untreated, cycloheximide (CHX), or emetine (EMT) sample
+    
+    and the NGS-reads of the treated: puromycin (PUR), harringtonine (HAR), or lactimidomycin (LTM)
+
+2) The footprint alignments are assigned to specific A site nucleotides by using the position and total length of each alignment
+        
+-----
+        
+.. class:: infomark
+        
+**Output**
+        
+*For RIBO-seq*
+        
+DATA1 = Untreated, CHX, or EMT treated sample
+
+DATA2 = PUR, HARR, or LTM treated sample
+::
+
+       A sam alignment file holding the DATA1 alignments
+       A sam alignment file holding the DATA2 alignments
+       A bedgraph holding the sense DATA1 ribo-seq footprint count data
+       A bedgraph holding the antisense DATA1 ribo-seq footprint count data
+       A bedgraph holding the sense DATA2 ribo-seq footprint count data
+       A bedgraph holding the antisense DATA2 ribo-seq footprint count data
+       An sqlite database holding all experimental data
+
+-----
+        
+.. class:: infomark
+        
+**Input**
+        
+A FastQ file holding the DATA1
+
+A FastQ file holding the DATA2
+
+    </help>
+    
+</tool>

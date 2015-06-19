@@ -1,0 +1,9 @@
+# This is a sample file distributed with Galaxy that is used to define a
+# list of igenomes, using four columns tab separated
+# (longer whitespace are TAB characters):
+
+# Information on downloading igenomes from UCSC (http://hgdownload.soe.ucsc.edu/downloads.html)
+
+#<value>	<dbkey>	<name>	<path>
+
+maf	mafroot	MAF root folder	/data2/MAF/

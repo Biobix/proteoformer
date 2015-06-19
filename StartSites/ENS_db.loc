@@ -1,0 +1,10 @@
+# This is a sample file distributed with Galaxy that is used to define a
+# list of Ensembl sqlite databases, using three columns tab separated
+# (longer whitespace are TAB characters):
+
+# Download tool specific Ensembl sqlite databases from ………
+
+#<value>	<dbkey>	<name>	<path>
+
+#ENS_hsa_70	hg19	Human Ensembl version 70 	/home/galaxy/app/tools/ribo_prof_pipeline/tool-data/ENS_hsa_70.db
+ENS_mmu_72	mm10	Mouse Ensembl version 72	/home/galaxy/app/tools/ribo_prof_pipeline/tool-data/ENS_mmu_72.db	 

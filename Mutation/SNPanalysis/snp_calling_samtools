@@ -1,0 +1,227 @@
+#!/bin/bash
+
+### Alexander Koch
+### 2013
+
+###############
+### FUNCTIONS
+##
+#
+
+function header
+{
+    
+    echo
+    echo
+    echo ' .d8888b. 888b    8888888888b.     .d8888b.        d8888888     888     8888888888b    888 .d8888b.  '
+    echo 'd88P  Y88b8888b   888888   Y88b   d88P  Y88b      d88888888     888       888  8888b   888d88P  Y88b '
+    echo 'Y88b.     88888b  888888    888   888    888     d88P888888     888       888  88888b  888888    888 '
+    echo ' "Y888b.  888Y88b 888888   d88P   888           d88P 888888     888       888  888Y88b 888888        '
+    echo '    "Y88b.888 Y88b8888888888P"    888          d88P  888888     888       888  888 Y88b888888  88888 '
+    echo '      "888888  Y88888888          888    888  d88P   888888     888       888  888  Y88888888    888 '
+    echo 'Y88b  d88P888   Y8888888          Y88b  d88P d8888888888888     888       888  888   Y8888Y88b  d88P '
+    echo ' "Y8888P" 888    Y888888           "Y8888P" d88P     88888888888888888888888888888    Y888 "Y8888P88 '
+    echo
+    echo
+    
+}
+
+function usage
+{
+    
+    echo
+    echo "usage: snp_calling_samtools -e experiment name -r path/to/reads -c path/to/chromosome/sequences/folder -o organism -t number of threads"
+    echo
+    
+}
+
+
+##################
+### MAIN PROGRAM
+##
+#
+
+trap "wait" TERM EXIT # deal with interruptions (like ctrl-c) by waiting for all threads to finish
+
+T="$(date +%s)"
+
+EXPERIMENTNAME=
+READS=
+MINCOVERAGE=3
+MAXCOVERAGE=100
+CHROMOSOMESFOLDER=
+ORGANISM=
+THREADS=1
+HIGHAF=0.95
+LOWERAF=0.3
+UPPERAF=0.7
+while [ "$1" != "" ]; do
+    case $1 in
+        -e | --experiment )     shift
+                                EXPERIMENTNAME=$1
+                                ;;
+        -r | --reads )          shift
+                                READS=$1
+                                ;;
+        -c | --chromosomes )    shift
+                                CHROMOSOMESFOLDER=$1
+                                ;;
+        -o | --organism )       shift
+                                ORGANISM=$1
+                                ;;
+        -t | --threads )        shift
+                                THREADS=$1
+                                ;;
+        --mincoverage )         shift
+                                MINCOVERAGE=$1
+                                ;;
+        --maxcoverage )         shift
+                                MAXCOVERAGE=$1
+                                ;;
+        --high_af )             shift
+                                HIGHAF=$1
+                                ;;
+        --lower_af )            shift
+                                LOWERAF=$1
+                                ;;
+        --upper_af )            shift
+                                UPPERAF=$1
+                                ;;
+        * )                     usage
+                                exit
+    esac
+    shift
+done
+
+header
+
+# print the command line arguments
+echo "COMMAND LINE ARGUMENTS:"
+echo " -e = $EXPERIMENTNAME"
+echo " -r = $READS"
+echo " -c = $CHROMOSOMESFOLDER"
+echo " -o = $ORGANISM"
+echo " -t = $THREADS"
+echo "SAMtools specific parameters:"
+echo " --mincoverage = $MINCOVERAGE"
+echo " --maxcoverage = $MAXCOVERAGE"
+echo " allelic frequency cutoffs:"
+echo " --high_af = $HIGHAF"
+echo " --lower_af = $LOWERAF"
+echo " --upper_af = $UPPERAF"
+echo
+
+# run samtools
+#
+Tsamtools="$(date +%s)"
+echo "running samtools..."
+
+# convert the SAM file to BAM, sort it and split the BAM file in chromosomes
+#
+echo "converting SAM to BAM";
+samtools view -bS "$READS" -o tmp/aligned.out.bam
+echo "sorting BAM file";
+samtools sort tmp/aligned.out.bam tmp/aligned.sorted
+echo "indexing BAM file";
+samtools index tmp/aligned.sorted.bam
+echo
+
+if ORGANISM="mouse"; then
+    # extract the chromosomes from the Ensembl SQLite database ENS_mmu_72.db
+    query=$(sqlite3 SQLite/ENS_mmu_72.db "SELECT DISTINCT(name) FROM seq_region WHERE coord_system_id = 3")
+    array=($(for i in $query; do echo $i; done))
+    CHROMOSOMES=${array[@]:0:22}
+elif ORGANISM="human"; then
+    firstChr=$(seq 22)
+    nextChr=('X' 'Y' 'MT')
+    CHROMOSOMES=("${firstChr[@]}" "${nextChr[@]}")
+elif ORGANISM="fruitfly"; then
+    firstChr=$(seq 2 4)
+    nextChr=('X' 'Y' 'MT')
+    CHROMOSOMES=("${firstChr[@]}" "${nextChr[@]}")
+fi
+
+echo "splitting the BAM file by chromosome:"
+for chr in ${CHROMOSOMES[@]}
+do
+    echo "chromosome $chr"
+    samtools view -b tmp/aligned.sorted.bam "$chr" -o tmp/aligned.sorted.chr"$chr".bam
+done
+Tsamtools="$(($(date +%s)-Tsamtools))"
+echo
+echo "samtools finished!"
+printf "samtools runtime: %02d:%02d:%02d:%02d\n" "$((Tsamtools/86400))" "$((Tsamtools/3600%24))" "$((Tsamtools/60%60))" "$((Tsamtools%60))"
+echo
+
+# run mpileup on each chromosome separately
+#
+Tmpileup="$(date +%s)"
+for chr in ${CHROMOSOMES[@]}
+do
+    echo "running mpileup for chromosome $chr"
+    chrSequenceFile=$(find "$CHROMOSOMESFOLDER" -name "$chr.fa")
+    samtools mpileup -uD -f "$chrSequenceFile" tmp/aligned.sorted.chr"${chr}".bam | bcftools view -bvcg - > tmp/snp.raw.chr"$chr".bcf &
+    while (( $(jobs | wc -l) >= $THREADS )); do
+        sleep 0.1
+        jobs > /dev/null
+    done
+done
+wait # wait for all threads to finish
+Tmpileup="$(($(date +%s)-Tmpileup))"
+echo
+echo "mpileup finished!"
+printf "mpileup runtime: %02d:%02d:%02d:%02d\n" "$((Tmpileup/86400))" "$((Tmpileup/3600%24))" "$((Tmpileup/60%60))" "$((Tmpileup%60))"
+echo
+
+# run vcfutils on each bcf file
+#
+Tvcfutils="$(date +%s)"
+for chr in ${CHROMOSOMES[@]}
+do
+    echo "running vcfutils for chromosome $chr"
+    bcftools view tmp/snp.raw.chr"$chr".bcf | vcfutils.pl varFilter -d "$MINCOVERAGE" -D "$MAXCOVERAGE" > tmp/snp.chr"$chr".vcf &
+    while (( $(jobs | wc -l) >= $THREADS )); do
+        sleep 0.1
+        jobs > /dev/null
+    done
+done
+wait # wait for all threads to finish
+Tvcfutils="$(($(date +%s)-Tvcfutils))"
+echo
+echo "vcfutils finished!"
+printf "vcfutils runtime: %02d:%02d:%02d:%02d\n" "$((Tvcfutils/86400))" "$((Tvcfutils/3600%24))" "$((Tvcfutils/60%60))" "$((Tvcfutils%60))"
+echo
+
+# store the vcf results in an SQLite database
+#
+TmergeSave="$(date +%s)"
+echo "merging VCF files"
+
+# merge the SNP files
+perl mergeVCFfiles.pl "$HIGHAF" "$LOWERAF" "$UPPERAF"
+
+echo "storing results in SQLite database"
+sqlite3 SQLite/"${EXPERIMENTNAME}"_results.db "CREATE TABLE snp_samtools_${LANE}(id INT PRIMARY KEY, chr VARCHAR, pos INT, ref CHAR, alt CHAR, af REAL)"
+sqlite3 -separator ';' SQLite/"${EXPERIMENTNAME}"_results.db ".import tmp/allSNPsID.txt snp_samtools_${LANE}"
+TmergeSave="$(($(date +%s)-TmergeSave))"
+echo
+echo "merging and saving finished!"
+printf "merging and saving runtime: %02d:%02d:%02d:%02d\n" "$((TmergeSave/86400))" "$((TmergeSave/3600%24))" "$((TmergeSave/60%60))" "$((TmergeSave%60))"
+echo
+
+# clean up the tmp folder
+#
+echo "cleaning up the tmp/ folder"
+rm tmp/*.vcf*
+rm tmp/*.bcf
+rm tmp/*.bam
+rm tmp/aligned*
+rm tmp/allSNPsID.txt
+echo "all clean!"
+echo
+
+T="$(($(date +%s)-T))"
+echo
+echo "SNP calling finished!"
+printf "total runtime: %02d:%02d:%02d:%02d\n" "$((T/86400))" "$((T/3600%24))" "$((T/60%60))" "$((T%60))"
+echo

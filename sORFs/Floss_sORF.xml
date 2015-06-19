@@ -1,0 +1,99 @@
+<tool id="floss_sorfs" name="Step 5: FLOSS calculation" version="1.0">
+    <description>Calculates first (if not already done for that analysis id) the reference fractions and cut off values based on coding transcripts. With these, the FLOSS scores are calculated and classified for each sORF id.</description>
+    <command interpreter="perl">
+        #if $tisids.assembl == "all"
+        ./Floss_sORF.pl --sqlite "${sqlite_db}"  --tis_ids $tisids.all --out_sqlite "${out_sqlite}"
+        #else if $tisids.assembl == "specific"
+        ./Floss_sORF.pl --sqlite "${sqlite_db}"  --tis_ids $tisids.select --out_sqlite "${out_sqlite}"
+        #end if
+    </command>
+    
+    <inputs>
+        <param name="sqlite_db" type="data" format="sqlitedb" label="Sqlite db with information from mapping, TIS calling and assembly."/>
+        <conditional name="tisids">
+            <param name="assembl" type="select" label="Select options for assembly based on TIS calling analysis">
+                <option value="all">Perform assembly for all TIS-analysis ids</option>
+                <option value="specific">Perform assembly for specific TIS-analysis ids</option>
+            </param>
+            <when value="specific">
+                <param name="overview_in" type="data" size="30" format="tis" label="TIS overview file (Sqlite DB specific, see data number)" help="if your history does not contain the correct TIS overview file, first run the TIS overview tool selected Sqlite DB, see above."/>
+                <param name="specific" type="select" display="checkboxes" label="TIS ids - Pick IDs for assembly" multiple="true">
+                    <options>
+                        <filter type="data_meta" ref="overview_in" key="args" />
+                    </options>
+                </param>
+            </when>
+            <when value="all">
+                <param name="all" type="hidden" value ="all" />
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data format="sqlitedb" name="out_sqlite" label="SQLite database with mapping, TIS, sORF assembly and FLOSS calculation"/>
+    </outputs>
+    
+    <help>
+        
+.. class:: infomark
+        
+**What it does**
+
+This tool calculates:
+
+::
+        
+        (1) fragment length reference fractions based on coding transcripts
+        (2) cutoff values as function of the amount of reads
+        (3) a length distribution for each sORF
+         
+Based on these results, a FLOSS score for each sORF can be calculated. With this FLOSS score and the cutoff values, the coding potential of each sORF can be assessed.
+        
+---------
+        
+.. class:: infomark
+        
+**Input**
+        
+An sqlite database holding experimental data from at least following previous steps: mapping, TIS calling, SNP calling (optional) and sORF translation product assembly.
+        
+The TIS ids for which a FLOSS score needs to be calculated. It can be a sequence of ids seperated by commas or it can be "all".
+
+-----------
+        
+.. class:: infomark
+        
+**Output**
+        
+An sqlite database holding all experimental data resulting from the mapping, TIS calling, SNP calling (optional), sORF translation product assembly and FLOSS score calculation. Afterwards three extra tables will be added:
+        
+A table FLOSS_ref_fractions with reference fractions amongst each possible fragment length
+
+::
+            
+            RPF |   fraction
+            ----  ----------
+            26  |   0.0248963500775222
+            
+
+A table FLOSS_cutoff containing the FLOSS score cutoff value for each amount of reads
+
+::
+            
+            nreads  |   score
+            -----    ------------
+            1       |   0.63122634070155
+            
+            
+A table TIS_sORFs_(analysisID)_transcripts_FLOSS containg the amount of Ribo reads, the FLOSS score and the classification for each sORF. A classification being "Good" means that the sORF is probably coding. A classification being "Extreme" means that the sORF is probably non-coding. The amount of reads can also be out of the range of the cutoff. Then, the calssification will be impossible.
+
+::
+            
+            sorfID  |   nreads |    FLOSS               |classification
+            ------- --------- ------------------------- ---------------
+            1       |   558    |    0.0685054916939421  |Good
+            2       |   487    |    0.381134762254565   |Extreme
+        
+
+    </help>
+    
+</tool>

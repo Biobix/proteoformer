@@ -1,0 +1,63 @@
+<tool id="filter_vcf1" name="Filter a VCF file" version="1.0">
+    
+    <description>based on the allelic frequency of the variants</description>
+    
+    <command interpreter="perl">
+        
+        filter_vcf.pl $high_af $lower_af $upper_af "${input_vcf}" "${filtered_vcf}"
+        
+    </command>
+    
+    <inputs>
+        <param format="vcf" type="data" name="input_vcf" label="select the VCF file to filter" />
+        <param name="high_af" type="float" size="5" value="0.95" label="enter the high allelic frequency cut-off" help="This parameter will select SNPs and INDELS with an allelic frequency above its value. The idea behind this parameter is to select homozygous variants." />
+        <param name="lower_af" type="float" size="5" value="0.3" label="enter the lower allelic frequency cut-off" help="together with the upper cut-off, this parameter will select SNPs and INDELS with an allelic frequency between the lower and upper cut-offs and add them to the list selected with the high cut-off. The idea behind this parameter is to select heterozygous variants." />
+        <param name="upper_af" type="float" size="5" value="0.7" label="enter the upper allelic frequency cut-off" />
+    </inputs>
+    
+    <outputs>
+        <data format="txt" name="filtered_vcf" />
+    </outputs>
+    
+    <help>
+
+.. class:: infomark
+
+**What it does**
+
+This tool filters the variants in a VCF file on their allelic frequency, using cut-off parameters provided by the user.
+
+A variant is retained when:
+
+    high cut-off &lt; allelic frequency
+
+or
+
+    lower cut-off &lt; allelic frequency &lt; upper cut-off
+
+
+The variants that pass the filter are written to a ";" separated .txt file.
+
+*Why ";" as a separator?* Because you can't import tab separated files in SQLite.
+
+*And why not a simple comma?* Because a comma is already used to separate multiple variants at the same position.
+
+-----
+
+.. class:: infomark
+
+**Output**
+
+The output file will look like this:
+::
+
+        1;10;3965868;C;T
+        2;10;3978708;T;C
+        3;10;3978709;G;A
+        4;10;4007800;T;C
+        5;10;4386711;A;G
+        ...
+
+    </help>
+    
+</tool>

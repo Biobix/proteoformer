@@ -1,0 +1,232 @@
+#!/bin/bash
+
+### Alexander Koch
+### 2013
+
+###############
+### FUNCTIONS
+##
+#
+
+function header
+{
+    
+    echo
+    echo
+    echo ' .d8888b. 888b    8888888888b.     .d8888b.        d8888888     888     8888888888b    888 .d8888b.  '
+    echo 'd88P  Y88b8888b   888888   Y88b   d88P  Y88b      d88888888     888       888  8888b   888d88P  Y88b '
+    echo 'Y88b.     88888b  888888    888   888    888     d88P888888     888       888  88888b  888888    888 '
+    echo ' "Y888b.  888Y88b 888888   d88P   888           d88P 888888     888       888  888Y88b 888888        '
+    echo '    "Y88b.888 Y88b8888888888P"    888          d88P  888888     888       888  888 Y88b888888  88888 '
+    echo '      "888888  Y88888888          888    888  d88P   888888     888       888  888  Y88888888    888 '
+    echo 'Y88b  d88P888   Y8888888          Y88b  d88P d8888888888888     888       888  888   Y8888Y88b  d88P '
+    echo ' "Y8888P" 888    Y888888           "Y8888P" d88P     88888888888888888888888888888    Y888 "Y8888P88 '
+    echo
+    echo
+    
+}
+
+function usage
+{
+    
+    echo
+    echo "usage: snp_calling_gatk -g path/to/GATKtoolkit/directory -p path/to/picard/toolkit/directory -e experiment_name -r path/to/reads -s path/to/reference/genome/sequence"
+    echo
+    
+}
+
+
+##################
+### MAIN PROGRAM
+##
+#
+
+trap "wait" TERM EXIT # deal with interruptions (like ctrl-c) by waiting for all threads to finish
+
+T="$(date +%s)"
+
+GATKDIR=
+PICARDDIR=
+EXPERIMENTNAME=
+READS=
+SEQUENCE=
+HIGHAF=0.95
+LOWERAF=0.3
+UPPERAF=0.7
+DMQ=60
+STANDCALLCONF=30.0
+STANDEMITCONF=10.0
+DCOV=500
+MINMAPPINGQ=20
+while [ "$1" != "" ]; do
+    case $1 in
+        -g | --gatk_dir )       shift
+                                GATKDIR=$1
+                                ;;
+        -p | --picard_dir )     shift
+                                PICARDDIR=$1
+                                ;;
+        -e | --experiment )     shift
+                                EXPERIMENTNAME=$1
+                                ;;
+        -r | --reads )          shift
+                                READS=$1
+                                ;;
+        -s | --sequence )       shift
+                                SEQUENCE=$1
+                                ;;
+        --high_af )             shift
+                                HIGHAF=$1
+                                ;;
+        --lower_af )            shift
+                                LOWERAF=$1
+                                ;;
+        --upper_af )            shift
+                                UPPERAF=$1
+                                ;;
+        --dmq )                 shift
+                                DMQ=$1
+                                ;;
+        --stand_call_conf )     shift
+                                STANDCALLCONF=$1
+                                ;;
+        --stand_emit_conf )     shift
+                                STANDEMITCONF=$1
+                                ;;
+        --dcov )                shift
+                                DCOV=$1
+                                ;;
+        --min_mapping_quality ) shift
+                                MINMAPPINGQ=$1
+                                ;;
+        
+        * )                     usage
+                                exit
+    esac
+    shift
+done
+
+header
+
+# print the command line arguments
+echo "COMMAND LINE ARGUMENTS:"
+echo " -e = $EXPERIMENTNAME"
+echo " -r = $READS"
+$GATKDIR=${GATKDIR%/} # removes trailing "/"
+echo " -g = $GATKDIR"
+$PICARDDIR=${PICARDDIR%/} # removes trailing "/"
+echo " -p = $PICARDDIR"
+echo " -s = $SEQUENCE"
+echo "allelic frequency cutoffs:"
+echo " --high_af = $MAXAF"
+echo " --lower_af = $LOWERAF"
+echo " --upper_af = $UPPERAF"
+echo "GATK parameters:"
+echo " --dmq = $DMQ"
+echo " --stand_call_conf = $STANDCALLCONF"
+echo " --stand_emit_conf = $STANDEMITCONF"
+echo " --dcov = $DCOV"
+echo " --min_mapping_quality = $MINMAPPINGQ"
+echo
+
+Tpreprocessing="$(date +%s)"
+# Remove duplicate reads
+#
+echo "preprocessing mapped reads"
+echo
+# sort the SAM file
+echo "--> Picard SortSam..."
+echo
+java -jar "$PICARDDIR"/SortSam.jar I="$READS" O=tmp/ordered.bam SO=coordinate
+echo "done!"
+echo
+# remove the duplicates
+echo "--> Picard MarkDuplicates..."
+echo
+java -jar "$PICARDDIR"/MarkDuplicates.jar I=tmp/ordered.bam O=tmp/dedupped.bam M=tmp/metrics.txt
+echo "done!"
+echo
+# add sample or read group information
+echo "--> Picard AddOrReplaceReadGroups..."
+echo
+java -jar "$PICARDDIR"/AddOrReplaceReadGroups.jar I=tmp/dedupped.bam O=tmp/readGroup.bam RGLB=ribo_seq_lib RGPL=illumina RGPU=ribo_seq_run RGSM=ribo_seq
+echo "done!"
+echo
+# index the BAM file
+echo "--> Picard BuildBamIndex..."
+echo
+java -jar "$PICARDDIR"/BuildBamIndex.jar I=tmp/readGroup.bam
+echo "done!"
+echo
+Tpreprocessing="$(($(date +%s)-Tpreprocessing))"
+echo "preprocessing finished!"
+printf "preprocessing runtime: %02d:%02d:%02d:%02d\n" "$((Tpreprocessing/86400))" "$((Tpreprocessing/3600%24))" "$((Tpreprocessing/60%60))" "$((Tpreprocessing%60))"
+echo
+
+# INDEL-based realignment
+#
+Trealignment="$(date +%s)"
+echo "INDEL-based realignment"
+java -jar "$GATKDIR"/GenomeAnalysisTK.jar -T RealignerTargetCreator -R "$SEQUENCE" -I tmp/readGroup.bam -o tmp/realigner.intervals --filter_reads_with_N_cigar
+java -jar "$GATKDIR"/GenomeAnalysisTK.jar -T IndelRealigner -R "$SEQUENCE" -I tmp/readGroup.bam -targetIntervals tmp/realigner.intervals -o tmp/realigned.bam --filter_reads_with_N_cigar
+Trealignment="$(($(date +%s)-Trealignment))"
+echo
+echo "realignment finished!"
+printf "realignment runtime: %02d:%02d:%02d:%02d\n" "$((Trealignment/86400))" "$((Trealignment/3600%24))" "$((Trealignment/60%60))" "$((Trealignment%60))"
+echo
+
+# Reassigning the mapping quality
+#
+Tmapq="$(date +%s)"
+echo "reassigning mapping quality"
+java -jar "$GATKDIR"/GenomeAnalysisTK.jar -T PrintReads -I tmp/realigned.bam -o tmp/reassignedMAPQ.bam -R "$SEQUENCE" -rf ReassignMappingQuality -DMQ "$DMQ"
+Tmapq="$(($(date +%s)-Tmapq))"
+echo
+echo "reassigning mapping quality finished!"
+printf "reassigning mapq runtime: %02d:%02d:%02d:%02d\n" "$((Tmapq/86400))" "$((Tmapq/3600%24))" "$((Tmapq/60%60))" "$((Tmapq%60))"
+echo
+
+# Calling variants
+#
+Tsnpcalling="$(date +%s)"
+echo "calling variants"
+echo
+java -jar "$GATKDIR"/GenomeAnalysisTK.jar -T HaplotypeCaller -R "$SEQUENCE" -I tmp/reassignedMAPQ.bam -o tmp/rawVariants.vcf -stand_call_conf "$STANDCALLCONF" -stand_emit_conf "$STANDEMITCONF" -dcov "$DCOV" --min_mapping_quality_score "$MINMAPPINGQ"
+Tsnpcalling="$(($(date +%s)-Tsnpcalling))"
+echo
+echo "variant calling finished!"
+printf "variant calling runtime: %02d:%02d:%02d:%02d\n" "$((Tsnpcalling/86400))" "$((Tsnpcalling/3600%24))" "$((Tsnpcalling/60%60))" "$((Tsnpcalling%60))"
+echo
+
+# store the vcf results in an SQLite database
+#
+TmergeSave="$(date +%s)"
+echo "merging VCF files"
+perl mergeVCFfiles.pl "$HIGHAF" "$LOWERAF" "$UPPERAF"
+echo "done"
+echo
+
+echo "storing results in SQLite database"
+sqlite3 SQLite/"${EXPERIMENTNAME}"_results.db "CREATE TABLE snp_gatk(id INT PRIMARY KEY, chr VARCHAR, pos INT, ref CHAR, alt CHAR, af REAL)"
+sqlite3 -separator ';' SQLite/"${EXPERIMENTNAME}"_results.db ".import tmp/allSNPsID.txt snp_gatk"
+TmergeSave="$(($(date +%s)-TmergeSave))"
+echo
+echo "merging and saving finished!"
+printf "merging and saving runtime: %02d:%02d:%02d:%02d\n" "$((TmergeSave/86400))" "$((TmergeSave/3600%24))" "$((TmergeSave/60%60))" "$((TmergeSave%60))"
+echo
+
+# clean up the tmp folder
+#
+echo "cleaning up the tmp/ folder"
+rm tmp/*.vcf*
+rm tmp/*.ba*
+rm tmp/metrics.txt
+rm tmp/allSNPsID.txt
+echo "all clean!"
+echo
+
+T="$(($(date +%s)-T))"
+echo
+echo "SNP calling finished!"
+printf "total runtime: %02d:%02d:%02d:%02d\n" "$((T/86400))" "$((T/3600%24))" "$((T/60%60))" "$((T%60))"
+echo

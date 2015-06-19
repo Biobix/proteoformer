@@ -1,0 +1,26 @@
+VCFFILE=
+while [ "$1" != "" ]; do
+    case $1 in
+        -v )    shift
+                VCFFILE=$1
+                ;;
+        * )     echo "don't forget the vcf file!"
+                exit
+    esac
+    shift
+done
+
+echo "vcf file = $VCFFILE"
+
+touch test_filtered.txt
+touch test.txt
+# remove annotation lines, select the desired columns and cat to the output file
+cat $VCFFILE > test.txt
+sed -i '/^#/d' test.txt
+perl -p -i -e "s/\tDP=.+AF\d*=/\t/g" test.txt
+perl -p -i -e "s/;[A-Z].+?\t/\t/g" test.txt
+awk '{if ($8 > 0.95 || (0.3 < $8 || $8 < 0.7)) print $1,$2,$4,$5,$8 }' test.txt > test_filtered.txt
+perl -p -i -e "s/ /;/g" test_filtered.txt
+
+echo "done"
+echo
