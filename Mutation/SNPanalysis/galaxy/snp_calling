@@ -1,4 +1,27 @@
 #!/bin/bash
+
+#####################################
+##	PROTEOFORMER: deep proteome coverage through ribosome profiling and MS integration
+##
+##	Copyright (C) 2014 G. Menschaert, J.Crappé, E. Ndah, A. Koch & S. Steyaert
+##
+##	This program is free software: you can redistribute it and/or modify
+##	it under the terms of the GNU General Public License as published by
+##	the Free Software Foundation, either version 3 of the License, or
+##	(at your option) any later version.
+##
+##	This program is distributed in the hope that it will be useful,
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##	GNU General Public License for more details.
+##
+##	You should have received a copy of the GNU General Public License
+##	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+##
+## 	For more (contact) information visit http://www.biobix.be/PROTEOFORMER
+#####################################
+
+
 #
 ##
 ### SNP calling
@@ -149,8 +172,12 @@ fi
 echo "$ORGANISM = $ORGANISM_LATIN"
 echo "version = $VERSION"
 echo
-echo "converting the SAM file to BAM..."
-samtools view -bS "$READS" -o aligned.out.bam
+# check if the reads file is in the SAM file format
+# if it is, convert it to BAM
+if [ ${READS: -4} = ".sam" ]; then
+    echo "converting the SAM file to BAM..."
+    samtools view -bS "$READS" -o aligned.out.bam
+fi
 echo "sorting..."
 samtools sort aligned.out.bam aligned.sorted
 samtools index aligned.sorted.bam
@@ -167,25 +194,25 @@ if [ "$SNPDBSELECTED" = "y" ]; then
     perl -p -i -e "s/^#.+?\n//g" snpdb.txt
     awk '{print $1,$2,$4,$5}' snpdb.txt > variants.txt
     perl -p -i -e "s/ /;/g" variants.txt
-    perl "${GALAXYDIR}"/tools/ribo_prof_pipeline/splitVCFaltRecords.pl variants.txt
+    perl "${GALAXYDIR}"/tools/proteoformer/splitVCFaltRecords.pl variants.txt
     # remove INDELS
     perl -p -i -e "s/^.+;[A-Z]{2,}.*\n$//g" split.txt
     sort split.txt | uniq > unique_split.txt
-    perl "${GALAXYDIR}"/tools/ribo_prof_pipeline/snpIndexBuilder.pl unique_split.txt
+    perl "${GALAXYDIR}"/tools/proteoformer/snpIndexBuilder.pl unique_split.txt
     sqlite3 $SQLITEIN "DROP TABLE IF EXISTS snpdb"
     sqlite3 $SQLITEIN "CREATE TABLE snpdb(id INTEGER PRIMARY KEY, chr VARCHAR, pos INT, ref CHAR, alt CHAR)"
     sqlite3 -separator ';' $SQLITEIN ".import unique_split_indexed.txt snpdb"
     rm variants.txt split.txt unique_split.txt
     echo "adding MD tag to SAM file..."
-    if [ $REMOVEDUPLICATES = "true" ]; then
+    if [ "$REMOVEDUPLICATES" = "true" ]; then
         samtools calmd dedupped.bam "${IGENOMESROOT}"/"${ORGANISM_LATIN}"/Ensembl/"${VERSION}"/Sequence/WholeGenomeFasta/genome.fa > aligned.md.sam
     else
         samtools calmd aligned.sorted.bam "${IGENOMESROOT}"/"${ORGANISM_LATIN}"/Ensembl/"${VERSION}"/Sequence/WholeGenomeFasta/genome.fa > aligned.md.sam
     fi
     echo "extracting all sequence mismatches..."
-    perl "${GALAXYDIR}"/tools/ribo_prof_pipeline/filterSAMfile.pl aligned.md.sam
+    perl "${GALAXYDIR}"/tools/proteoformer/filterSAMfile.pl aligned.md.sam
     sort mismatches.txt | uniq > unique_mismatches.txt
-    perl "${GALAXYDIR}"/tools/ribo_prof_pipeline/snpIndexBuilder.pl unique_mismatches.txt
+    perl "${GALAXYDIR}"/tools/proteoformer/snpIndexBuilder.pl unique_mismatches.txt
     sqlite3 $SQLITEIN "DROP TABLE IF EXISTS mismatches"
     sqlite3 $SQLITEIN "CREATE TABLE mismatches(id INTEGER PRIMARY KEY, chr VARCHAR, pos INT, ref CHAR, alt CHAR)"
     sqlite3 -separator ';' $SQLITEIN ".import unique_mismatches_indexed.txt mismatches"
@@ -196,7 +223,7 @@ if [ $THREADS -gt 1 ]; then
     for chr in ${CHROMOSOMES[@]}
     do
         echo "chromosome ${chr}"
-        if [ $REMOVEDUPLICATES = "true" ]; then
+        if [ "$REMOVEDUPLICATES" = "true" ]; then
             samtools view -b dedupped.bam "$chr" -o aligned.sorted.chr"${chr}".bam
         else
             samtools view -b aligned.sorted.bam "$chr" -o aligned.sorted.chr"${chr}".bam
@@ -209,7 +236,7 @@ if [ $THREADS -gt 1 ]; then
     for chr in ${CHROMOSOMES[@]}
     do
         chrSeq="${IGENOMESROOT}"/"${ORGANISM_LATIN}"/Ensembl/"${VERSION}"/Sequence/Chromosomes/"${chr}".fa
-        samtools mpileup -uD -f "${chrSeq}" aligned.sorted.chr"${chr}".bam | bcftools view -bvcg - > snp.raw.chr"${chr}".bcf &
+        samtools mpileup -u -t DP -f "${chrSeq}" aligned.sorted.chr"${chr}".bam | bcftools call -O b -cv - > snp.raw.chr"${chr}".bcf &
         while (( $(jobs | wc -l) >= $THREADS )); do
             sleep 0.1
             jobs > /dev/null
@@ -218,9 +245,9 @@ if [ $THREADS -gt 1 ]; then
     wait # wait for all threads to finish
 else
     if [ "$REMOVEDUPLICATES" = "true" ]; then
-        samtools mpileup -uD -f "${IGENOMESROOT}"/"${ORGANISM_LATIN}"/Ensembl/"${VERSION}"/Sequence/WholeGenomeFasta/genome.fa dedupped.bam | bcftools view -bvcg - > snp.raw.bcf
+        samtools mpileup -u -t DP -f "${IGENOMESROOT}"/"${ORGANISM_LATIN}"/Ensembl/"${VERSION}"/Sequence/WholeGenomeFasta/genome.fa dedupped.bam | bcftools call -O b -cv - > snp.raw.bcf
     else
-        samtools mpileup -uD -f "${IGENOMESROOT}"/"${ORGANISM_LATIN}"/Ensembl/"${VERSION}"/Sequence/WholeGenomeFasta/genome.fa aligned.sorted.bam | bcftools view -bvcg - > snp.raw.bcf
+        samtools mpileup -u -t DP -f "${IGENOMESROOT}"/"${ORGANISM_LATIN}"/Ensembl/"${VERSION}"/Sequence/WholeGenomeFasta/genome.fa aligned.sorted.bam | bcftools call -O b -cv - > snp.raw.bcf
     fi
 fi
 echo
@@ -258,8 +285,8 @@ perl -p -i -e "s/;[A-Z].+?\t/\t/g" all_variants.txt
 awk '{if ($8 > 0.95 || (0.3 < $8 && $8 < 0.7)) print $1,$2,$4,$5,$8,$9 }' all_variants.txt > filtered_variants.txt
 perl -p -i -e "s/ /;/g" filtered_variants.txt
 # split the variant entries with more than one alternative in separate records (eg record for alt=A,T ==> record for alt=A, record for alt=T)
-perl "${GALAXYDIR}"/tools/ribo_prof_pipeline/splitVCFaltRecords.pl filtered_variants.txt
-perl "${GALAXYDIR}"/tools/ribo_prof_pipeline/snpIndexBuilder.pl split.txt
+perl "${GALAXYDIR}"/tools/proteoformer/splitVCFaltRecords.pl filtered_variants.txt
+perl "${GALAXYDIR}"/tools/proteoformer/snpIndexBuilder.pl split.txt
 echo
 echo "saving result to SQLite database..."
 sqlite3 $SQLITEIN "DROP TABLE IF EXISTS snp_samtools_only"
