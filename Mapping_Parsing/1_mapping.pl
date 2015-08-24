@@ -1,5 +1,27 @@
 #!/usr/bin/perl -w
 
+#####################################
+##	PROTEOFORMER: deep proteome coverage through ribosome profiling and MS integration
+##
+##	Copyright (C) 2014 G. Menschaert, J.Crappé, E. Ndah, A. Koch & S. Steyaert
+##
+##	This program is free software: you can redistribute it and/or modify
+##	it under the terms of the GNU General Public License as published by
+##	the Free Software Foundation, either version 3 of the License, or
+##	(at your option) any later version.
+##	
+##	This program is distributed in the hope that it will be useful,
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##	GNU General Public License for more details.
+##
+##	You should have received a copy of the GNU General Public License
+##	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+##
+## 	For more (contact) information visit http://www.biobix.be/PROTEOFORMER
+#####################################
+
+
 $|=1;
 
 use strict;
@@ -20,37 +42,43 @@ use Cwd;
 #1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,
-    $out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr);
 
 GetOptions(
-"inputfile1=s"=>\$seqFileName1,         # the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
-"inputfile2=s"=>\$seqFileName2,         # the fastq file of the treated data for RIBO-seq (PUR,LTM,HARR) or the 2nd fastq for paired-end RNA-seq                         mandatory argument
-"name=s"=>\$run_name,                   # Name of the run,                                                  mandatory argument
-"species=s"=>\$species,                 # Species, eg mouse/human/fruitfly,                                 mandatory argument
-"ensembl=i"=>\$ensemblversion,          # Ensembl annotation version, eg 66 (Feb2012),                      mandatory argument
-"cores=i"=>\$cores,                     # Number of cores to use for Bowtie Mapping,                        mandatory argument
-"readtype=s"=>\$readtype,               # The readtype (ribo, PE_polyA, SE_polyA, PE_total, SE_total)       mandatory argument (default = ribo)
-"mapper:s"=>\$mapper,                   # The mapper used for alignment (Bowtie,Bowtie2,STAR,TopHat2)       optional  argument (default = STAR)
-"readlength:i"=>\$readlength,           # The readlength (if RiboSeq take 50 bases),                        optional  argument (default = 50)
-"adaptor:s"=>\$adaptorSeq,              # The adaptor sequence that needs to be clipped with fastx_clipper, optional  argument (default = CTGTAGGCACCATCAATAGATCGGAAGA) => Ingolia paper (for ArtSeq = AGATCGGAAGAGCACACGTCTGAACTCC)
-"unique=s" =>\$unique,                  # Retain the uniquely (and multiple) mapping reads (Y or N),        mandatory argument
-"tmp:s" =>\$tmpfolder,                  # Folder where temporary files are stored,                          optional  argument (default = $TMP or $CWD/tmp env setting)
-"work_dir:s" =>\$work_dir,              # Working directory ,                                               optional  argument (default = $CWD env setting)
-"out_bg_s_untr:s" =>\$out_bg_s_untr,    # Output file for sense untreated count data (bedgraph)             optional  argument (default = untreat_sense.bedgraph)
-"out_bg_as_untr:s" =>\$out_bg_as_untr,  # Output file for antisense untreated count data (bedgraph)         optional  argument (default = untreat_antisense.bedgraph)
-"out_bg_s_tr:s" =>\$out_bg_s_tr,        # Output file for sense treated count data (bedgraph)               optional  argument (default = treat_sense.bedgraph)
-"out_bg_as_tr:s" =>\$out_bg_as_tr,      # Output file for antisense treated count data (bedgraph)           optional  argument (default = treat_antisense.bedgraph)
-"out_sam_untr:s" =>\$out_sam_untr,      # Output file for alignments of untreated data (sam)                optional  argument (default = untreat.sam)
-"out_sam_trs:s" =>\$out_sam_tr,         # Output file for alignments of treated data (sam)                  optional  argument (default = treat.sam)
-"out_sqlite:s" =>\$out_sqlite,          # sqlite DB output file                                             optional  argument (default = results.db)
-"igenomes_root=s" =>\$IGENOMES_ROOT,    # IGENOMES ROOT FOLDER                                              mandatory argument
-"clipper:s" =>\$clipper,                # what clipper is used (STAR internal or fastx)                     optional argument (default = STAR) or fastx
-"phix:s" =>\$phix,                      # map to phix DB prior to genomic mapping (Y or N)                  optional argument (default = N)
-"rRNA:s" =>\$rRNA,                      # map to rRNA DB prior to genomic mapping (Y or N)                  optional argument (default = Y)
-"snRNA:s" =>\$snRNA,                     # map to snRNA DB prior to genomic mapping (Y or N)                optional argument (default = N)
-"tRNA:s" =>\$tRNA                      # map to tRNA DB prior to genomic mapping (Y or N)                   optional argument (default = N)
+"inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
+"inputfile2=s"=>\$seqFileName2,         	# the fastq file of the treated data for RIBO-seq (PUR,LTM,HARR) or the 2nd fastq for paired-end RNA-seq                         mandatory argument
+"name=s"=>\$run_name,                   	# Name of the run,                                                  			mandatory argument
+"species=s"=>\$species,                 	# Species, eg mouse/human/fruitfly,                                				mandatory argument
+"ensembl=i"=>\$ensemblversion,          	# Ensembl annotation version, eg 66 (Feb2012),                      			mandatory argument
+"cores=i"=>\$cores,                     	# Number of cores to use for Bowtie Mapping,                        			mandatory argument
+"readtype=s"=>\$readtype,              		# The readtype (ribo, PE_polyA, SE_polyA, PE_total, SE_total)       			mandatory argument (default = ribo)
+"mapper:s"=>\$mapper,                   	# The mapper used for alignment (Bowtie,Bowtie2,STAR,TopHat2)       			optional  argument (default = STAR)
+"readlength:i"=>\$readlength,           	# The readlength (if RiboSeq take 50 bases),                        			optional  argument (default = 50)
+"adaptor:s"=>\$adaptorSeq,              	# The adaptor sequence that needs to be clipped with fastx_clipper, 			optional  argument (default = CTGTAGGCACCATCAATAGATCGGAAGA) => Ingolia paper (for ArtSeq = AGATCGGAAGAGCACACGTCTGAACTCC)
+"unique=s" =>\$unique,                  	# Retain the uniquely (and multiple) mapping reads (Y or N),        			mandatory argument
+"tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
+"work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
+"out_bg_s_untr:s" =>\$out_bg_s_untr,    	# Output file for sense untreated count data (bedgraph)             			optional  argument (default = untreat_sense.bedgraph)
+"out_bg_as_untr:s" =>\$out_bg_as_untr,  	# Output file for antisense untreated count data (bedgraph)         			optional  argument (default = untreat_antisense.bedgraph)
+"out_bg_s_tr:s" =>\$out_bg_s_tr,        	# Output file for sense treated count data (bedgraph)               			optional  argument (default = treat_sense.bedgraph)
+"out_bg_as_tr:s" =>\$out_bg_as_tr,      	# Output file for antisense treated count data (bedgraph)           			optional  argument (default = treat_antisense.bedgraph)
+"out_sam_untr:s" =>\$out_sam_untr,      	# Output file for alignments of untreated data (sam)                			optional  argument (default = untreat.sam)
+"out_sam_trs:s" =>\$out_sam_tr,         	# Output file for alignments of treated data (sam)                  			optional  argument (default = treat.sam)
+"out_bam_tr_untr:s" =>\$out_bam_tr_untr,	# Output file for alignments on transcript coordinates for untreated data (sam) optional  argument (default = untreat.sam)
+"out_bam_tr_trs:s" =>\$out_bam_tr_tr,   	# Output file for alignments on transcript coordinates for treated data (sam)   optional  argument (default = treat.sam)
+"out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file                                             			optional  argument (default = results.db)
+"igenomes_root=s" =>\$IGENOMES_ROOT,    	# IGENOMES ROOT FOLDER                                              			mandatory argument
+"clipper:s" =>\$clipper,                	# what clipper is used (STAR internal or fastx)                     			optional argument (default = STAR) or fastx
+"phix:s" =>\$phix,                      	# map to phix DB prior to genomic mapping (Y or N)                  			optional argument (default = N)
+"rRNA:s" =>\$rRNA,                      	# map to rRNA DB prior to genomic mapping (Y or N)                  			optional argument (default = Y)
+"snRNA:s" =>\$snRNA,                    	# map to snRNA DB prior to genomic mapping (Y or N)                				optional argument (default = N)
+"tRNA:s" =>\$tRNA,                      	# map to tRNA DB prior to genomic mapping (Y or N)                   			optional argument (default = N)
+"tr_coord=s" =>\$tr_coord,					# Generate alignment file based on transcript coordinates (Y or N)				optional argument (default = N)
+"missmatch=i" =>\$mismatch,	# Alignment will be output only if it has fewer mismatches than this value		optional argument (default = 2)
+"maxmultimap=i" =>\$maxmultimap		# Alignments will be output only if the read maps fewer than this value			optional argument (default = 16)
+
 );
+
 
 
 ###########################################################################
@@ -116,13 +144,6 @@ if ($readtype){
 } else {
     die "\nDon't forget to pass the read type using the --readtype or -r argument!\n\n";
 }
-if ($adaptorSeq){
-    print "The adaptor sequence to be clipped with fastx_clipper    : $adaptorSeq\n";
-} else {
-    #Choose default value for AdaptorSeq
-    $adaptorSeq = "CTGTAGGCACCATCAATAGATCGGAAGA";
-    print "The adaptor sequence to be clipped with fastx_clipper    : $adaptorSeq\n";
-}
 if ($readlength){
     print "The readLength (for RiboSeq it should be set to 36)      : $readlength\n";
 } else {
@@ -142,13 +163,49 @@ if ($unique){
 } else {
     die "\nDon't forget to pass the unique or multiple read retention parameter --unique or -u argument!\n\n";
 }
-if ($clipper){
-    print "The clipper used is                                      : $clipper\n";
+if ($maxmultimap){
+    print "Maximun number of loci for reads to be acceptable       : $maxmultimap\n";
 } else {
-    #Choose default value for clipper
-    $clipper = 'STAR';
-    print "The clipper used is                                      : $clipper\n";
+	$maxmultimap = 16;
+    print "Maximun number of loci for reads to be acceptable        : $maxmultimap\n";
 }
+if ($mismatch){
+    print "Maximum number of mismatches to allow in an alignment    : $mismatch\n";
+} else {
+	$mismatch = 2;
+    print "Maximum number of mismatches to allow in an alignment    : $mismatch\n";
+}
+
+if ($adaptorSeq){
+    print "The adaptor sequence to be clipped with fastx_clipper    : $adaptorSeq\n";
+	
+	#if ($clipper){
+	#	if ($clipper ne "STAR" and $clipper and "fastx" and $clipper ne "none") {
+	#		print "Unknown clipper tool                                      : $clipper\n";
+	#		exit;
+	#	}
+		
+	#	print "The clipper used is                                      : $clipper\n";
+	#} else {
+		#Choose default value for clipper
+	#	$clipper = 'STAR';
+	#	print "The default clipper is used                                   : $clipper\n";
+	#}
+	
+} else {
+    #Choose default value for AdaptorSeq
+    $adaptorSeq = "CTGTAGGCACCATCAATAGATCGGAAGA";
+    print "The adaptor sequence to be clipped                       : $adaptorSeq\n";	
+}
+
+if ($clipper){
+	print "The clipper used is                                      : $clipper\n";
+} else {
+		#Choose default value for clipper
+		$clipper = 'STAR';
+		print "The clipper used is                                      : $clipper\n";
+}
+
 if ($phix){
     print "Phix mapping prior to genomic                            : $phix\n";
 } else {
@@ -182,13 +239,15 @@ if ($tRNA){
 system "mkdir -p ".$work_dir."/output/";
 system "mkdir -p ".$work_dir."/fastq/";
 
-if (!defined($out_bg_s_untr))  {$out_bg_s_untr     = $work_dir."/output/untreat_sense.bedgraph";}
-if (!defined($out_bg_as_untr)) {$out_bg_as_untr    = $work_dir."/output/untreat_antisense.bedgraph";}
-if (!defined($out_bg_s_tr))    {$out_bg_s_tr       = $work_dir."/output/treat_sense.bedgraph";}
-if (!defined($out_bg_as_tr))   {$out_bg_as_tr      = $work_dir."/output/treat_antisense.bedgraph";}
-if (!defined($out_sam_untr))   {$out_sam_untr      = $work_dir."/".$mapper."/fastq1/untreat.sam";}
-if (!defined($out_sam_tr))     {$out_sam_tr        = $work_dir."/".$mapper."/fastq2/treat.sam";}
-if (!defined($out_sqlite))     {$out_sqlite        = $work_dir."/SQLite/results.db";}
+if (!defined($out_bg_s_untr))  		{$out_bg_s_untr     = $work_dir."/output/untreat_sense.bedgraph";}
+if (!defined($out_bg_as_untr)) 		{$out_bg_as_untr    = $work_dir."/output/untreat_antisense.bedgraph";}
+if (!defined($out_bg_s_tr))    		{$out_bg_s_tr       = $work_dir."/output/treat_sense.bedgraph";}
+if (!defined($out_bg_as_tr))   		{$out_bg_as_tr      = $work_dir."/output/treat_antisense.bedgraph";}
+if (!defined($out_sam_untr))   		{$out_sam_untr      = $work_dir."/".$mapper."/fastq1/untreat.sam";}
+if (!defined($out_sam_tr))     		{$out_sam_tr        = $work_dir."/".$mapper."/fastq2/treat.sam";}
+if (!defined($out_bam_tr_untr)) 	{$out_bam_tr_untr    = $work_dir."/".$mapper."/fastq1/untreat_tr.bam";}
+if (!defined($out_bam_tr_tr))		{$out_bam_tr_tr     = $work_dir."/".$mapper."/fastq2/treat_tr.bam";}
+if (!defined($out_sqlite))     		{$out_sqlite        = $work_dir."/SQLite/results.db";}
 
 #ADDED FOR TEST ISSUES
 my $clusterPhoenix = "N";
@@ -233,7 +292,7 @@ my $STARIndexGenomeFolder = $spec_short.".".$assembly.".".$ensemblversionforStar
 
 
 #Get executables
-my ($bowtie_loc,$bowtie2_loc,$tophat2_loc,$STAR_loc,$sqlite_loc,$samtools_loc,$fastx_clip_loc,$fastx_trim_loc);
+my ($bowtie_loc,$bowtie2_loc,$tophat2_loc,$STAR_loc,$sqlite_loc,$samtools_loc,$fastx_clip_loc,$fastx_trim_loc,$python_loc);
 #if ($clusterPhoenix eq "Y") {
 #General settings for cluster Phoenix
  $bowtie_loc = "bowtie";
@@ -245,6 +304,7 @@ my ($bowtie_loc,$bowtie2_loc,$tophat2_loc,$STAR_loc,$sqlite_loc,$samtools_loc,$f
  $fastx_clip_loc = "fastx_clipper";
  #$fastx_trim_loc = "fastx_trimmer";
  $fastx_trim_loc = "fastq_quality_trimmer";
+ $python_loc = "python";
 
 my $mapper_loc = ($mapper eq "Bowtie1") ? $bowtie_loc
 : ($mapper eq "Bowtie2") ? $bowtie2_loc
@@ -328,17 +388,19 @@ foreach (@loopfastQ) {
         my $start = time;
         if ($readtype eq "ribo") {
             map_topHat2_ribo($_,$fastqName);
-            RIBO_parse_store($_,$fastqName); # Only A-site parsing if RIBO-seq
+            RIBO_parse_store($_,$fastqName, 'Y'); # Only A-site parsing if RIBO-seq
         }
         my $end = time - $start;
         printf("runtime TopHat against genomic: %02d:%02d:%02d\n\n",int($end/3600), int(($end % 3600)/60), int($end % 60));
     }
     elsif ($mapper eq "STAR") {
-        print "Mapping with STAR\n";
+
+		print "Mapping with STAR\n";
         my $start = time;
         if ($readtype eq "ribo") {
             map_STAR($_,$fastqName,$clipper);
-            RIBO_parse_store($_,$fastqName); # Only A-site parsing if RIBO-seq
+            RIBO_parse_store($_,$fastqName, 'Y'); # Only A-site parsing if RIBO-seq
+			if ($unique eq "N") {RIBO_parse_store($_,$fastqName, $unique)}
         }
         if ($readtype eq "SE_polyA") {
             map_STAR($_,$fastqName,$clipper);
@@ -354,7 +416,9 @@ foreach (@loopfastQ) {
     }
     # Store statistics in DB
     store_statistics($stat_file,$dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
+	
 }
+
 
 
 ############
@@ -367,7 +431,6 @@ sub map_bowtie {
     my $seqFile = $_[0];
     my $seqFileName = $_[1];
     
-    my $mismatch = 2;   # From Nature Protocol Paper Ingolia (for Bowtie1)
     my $seed = 25;      # From Nature Protocol Paper Ingolia (for Bowtie1)
     
     # Print
@@ -474,6 +537,7 @@ sub map_bowtie2 {
     
     my $fasta_to_rRNA;
     my $adapter = $adaptorSeq;
+	
     ######  Clip and Trim sequence
     if ($bowtie2Setting eq 'local') {
         print "     Bowtie2 local version is selected, no trimming/clipping performed, feed file to rRNA mapping\n"; #Bowtie local allows mismatches at beginning or end of read
@@ -567,8 +631,7 @@ sub map_STAR {
         $fasta1 = $seqFile;
         $fasta2 = $seqFile2;
     }
-    
-    
+        
     # Prepare
     my $directory = $work_dir."/".$mapper."/".$seqFileName.""."/";
     system "mkdir -p $directory";
@@ -584,14 +647,19 @@ sub map_STAR {
         $fasta = $work_dir."/fastq/$seqFileName"."_clip.fastq";
         print "clipfasta= $fasta\n";
 
-	    print "     Trimming $seqFileName"."\n";
-	    system ($fastx_trim_loc." -Q33 -v -t 28 -l 26  -i ".$fasta." -o ".$work_dir."/fastq/$seqFileName"."_clip_trim.fastq");
+	    print "     Trimming $seqFileName"." using fastq_quality_trimmer tool\n";
+		my $trim_command = $fastx_trim_loc." -Q33 -v -t 28 -l 26  -i ".$fasta." -o ".$work_dir."/fastq/$seqFileName"."_clip_trim.fastq";
+	    system ($trim_command);
 		$fasta = $work_dir."/fastq/$seqFileName"."_clip_trim.fastq";
 		print "trimfasta= $fasta\n";
     
-    }
+    } 
+
+    #my $clip_stat = ($clipper eq "fastx") ? " " 
+	#: (!defined $clipper) ? ""
+	#: ($mapper eq "STAR") ? "--clip3pAdapterSeq ".$adaptorSeq." --clip3pAdapterMMp 0.1 ";
+	
     my $clip_stat = ($clipper eq "fastx") ? " " : "--clip3pAdapterSeq ".$adaptorSeq." --clip3pAdapterMMp 0.1 ";
-    
     
     #GO FOR STAR-pHIX mapping
     if ($phix eq "Y") {
@@ -600,7 +668,6 @@ sub map_STAR {
         
         print "     Mapping against Phix $seqFileName"."\n";
         ###### Map against phix db using STAR
-        
         
         # Build command
         system("mkdir  -p ".$work_dir."/fastq/nophix");
@@ -622,93 +689,92 @@ sub map_STAR {
         system("mv ".$work_dir."/fastq/nophix/Unmapped.out.mate1 ".$work_dir."/fastq/".$seqFileName."_nophix.fq"); #For further processing against genomic!!
         $fasta = $work_dir."/fastq/".$seqFileName."_nophix.fq";
         
-
     }
     
     # If RIBO-SEQ: prior rRNA and/or snRNA and/or trRNA mapping is necessary
     if ($readtype eq "ribo") {
         #GO FOR rRNA mapping
         if ($rRNA eq "Y") {
-        if ($prev_mapper eq 'STAR') {
-            
-            #Check if rRNA STAR index exists?
-            check_STAR_index($IndexrRNA);
-            
-            print "     Mapping against rRNA $seqFileName"."\n";
-            ###### Map against rRNA db using STAR (includes adapter clipping or exluding adapter clipping, dependent on previous clipping process)
-            
-            $ref_loc = get_ref_loc($prev_mapper);
-            # Build command
-            $command = $STAR_loc." --genomeLoad NoSharedMemory --seedSearchStartLmaxOverLread .5 ".$clip_stat." --genomeDir ".$ref_loc.$IndexrRNA." --readFilesIn ".$fasta." --outFilterMultimapNmax 40 --outFilterMismatchNmax 2 --outFileNamePrefix ".$work_dir."/fastq/ --runThreadN ".$cores." --outReadsUnmapped Fastx";
-            
-            #print "     $command\n";
-            # Run
-            system($command);
-            # Print
-            print "   Finished rRNA multiseed mapping $seqFileName"."\n";
-            # Process statistics
-            open (STATS, ">>".$stat_file);
-            my ($inReads, $mappedReadsU,$mappedReadsM, $unmappedReads) = parseLogSTAR($work_dir."/fastq/");
-            my $mappedReads = $mappedReadsU + $mappedReadsM;
-            print STATS "STAR ".$run_name." ".$seqFileName." "."fastq rRNA ".$inReads."\n";
-            print STATS "STAR ".$run_name." ".$seqFileName." "."hit rRNA ".$mappedReads."\n";
-            print STATS "STAR ".$run_name." ".$seqFileName." "."unhit rRNA ".$unmappedReads."\n";
-            close(STATS);
-            
-            # Rename unmapped.out.mate1 for further analysis
-            system("mv ".$work_dir."/fastq/Unmapped.out.mate1 ".$work_dir."/fastq/".$seqFileName."_norrna.fq"); #For further processing against genomic!!
-            
-        }
-        #GO FOR CLIP-TRIM-BOWTIE to get clipped, trimmed, norRNA reads
-        elsif ($prev_mapper eq 'Bowtie') {
-            ###### Clip and Trim sequence
-            print "     Clipping $seqFileName"."\n";
-            
-            my $adapter = $adaptorSeq;
-            my $clip_command = $fastx_clip_loc." -Q33 -a ".$adapter." -l 20 -c -n –v -i ".$work_dir."/fastq/$seqFileName".".fastq -o ".$work_dir."/fastq/$seqFileName"."_clip.fastq";
-            #print "     ".$clip_command."\n";
-            system ($clip_command);
-            print "     Trimming $seqFileName"."\n";
-            system ($fastx_trim_loc." -Q33 -f 2  –v -i ".$work_dir."/fastq/$seqFileName"."_clip.fastq -o ".$work_dir."/fastq/$seqFileName"."_trim.fastq");
-            
-            ###### Map against rRNA db using Bowtie
-            # Check rRNA Index
-            check_Bowtie_index($IndexrRNA,$prev_mapper);
-            # Build command
-            print "     Mapping against rRNA $seqFileName"."\n";
-            $ref_loc = get_ref_loc($prev_mapper);
-            $command = $bowtie_loc." -p ".$cores." --sam --seedlen 23 --al ".$work_dir."/fastq/$seqFileName"."_rrna.fq --un ".$work_dir."/fastq/$seqFileName"."_norrna.fq ".$ref_loc."".$IndexrRNA." ".$work_dir."/fastq/$seqFileName"."_trim.fastq>/dev/null";
-            # Run
-            system($command);
-            # Print
-            print "   Finished rRNA mapping $seqFileName"." with seedlength 23\n";
-            # Process statistics
-            system("wc ".$work_dir."/fastq/$seqFileName"."_trim.fastq >> ".$stat_file);
-            system("wc ".$work_dir."/fastq/$seqFileName"."_rrna.fq >> ".$stat_file);
-            system("wc ".$work_dir."/fastq/$seqFileName"."_norrna.fq >> ".$stat_file);
-            
-        }
-        # GO FOR BOWTIE2_LOCAL_VERY-FAST to get unclipped/untrimmed norRNA reads
-        elsif ($prev_mapper eq 'Bowtie2') {
-            print "     Bowtie2 local version is selected, no trimming performed, feed clipped file to rRNA mapping\n"; #Bowtie local allows mismatches at beginning or end of read
-            ###### Map against rRNA db
-            # Check rRNA Index
-            check_Bowtie_index($IndexrRNA,$prev_mapper);
-            # Build command
-            $ref_loc = get_ref_loc($prev_mapper);
-            print "     Mapping against rRNA $seqFileName"."\n";
-            $command = $bowtie2_loc." -p ".$cores." --".$bowtie2Setting." --sensitive-local --al ".$work_dir."/fastq/$seqFileName"."_rrna.fq --un ".$work_dir."/fastq/$seqFileName"."_norrna.fq  -x ".$ref_loc."".$IndexrRNA." -U ".$fasta.">/dev/null";
-            # Run
-            system($command);
-            # Print
-            print "   Finished rRNA multiseed alignment of $seqFileName"." with seedlength 20\n";
-            # Process statistics
-            system("wc ".$fasta." >> statistics.txt");
-            system("wc ".$work_dir."/fastq/$seqFileName"."_rrna.fq >> ".$stat_file);
-            system("wc ".$work_dir."/fastq/$seqFileName"."_norrna.fq >> ".$stat_file);
-            
-        }
-        $fasta = $work_dir."/fastq/$seqFileName"."_norrna.fq";
+			if ($prev_mapper eq 'STAR') {
+				
+				#Check if rRNA STAR index exists?
+				check_STAR_index($IndexrRNA);
+				
+				print "     Mapping against rRNA $seqFileName"."\n";
+				###### Map against rRNA db using STAR (includes adapter clipping or exluding adapter clipping, dependent on previous clipping process)
+				
+				$ref_loc = get_ref_loc($prev_mapper);
+				# Build command
+				$command = $STAR_loc." --genomeLoad NoSharedMemory --seedSearchStartLmaxOverLread .5 ".$clip_stat." --genomeDir ".$ref_loc.$IndexrRNA." --readFilesIn ".$fasta." --outFilterMultimapNmax 40 --outFilterMismatchNmax 2 --outFileNamePrefix ".$work_dir."/fastq/ --runThreadN ".$cores." --outReadsUnmapped Fastx";
+				
+				#print "     $command\n";
+				# Run
+				system($command);
+				# Print
+				print "   Finished rRNA multiseed mapping $seqFileName"."\n";
+				# Process statistics
+				open (STATS, ">>".$stat_file);
+				my ($inReads, $mappedReadsU,$mappedReadsM, $unmappedReads) = parseLogSTAR($work_dir."/fastq/");
+				my $mappedReads = $mappedReadsU + $mappedReadsM;
+				print STATS "STAR ".$run_name." ".$seqFileName." "."fastq rRNA ".$inReads."\n";
+				print STATS "STAR ".$run_name." ".$seqFileName." "."hit rRNA ".$mappedReads."\n";
+				print STATS "STAR ".$run_name." ".$seqFileName." "."unhit rRNA ".$unmappedReads."\n";
+				close(STATS);
+				
+				# Rename unmapped.out.mate1 for further analysis
+				system("mv ".$work_dir."/fastq/Unmapped.out.mate1 ".$work_dir."/fastq/".$seqFileName."_norrna.fq"); #For further processing against genomic!!
+				
+			}
+			#GO FOR CLIP-TRIM-BOWTIE to get clipped, trimmed, norRNA reads
+			elsif ($prev_mapper eq 'Bowtie') {
+				###### Clip and Trim sequence
+				print "     Clipping $seqFileName"."\n";
+				
+				my $adapter = $adaptorSeq;
+				my $clip_command = $fastx_clip_loc." -Q33 -a ".$adapter." -l 20 -c -n –v -i ".$work_dir."/fastq/$seqFileName".".fastq -o ".$work_dir."/fastq/$seqFileName"."_clip.fastq";
+				#print "     ".$clip_command."\n";
+				system ($clip_command);
+				print "     Trimming $seqFileName"."\n";
+				system ($fastx_trim_loc." -Q33 -f 2  –v -i ".$work_dir."/fastq/$seqFileName"."_clip.fastq -o ".$work_dir."/fastq/$seqFileName"."_trim.fastq");
+				
+				###### Map against rRNA db using Bowtie
+				# Check rRNA Index
+				check_Bowtie_index($IndexrRNA,$prev_mapper);
+				# Build command
+				print "     Mapping against rRNA $seqFileName"."\n";
+				$ref_loc = get_ref_loc($prev_mapper);
+				$command = $bowtie_loc." -p ".$cores." --sam --seedlen 23 --al ".$work_dir."/fastq/$seqFileName"."_rrna.fq --un ".$work_dir."/fastq/$seqFileName"."_norrna.fq ".$ref_loc."".$IndexrRNA." ".$work_dir."/fastq/$seqFileName"."_trim.fastq>/dev/null";
+				# Run
+				system($command);
+				# Print
+				print "   Finished rRNA mapping $seqFileName"." with seedlength 23\n";
+				# Process statistics
+				system("wc ".$work_dir."/fastq/$seqFileName"."_trim.fastq >> ".$stat_file);
+				system("wc ".$work_dir."/fastq/$seqFileName"."_rrna.fq >> ".$stat_file);
+				system("wc ".$work_dir."/fastq/$seqFileName"."_norrna.fq >> ".$stat_file);
+				
+			}
+			# GO FOR BOWTIE2_LOCAL_VERY-FAST to get unclipped/untrimmed norRNA reads
+			elsif ($prev_mapper eq 'Bowtie2') {
+				print "     Bowtie2 local version is selected, no trimming performed, feed clipped file to rRNA mapping\n"; #Bowtie local allows mismatches at beginning or end of read
+				###### Map against rRNA db
+				# Check rRNA Index
+				check_Bowtie_index($IndexrRNA,$prev_mapper);
+				# Build command
+				$ref_loc = get_ref_loc($prev_mapper);
+				print "     Mapping against rRNA $seqFileName"."\n";
+				$command = $bowtie2_loc." -p ".$cores." --".$bowtie2Setting." --sensitive-local --al ".$work_dir."/fastq/$seqFileName"."_rrna.fq --un ".$work_dir."/fastq/$seqFileName"."_norrna.fq  -x ".$ref_loc."".$IndexrRNA." -U ".$fasta.">/dev/null";
+				# Run
+				system($command);
+				# Print
+				print "   Finished rRNA multiseed alignment of $seqFileName"." with seedlength 20\n";
+				# Process statistics
+				system("wc ".$fasta." >> statistics.txt");
+				system("wc ".$work_dir."/fastq/$seqFileName"."_rrna.fq >> ".$stat_file);
+				system("wc ".$work_dir."/fastq/$seqFileName"."_norrna.fq >> ".$stat_file);
+				
+			}
+			$fasta = $work_dir."/fastq/$seqFileName"."_norrna.fq";
         }
         #GO FOR snRNA mapping
         if ($snRNA eq "Y") {
@@ -788,14 +854,25 @@ sub map_STAR {
     # Map vs genomic
     print "     Mapping against genomic $seqFileName"."\n";
     
-    # alignment dependent on read type
     if ($readtype eq "ribo") {
+	
+		if ($unique eq 'Y') {$maxmultimap = 1}	# to ensure unique mapping
         $ref_loc = get_ref_loc($mapper);
-        $command = $STAR_loc." --outSAMattributes Standard --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax 16 --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --readFilesIn ".$fasta." --runThreadN ".$cores." --outFilterMismatchNmax 2 -- outFileNamePrefix ".$directory;
+        $command = $STAR_loc." --outSAMattributes Standard --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --readFilesIn ".$fasta." --runThreadN ".$cores." --outFilterMismatchNmax ".$mismatch." -- outFileNamePrefix ".$directory;
+		if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Output transcriptome coordinate to bam file
+
     } elsif ($readtype =~ m/PE/) {
-        $command = $STAR_loc." --outSAMattributes Standard --genomeLoad NoSharedMemory --chimSegmentMin 15 --chimJunctionOverhangMin 15 --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outSAMunmapped Within --outReadsUnmapped Fastx --seedSearchStartLmaxOverLread 0.5 --outFilterMultimapNmax 16 --outFilterMismatchNmax 6 --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --readFilesIn ".$fasta1." ".$fasta2." --runThreadN ".$cores." --outFilterType BySJout -- outFileNamePrefix ".$directory;
+	
+		if ($unique eq 'Y') {$maxmultimap = 1}	# to ensure unique mapping
+        $command = $STAR_loc." --outSAMattributes Standard --genomeLoad NoSharedMemory --chimSegmentMin 15 --chimJunctionOverhangMin 15 --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outSAMunmapped Within --outReadsUnmapped Fastx --seedSearchStartLmaxOverLread 0.5 --outFilterMultimapNmax ".$maxmultimap." --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --readFilesIn ".$fasta1." ".$fasta2." --runThreadN ".$cores." --outFilterType BySJout -- outFileNamePrefix ".$directory;
+		if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
+
     } elsif ($readtype =~ m/SE/) {
-        $command = $STAR_loc." --outSAMattributes Standard --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax 16 --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --readFilesIn ".$fasta." --runThreadN ".$cores." --outFilterMismatchNmax 2 -- outFileNamePrefix ".$directory;
+	
+		if ($unique eq 'Y') {$maxmultimap = 1}	# to ensure unique mapping
+        $command = $STAR_loc." --outSAMattributes Standard --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --readFilesIn ".$fasta." --runThreadN ".$cores." --outFilterMismatchNmax ".$mismatch." -- outFileNamePrefix ".$directory;
+		if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
+
     }
     
     print "     ".$command."\n";
@@ -814,14 +891,44 @@ sub map_STAR {
     system($samtools_loc." view -h -o ".$directory."Aligned.sorted.sam ".$directory."Aligned.sorted.bam > /dev/null 2>&1");
     systemError("Samtools view",$?,$!);
 
-    
     # rename SAM output file
-        print "renaming SAM output file...\n";
+    print "renaming SAM output file...\n";
     
     # Bam file depends on what fastq file is processed (fastq1 = untreated, fastq2 = treaeted; that is for RIBO-seq experiments)
     my $bamf = ($seqFileName  eq 'fastq1') ? $out_sam_untr : $out_sam_tr;
-    system("mv ".$directory."Aligned.sorted.sam ".$bamf);
+	system("mv ".$directory."Aligned.sorted.sam ".$bamf);
+	
+	# remove redundant files
+	system("rm ".$directory."Aligned.out.bam");
+	system("rm ".$directory."Aligned.out.sam");
+	system("rm ".$directory."Aligned.sorted.bam");
+	
+	# Handle transcript coordinates if required
+	if (uc($tr_coord) eq "Y" ) {
+	
+		print "sorting STAR for transcripts coordinates hits...\n";
+		system($samtools_loc." sort -@ ". $cores. " -m 1000M ".$directory."Aligned.toTranscriptome.out.bam ".$directory."Aligned.toTranscriptome.out.sorted 2>&1" );
+		systemError("Samtools sort",$?,$!);
+		
+		#  convert BAM back to SAM file
+		#print "converting BAM to SAM...\n";
+		#system($samtools_loc." view -h -o ".$directory."Aligned.toTranscriptome.out.sorted.sam ".$directory."Aligned.toTranscriptome.out.sorted.bam > /dev/null 2>&1");
+		#systemError("Samtools view",$?,$!);
 
+		# rename SAM output file
+		#print "renaming SAM output file...\n";
+		
+		# Bam file depends on what fastq file is processed (fastq1 = untreated, fastq2 = treaeted; that is for RIBO-seq experiments)
+		my $bamf = ($seqFileName  eq 'fastq1') ? $out_bam_tr_untr : $out_bam_tr_tr;
+		system("mv ".$directory."Aligned.toTranscriptome.out.sorted.bam ".$bamf);
+		
+		print "transcript coordinate $bamf\n";
+		system("rm ".$directory."Aligned.toTranscriptome.out.bam");
+		#system("rm ".$directory."Aligned.toTranscriptome.out.sorted.bam");
+		#system("rm ".$directory."Aligned.toTranscriptome.out.sorted.sam");
+	
+	}
+	
     
     # Process statistics
     open (STATS, ">>".$stat_file);
@@ -1288,7 +1395,8 @@ sub parseLogSTAR {
     
     # Catch
     my $dir  = $_[0];
-    open (LOG,"<".$dir."Log.final.out") || die "ERROR";
+
+    open (LOG,"<".$dir."Log.final.out") || die "path $dir";
     
     my ($line,@lineSplit,$inReads,$mappedReadsU,$mappedReadsM,$mappedReads,$unmappedReads);
     
@@ -1315,6 +1423,7 @@ sub parseLogSTAR {
     close(LOG);
     return ($inReads,$mappedReadsU,$mappedReadsM,$unmappedReads);
 }
+
 
 sub parseLogTopHat {
     
@@ -1351,6 +1460,7 @@ sub parseLogTopHat {
     close(LOG1);
     
     return ($inReads,$mappedReadsU,$mappedReadsM,$unmappedReads);
+
 }
 
 
@@ -1359,7 +1469,8 @@ sub RIBO_parse_store {
     # Catch
     my $seqFile = $_[0];
     my $seqFileName = $_[1];
-    
+	my $uniq = $_[2];
+
     my $bedgr_s = ($seqFileName  eq 'fastq1') ? $out_bg_s_untr : $out_bg_s_tr;
     my $bedgr_as = ($seqFileName  eq 'fastq1') ? $out_bg_as_untr : $out_bg_as_tr;
     my $sam = ($seqFileName  eq 'fastq1') ? $out_sam_untr : $out_sam_tr;
@@ -1375,16 +1486,18 @@ sub RIBO_parse_store {
     
     #Init dbh
     my $dbh_count = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
-    
+
     # Create table if not exist
-    my $query_table = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName."` (
+	my $seqFileName_tmp = ($uniq eq 'N') ? $seqFileName."_unique" : $seqFileName;
+
+    my $query_table = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName_tmp."` (
     `chr` char(50) NOT NULL default '',
     `strand` char(1) NOT NULL default '0',
     `start` int(10) NOT NULL default '0',
     `count` float default NULL)";
     
     # Create table if not exist
-    my $query_table2 = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName."_splitRPF` (
+    my $query_table2 = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName_tmp."_splitRPF` (
     `chr` char(50) NOT NULL default '',
     `strand` char(1) NOT NULL default '0',
     `start` int(10) NOT NULL default '0',
@@ -1564,7 +1677,11 @@ sub RNA_parse_store {
     my $sam = ($seqFileName  eq 'fastq1') ? $out_sam_untr : $out_sam_tr;
     
 	my $sorted_bam = $work_dir."/".$mapper."/".$seqFileName."/Aligned.sorted.bam";
-    
+
+	#if ($unique eq 'Y') {
+	#	$sorted_bam = $work_dir."/".$mapper."/".$seqFileName."/Aligned.sorted.unique.bam";
+	#}
+	    
     # BEDGRAPH /split for sense and antisense (since double entries, both (anti)sense cannot be visualized)
     my $bed_allgr_sense = $TMP."/genomic/".$run_name."_".$seqFileName."_sense.bedgraph";
     my $bed_allgr_antisense = $TMP."/genomic/".$run_name."_".$seqFileName."_antisense.bedgraph";
