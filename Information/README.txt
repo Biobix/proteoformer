@@ -30,7 +30,7 @@ The PROTEOFORMER pipeline cannot be installed automatically from a toolshed
 1  Galaxy specific configuration:
 ---------------------------------
 To manually install the PROTEOFORMER pipeline a set of configuration files, wrapper scripts, datatypes and other configuration and 
-location files need to be added to specific folders of your galaxy system. These are listed below and can be found within this directory.
+location files need to be added to specific folders of your galaxy system. These are listed below and can be found within this directory..
 
 	- Add configuration files (.xml), perl code (.pl), shell code (.sh) and location files (.loc) from tools/proteoformer to your galaxy installation
 		
