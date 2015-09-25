@@ -79,6 +79,7 @@ It is also dependant on a set of tool binaries which should all be installed on 
 	snpIndexBuilder.pl
 	splitVCFaltRecords.pl
 	TIScalling_categorised.pl
+	FlossProteoformer.pl
 	run.sh
 
 	All necessary scripts should be added to your working directory.
@@ -149,6 +150,7 @@ Step 3:	TIS Calling
 Step 4:	SNP Calling
 Step 5: Translation Assembly
 Step 6: Translation Database
+Step 7: Floss Calculation
 Quality control 1: Metagenic Classification
 Quality control 2: Gene Distribution
 
@@ -456,7 +458,60 @@ Quality control 2: Gene Distribution
 	-ranked gene abundance
 
 
-12 Executing the Proteoformer pipeline: 
+12 Floss Calculation:
+---------------------
+
+	a) What it does
+
+    This tool calculates:
+    
+        (1) fragment length reference fractions based on protein-coding transcripts
+        (2) cutoff values as function of the amount of reads
+        (3) a length distribution for each possible translation product
+         
+    Based on these results, a FLOSS score for each putative transcript can be calculated. With this FLOSS score and the cutoff values, the coding potential of each possible product can be assessed.
+
+	b) Input
+        
+    An sqlite database holding experimental data from at least following previous steps: mapping, transcript calling, TIS calling, SNP calling (optional) and translation product assembly.
+        
+    The TIS ids for which a FLOSS score needs to be calculated. It can be a sequence of ids seperated by commas or it can be "all".
+
+	c) Command*
+	
+	./FlossProteoformer.pl --sqlite SQLite/results.db  --tis_ids 1
+	
+	* See the specific Perl script for a more detailed explanation of all optional/mandatory arguments
+
+
+	d) Output
+        
+    An sqlite database holding all experimental data resulting from the mapping, transcript calling, TIS calling, SNP calling (optional), translation product assembly and FLOSS score calculation. Afterwards three extra tables will be added:
+        
+    A table FLOSS_ref_fractions with reference fractions amongst each possible fragment length
+    
+            RPF |   fraction
+            ----  ----------
+            26  |   0.0248963500775222
+            
+
+    A table FLOSS_cutoff containing the FLOSS score cutoff value for each amount of reads
+    
+            nreads  |   score
+            -------- ------------
+            1       |   0.63122634070155
+            
+            
+    A table TIS_(analysisID)_transcripts_FLOSS containg the amount of Ribo reads, the FLOSS score and the classification for each TIS ID. The TIS ID is a combination of the transcript ID and the supposed translation initiation site (multiple initiation sites possible for one transcript). The table ID is a chronological key specific for the table. A classification being "Good" means that the reading frame is probably coding. A classification being "Extreme" means that the reading frame is probably non-coding. The amount of reads can also be 0 ('no reads') or out of the range of the cutoff ('out of cutoff range'). Then, the calssification will be impossible.
+
+            tableID  |   TIS_ID            |   nreads  |     FLOSS              |  classification
+            --------- ---------------------- ----------  ------------------------ -----------------
+            1        |   426972_121413981  |   978     |    0.0959806966454703  |     Good
+            2        |   423089_34772322   |   10468   |    0.0368119161096991  |     Good
+
+
+
+13 Executing the Proteoformer pipeline: 
 ---------------------------------------
 	The Proteoformer scripts can be executed individually from step 1 through step 7 as described above or through a 
 	wrapper bash script run_proteoformer.sh. 

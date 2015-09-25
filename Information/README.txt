@@ -64,6 +64,8 @@ location files need to be added to specific folders of your galaxy system. These
 			- tools/proteoformer/tis_overview.xml
 			- tools/proteoformer/Tiscalling_categorised.pl
 			- tools/proteoformer/ublast_db.loc[*]
+			- tools/proteoformer/FlossProteoformer.pl
+			- tools/proteoformer/FlossProteoformer.xml	
 			
 		[*] See point 4: "Tool data location files" for more information on how to use the location (.loc) files
 		
@@ -71,14 +73,7 @@ location files need to be added to specific folders of your galaxy system. These
 	
 	- Add the following import line to:  lib/galaxy/datatypes/registry.py
 			import proteoformer # added for PROTEOFORMER pipeline
-			
-	- Add datatypes between the <registration>   </registration> tags in:  datatypes_conf.xml
-		 	
-		 <!-- Start PROTEOFORMER Datatypes -->
-    			<datatype extension="tis" type="galaxy.datatypes.proteoformer:TisOverview"/>
-   			<datatype extension="sqlitedb" type="galaxy.datatypes.proteoformer:SqliteDb" />
-    		<!-- End PROTEOFORMER Datatypes -->
-    		
+					
     - Copy the proteoformer_tool_conf.xml file to your galaxy installation and add it to the universe_wsgi.ini file:
     		
     		# Tool config files, defines what tools are available in Galaxy.
@@ -97,6 +92,7 @@ location files need to be added to specific folders of your galaxy system. These
         		<tool id="snp_calling1" />
         		<tool id="2_assembly" />
         		<tool id="Ensembl2Swissprot Mapping" />
+        		<tool id="FlossProteoformer" />
         		<tool id="metagenic_classification" />
         		<tool id="gene_distribution" />
     		</section>
