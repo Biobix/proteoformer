@@ -9,7 +9,7 @@
     </command>
     
     <inputs>
-        <param name="sqlite_db" type="data" format="sqlitedb" label="Sqlite db with information from mapping, TIS calling and assembly."/>
+        <param name="sqlite_db" type="data" format="sqlite" label="Sqlite db with information from mapping, TIS calling and assembly."/>
         <conditional name="tisids">
             <param name="assembl" type="select" label="Select options for assembly based on TIS calling analysis">
                 <option value="all">Perform assembly for all TIS-analysis ids</option>
@@ -29,7 +29,7 @@
         </conditional>
     </inputs>
     <outputs>
-        <data format="sqlitedb" name="out_sqlite" label="SQLite database with mapping, TIS, sORF assembly and FLOSS calculation"/>
+        <data format="sqlite" name="out_sqlite" label="SQLite database with mapping, TIS, sORF assembly and FLOSS calculation"/>
     </outputs>
     
     <help>

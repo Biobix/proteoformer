@@ -5,7 +5,7 @@
     </command>
     
     <inputs>
-        <param name="sqlite_db" type="data" format="sqlitedb" size="50" label="Sqlite DB with RIBO-seq data after mapping" help="The sqlite results database should at least contain output from the RNA-seq mapping (RIBO-seq).">
+        <param name="sqlite_db" type="data" format="sqlite" size="50" label="Sqlite DB with RIBO-seq data after mapping" help="The sqlite results database should at least contain output from the RNA-seq mapping (RIBO-seq).">
         </param>
         <param name="treatment" type="select" label="Select RIBO-seq experiment" help="Untreated RIBO-seq: no drug or CHX; Treated RIBO-seq: PUR, LTM, HAR.">
             <option value="untreated" selected="true">untreated</option>
@@ -69,6 +69,16 @@ TABLE 2:
     ...
 
 To summarize, for each table a pie chart (pdf) is generated.
+
+------
+
+**Citation:**
+
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
+
+PROTEOFORMER is licensed under the GPL v3.
+
+For more information visit http://www.biobix.be/PROTEOFORMER.
 
     </help>
 </tool>

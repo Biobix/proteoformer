@@ -51,7 +51,7 @@
 
 	</command>
 	<inputs>
-		<param name="sqlite_db" type="data" format="sqlitedb" label="Enter SQlite translation product database" help="SQlite containing derived protei products "/>
+		<param name="sqlite_db" type="data" format="sqlite" label="Enter SQlite translation product database" help="SQlite containing derived protei products "/>
            	<param name="tis_call" type="select" label="Allow annotated Transcripts that do not pass the TIS calling algorithm into derived database?">
                 	<option value="Y">Yes</option>
                 	<option value="N">No</option>
@@ -236,13 +236,14 @@ A Fasta file of non redundnt translation products database.
 
 ------
 
+
 **Citation:**
 
-For the underlying tool and it's use in Galaxy, please cite *In preparation*
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
 
 PROTEOFORMER is licensed under the GPL v3.
 
-For more information visit http://www.biobix.be/PROTEOFORMER
+For more information visit http://www.biobix.be/PROTEOFORMER.
 
     </help>
 </tool>

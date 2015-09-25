@@ -10,7 +10,7 @@
         #end if
     </command>
     <inputs>
-        <param name="sqlite_db" type="data" format="sqlitedb" size="30" label="Sqlite DB with information of steps 1,2,3 and 4" help="The sqlite results database should contain output from the mapping (step 1), TIS calling (step 2), sORF translation assembly (step 3) and PhyloCSF input data (step 4a)"/>
+        <param name="sqlite_db" type="data" format="sqlite" size="30" label="Sqlite DB with information of steps 1,2,3 and 4" help="The sqlite results database should contain output from the mapping (step 1), TIS calling (step 2), sORF translation assembly (step 3) and PhyloCSF input data (step 4a)"/>
         <param name="cores" type="integer" size="5" value="8" label="enter the number of cores to run the transcriptome mapping" />
         <conditional name="tisids">
             <param name="assembl" type="select" label="Select TIS ids for PhyloCSF input">
@@ -31,7 +31,7 @@
         </conditional>
          </inputs>
     <outputs>
-        <data format="sqlitedb" name="out_sqlite" label="SQLite database with mapping, TIS (and SNP) calling, sORF assembly, PhyloCSF MAF input and sORF PhyloCSF scores (step 1-2(-4)-5-6a/b)"/>
+        <data format="sqlite" name="out_sqlite" label="SQLite database with mapping, TIS (and SNP) calling, sORF assembly, PhyloCSF MAF input and sORF PhyloCSF scores (step 1-2(-4)-5-6a/b)"/>
     </outputs>
     
     <help>

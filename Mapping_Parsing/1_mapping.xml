@@ -3,17 +3,74 @@
     <description>using fastq files as input</description>
     
     <command interpreter="perl">
+    
+        1_mapping.pl --name $experimentname --species $organism --ensembl $ensembl --cores $cores --igenomes_root $igenomes_root.fields.path --readtype $readtype.riboSinPair --readlength $readtype.readlength --splicing $splicing --clipper $clipper --unique $MultiUnique.unique --mismatch $mismatch --adaptor $readtype.adaptor --phix $readtype.phix --rRNA $readtype.rrna
+        
+        
+         --mapper $choose.mapper
+        
+        
+        #if $MultiUnique.unique == "N"
+    
+            --maxmultimap $MultiUnique.maxmultimap
+    
+        #end if
+    
+            #if $choose.mapper == "STAR"
+    
+            --tr_coord $choose.tr_coord
+    
+                #if $choose.tr_coord == "Y"
+    
+                --out_bam_tr_untr "${untreat_bam_tr}"
+                --out_bam_tr_tr "${treat_bam_tr}"
+    
+                #end if
+    
+            #end if
+    
         #if $readtype.riboSinPair == "ribo"
-        1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --phix $readtype.phix --rRNA $readtype.rrna --snRNA $readtype.snrna --tRNA $readtype.trna --adaptor $readtype.adaptor --clipper $clipper --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root.fields.path}"
+
+            --snRNA $readtype.snrna
+            --tRNA $readtype.trna
+            --inputfile1 $readtype.input_file1
+            --inputfile2 $readtype.input_file2
+            --out_bg_s_untr "${untreat_s_bg}"
+            --out_bg_as_untr "${untreat_as_bg}"
+            --out_bg_s_tr "${treat_s_bg}"
+            --out_bg_as_tr "${treat_as_bg}"
+            --out_sam_untr "${untreat_sam}"
+            --out_sam_tr "${treat_sam}"
+            --out_sqlite "${out_sqlite}"
 
         #else if $readtype.riboSinPair == "PE_polyA"
-        1_mapping.pl --name $experimentname --species $organism --ensembl $ensembl --cores $cores --readtype $readtype.riboSinPair --unique $unique --mapper $mapper --clipper $clipper --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr $PE_polyA_s_bg  --out_bg_as_untr $PE_polyA_as_bg --out_sam_untr $PE_polyA_sam --out_sqlite $PE_polyA_out_sqlite--igenomes_root $igenomes_root.fields.path
+
+            --inputfile1 $readtype.input_file1
+            --inputfile2 $readtype.input_file2
+            --out_bg_s_untr $PE_polyA_s_bg
+            --out_bg_as_untr $PE_polyA_as_bg
+            --out_sam_untr $PE_polyA_sam
+            --out_sqlite $PE_polyA_out_sqlite
+
 
         #else if $readtype.riboSinPair == "PE_total"
-        1_mapping.pl --name $experimentname --species $organism --ensembl $ensembl --cores $cores --readtype $readtype.riboSinPair --unique $unique --mapper $mapper --clipper $clipper --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr $PE_total_s_bg  --out_bg_as_untr $PE_total_as_bg --out_sam_untr $PE_total_sam --out_sqlite $PE_total_out_sqlite--igenomes_root $igenomes_root.fields.path
+
+            --inputfile1 $readtype.input_file1
+            --inputfile2 $readtype.input_file2
+            --out_bg_s_untr $PE_total_s_bg
+            --out_bg_as_untr $PE_total_as_bg
+            --out_sam_untr $PE_total_sam
+            --out_sqlite $PE_total_out_sqlite
+
 
         #else if $readtype.riboSinPair == "SE_polyA"
-        1_mapping.pl --name $experimentname --igenomes_root $igenomes_root.fields.path --species $organism --ensembl $ensembl --mapper $mapper --unique $unique --readtype $readtype.riboSinPair --inputfile1 $readtype.input_file1 --adaptor $readtype.adaptor --readlength $readtype.readlength --clipper $clipper --cores $cores --out_sam_untr $SE_polyA_sam --out_sqlite $SE_polyA_out_sqlite --out_bg_s_untr $SE_polyA_s_bg  --out_bg_as_untr $SE_polyA_as_bg
+
+            --inputfile1 $readtype.input_file1
+            --out_sam_untr $SE_polyA_sam
+            --out_sqlite $SE_polyA_out_sqlite
+            --out_bg_s_untr $SE_polyA_s_bg
+            --out_bg_as_untr $SE_polyA_as_bg
+
         #end if
     </command>
     
@@ -26,19 +83,42 @@
             <option value="mouse" selected="true">mouse</option>
             <option value="human">human</option>
             <option value="fruitfly">fruitfly</option>
+            <option value="arabidopsis">arabidopsis</option>
         </param>
         <param name="ensembl"  size="5"   value="75"             type="integer"   label="select the ensembl annotation version"/>
-        <param name="mapper" type="select" label="select the transcriptome mapper (for RNA-seq, only STAR is supported)" multiple="false">
-            <option value="STAR" selected="true">STAR</option>
-            <option value="TopHat2">TopHat2</option>
+        
+        <conditional name="choose">
+            <param name="mapper" type="select" label="choose the transcriptome mapper (for RNA-seq, only STAR is supported)" multiple="false">
+                <option value="STAR" selected="true">STAR</option>
+                <option value="TopHat2">TopHat2</option>
+            </param>
+            <when value="STAR">
+                <param name="tr_coord" type="select" label="generate alignment file based on transcript coordinates" multiple="false">
+                    <option value="N" selected="true">No BAM file using transcript coordinates</option>
+                    <option value="Y">Yes BAM file using transcript coordinates</option>
+                </param>
+            </when>
+        </conditional>
+
+        <param name="splicing" type="select" label="Allow splicing for genome alignment" multiple="false">
+            <option value="Y" selected="true">Yes, for eukaryotes</option>
+            <option value="N">No, for Prokaryotes</option>
         </param>
-        <param name="unique" type="select" label="select unique or multi-mapper reads" multiple="false">
-            <option value="N" selected="true">all, both unique and multi-mapper reads</option>
-            <option value="Y">uniquely mapping reads only</option>
-        </param>
+        <param name="mismatch" value="2" type="integer" label="report aligments with lower or equal mismatches than this value"/>
+        
+        <conditional name="MultiUnique">
+            <param name="unique" type="select" label="select unique or multi-mapper reads" multiple="false">
+                <option value="N" selected="true">all, both unique and multi-mapper reads</option>
+                <option value="Y">uniquely mapping reads only</option>
+            </param>
+            <when value="N">
+                <param name="maxmultimap" value="16" type="integer" label="report alignments only if the read maps fewer sequence locations than this value"/>
+            </when>
+        </conditional>
         <param name="clipper" size="45" type="select" label="the tool for adaptor clipping" multiple="false">
-            <option value="STAR" selected="true">STAR</option>
+            <option value="STAR">STAR</option>
             <option value="fastx">fastx</option>
+            <option value="none" selected="true">none</option>
         </param>       
         <conditional name="readtype">
             <param name="riboSinPair" type="select" label="Is this a RIBO-seq or RNA-seq library?">
@@ -77,6 +157,14 @@
                 <param name="input_file2" type="data" format="fastq" label="Reverse FASTQ file" help="File format must match the Forward FASTQ file"/>
                 <param name="adaptor" value="CTGTAGGCACCATCAAT" type="text" size="45" label="enter the adaptor sequence that needs to be clipped"/>
                 <param name="readlength" type="text" value="50" label="choose the read length"/>
+                <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true">No</option>
+                </param>
+                <param name="rrna" type="select" label="Premapping on ribosomal RNA sequences" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
             </when> <!-- PE_polyA -->
 
             <when value="PE_total">
@@ -84,13 +172,28 @@
                 <param name="input_file2" type="data" format="fastq" label="Reverse FASTQ file" help="File format must match the Forward FASTQ file"/>
                 <param name="adaptor" value="CTGTAGGCACCATCAAT" type="text" size="45"  label="enter the adaptor sequence that needs to be clipped"/>
                 <param name="readlength" type="text" value="50" label="choose the read length"/>
+                <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true">No</option>
+                </param>
+                <param name="rrna" type="select" label="Premapping on ribosomal RNA sequences" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
             </when> <!-- PE_total -->
 
             <when value="SE_polyA">
                 <param name="input_file1" type="data" format="fastq" label="Forward FASTQ file" help="Must have ASCII encoded quality scores"/>
                 <param name="adaptor" value="CTGTAGGCACCATCAAT" type="text" size="45"  label="enter the adaptor sequence that needs to be clipped"/>
                 <param name="readlength" type="integer" value="50" label="choose the read length"/>
-
+                <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true">No</option>
+                </param>
+                <param name="rrna" type="select" label="Premapping on ribosomal RNA sequences" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
             </when> <!-- SE_polyA -->
         </conditional> <!-- riboSinPair -->
         <param name="cores" type="integer" size="5" value="8" label="enter the number of cores to run the transcriptome mapping"/>
@@ -98,64 +201,74 @@
     
     <outputs>
 
-        <data format="sam" name="untreat_sam" label="${mapper} on ${on_string}: alignment un_CHX_EMT RIBO-seq reads">
+        <data format="sam" name="untreat_sam" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads">
         <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="sam" name="treat_sam"   label="${mapper} on ${on_string}: alignment PUR_HAR_LTM RIBO-seq reads">
+        <data format="sam" name="treat_sam"   label="$choose.mapper on ${on_string}: alignment PUR_HAR_LTM RIBOseq reads">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="bedGraph" name="untreat_s_bg" label="RIBO-seq footprint count data un_CHX_EMT (s)">
+        <data format="bedGraph" name="untreat_s_bg" label="RIBOseq footprint count data un_CHX_EMT (s)">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="bedGraph" name="untreat_as_bg" label="RIBO-seq footprint count data un_CHX_EMT (as)">
+        <data format="bedGraph" name="untreat_as_bg" label="RIBOseq footprint count data un_CHX_EMT (as)">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="bedGraph" name="treat_s_bg"    label="RIBO-seq footprint count data PUR_HAR_LTM (s)">
+        <data format="bedGraph" name="treat_s_bg"    label="RIBOseq footprint count data PUR_HAR_LTM (s)">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="bedGraph" name="treat_as_bg"   label="RIBO-seq footprint count data data PUR_HAR_LTM (as)">
+        <data format="bedGraph" name="treat_as_bg"   label="RIBOseq footprint count data data PUR_HAR_LTM (as)">
         <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="sqlitedb" name="out_sqlite"  label="SQLite DB with mapping results (step1).">
+        <data format="sqlite" name="out_sqlite"  label="SQLite DB with mapping results (step1)">
         <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
 
-        <data format="sam" name="SE_polyA_sam" label="${mapper} on ${on_string}: alignment SE_polyA RNA-seq reads">
+        <data format="bam" name="untreat_bam_tr" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads based on transcript coord">
+            <filter>choose['mapper'] == 'STAR'</filter>
+            <filter>choose['tr_coord'] == 'Y'</filter>
+        </data>
+        <data format="bam" name="treat_bam_tr"   label="$choose.mapper on ${on_string}: alignment PUR_HAR_LTM RIBOseq reads based on transcript coord">
+            <filter>choose['mapper'] == 'STAR'</filter>
+            <filter>choose['tr_coord'] == 'Y'</filter>
+        </data>
+
+
+        <data format="sam" name="SE_polyA_sam" label="$choose.mapper on ${on_string}: alignment SE_polyA RNAseq reads">
         	 <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
-        <data format="sqlitedb" name="SE_polyA_out_sqlite" label="SQLite DB with mapping results (step1)." >
+        <data format="sqlite" name="SE_polyA_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="SE_polyA_as_bg" label="RIBO-seq footprint count data Antisense Bedgraph (as)">
+        <data format="bedGraph" name="SE_polyA_as_bg" label="RIBOseq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="SE_polyA_s_bg" label="RIBO-seq footprint count data Sense Bedgraph (s)">
+        <data format="bedGraph" name="SE_polyA_s_bg" label="RIBOseq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
 
-        <data format="sam" name="PE_polyA_sam" label="${mapper} on ${on_string}: alignment PE_polyA RNA-seq reads">
+        <data format="sam" name="PE_polyA_sam" label="$choose.mapper on ${on_string}: alignment PE_polyA RNAseq reads">
         	 <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
-        <data format="sqlitedb" name="PE_polyA_out_sqlite" label="SQLite DB with mapping results (step1)." >
+        <data format="sqlite" name="PE_polyA_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="PE_polyA_as_bg" label="RIBO-seq footprint count data Antisense Bedgraph (as)">
+        <data format="bedGraph" name="PE_polyA_as_bg" label="RIBOseq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="PE_polyA_s_bg" label="RIBO-seq footprint count data Sense Bedgraph (s)">
+        <data format="bedGraph" name="PE_polyA_s_bg" label="RIBOseq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
 
-        <data format="sam" name="PE_total_sam" label="${mapper} on ${on_string}: alignment PE_total RNA-seq reads">
+        <data format="sam" name="PE_total_sam" label="$choose.mapper on ${on_string}: alignment PE_total RNAseq reads">
         	 <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
-        <data format="sqlitedb" name="PE_total_out_sqlite" label="SQLite DB with mapping results (step1)." >
+        <data format="sqlite" name="PE_total_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
-        <data format="bedGraph" name="PE_total_as_bg" label="RIBO-seq footprint count data Antisense Bedgraph (as)">
+        <data format="bedGraph" name="PE_total_as_bg" label="RIBOseq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
-        <data format="bedGraph" name="PE_total_s_bg" label="RIBO-seq footprint count data Sense Bedgraph (s)">
+        <data format="bedGraph" name="PE_total_s_bg" label="RIBOseq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
 
@@ -199,6 +312,10 @@ DATA2 = PUR, HARR, or LTM treated sample
        A bedgraph holding the sense DATA2 ribo-seq footprint count data
        A bedgraph holding the antisense DATA2 ribo-seq footprint count data
        An sqlite database holding all experimental data
+       
+       Optional:
+       A bam alignment file holding the DATA1 alignments based on transcriptome coordinates
+       A bam alignment file holding the DATA2 alignments based on transcriptome coordinates
 
 -----
         
@@ -214,7 +331,7 @@ A FastQ file holding the DATA2
 
 **Citation:**
 
-For the underlying tool and it's use in Galaxy, please cite *In preparation*
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
 
 PROTEOFORMER is licensed under the GPL v3.
 

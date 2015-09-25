@@ -116,6 +116,8 @@ my $transcript_create = "CREATE TABLE IF NOT EXISTS $table_ribo_trans (
 		normalized_counts FLOAT NOT NULL,
 		biotype VARCHAR(100) NOT NULL,
 		exon_coverage VARCHAR(5) NOT NULL,
+		canonical VARCHAR(5) NOT NULL,
+		ccds VARCHAR(20) NOT NULL,
 		gene_stable_id VARCHAR(100) NOT NULL,
 		PRIMARY KEY (stable_id,gene_stable_id)
 		)";
@@ -146,7 +148,8 @@ my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" :
 #Old mouse assembly = NCBIM37, new one is GRCm38
 my $assembly = ($species eq "mouse" && $version >= 70 ) ? "GRCm38"
 : ($species eq "mouse" && $version < 70 ) ? "NCBIM37"
-: ($species eq "human") ? "GRCh37"
+: ($species eq "human" && $version > 75) ? "GRCh38"
+: ($species eq "human" && $version <= 75) ? "GRCh37"
 : ($species eq "arabidopsis") ? "TAIR10"
 : ($species eq "fruitfly") ? "BDGP5" : "";
 
@@ -160,6 +163,7 @@ my $chromosome_sizes; my $coord_system_id; my @ch;
 
 $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
 @ch = @{get_chr($chromosome_sizes,$species)};
+#@ch = ("Y","MT");
 $coord_system_id = get_coord_system_id($db_ensembl,$assembly);
 
 # Store used path of ENSEMBL db in arguments table
@@ -276,7 +280,12 @@ sub translation_per_chr{
 		# Get all genes and corresponding transcripts for specific chromosome from joined tables 'gene', 'transcript' and 'translation'
 		####
 		## First for PROTEIN-CODING transcripts -> UTR-info
-		my $query2 = "SELECT b.gene_id,b.stable_id,a.transcript_id,a.seq_region_start,a.seq_region_end,a.seq_region_strand,a.stable_id,c.start_exon_id,c.end_exon_id,c.seq_start,c.seq_end,a.biotype FROM transcript a INNER JOIN gene b ON a.gene_id = b.gene_id INNER JOIN translation c ON a.transcript_id = c.transcript_id WHERE b.seq_region_id = '$seq_region'";
+		my $query2 = "SELECT b.gene_id, b.stable_id, a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, c.start_exon_id, c.end_exon_id, c.seq_start, c.seq_end, a.biotype, b.canonical_transcript_id 
+		FROM transcript a 
+		INNER JOIN gene b ON a.gene_id = b.gene_id 
+		INNER JOIN translation c ON a.transcript_id = c.transcript_id 
+		WHERE b.seq_region_id = '$seq_region'";
+		
 		my $execute2 = $dbh->prepare($query2);
 		$execute2->execute();
 	
@@ -285,6 +294,7 @@ sub translation_per_chr{
 		my %transcript_id;
 		my %transcript_coding;
 		my %gene_id;
+		my %transcript_attributes;
 		while(my @result2 = $execute2->fetchrow_array()){
 			
 			# Gene info
@@ -295,11 +305,38 @@ sub translation_per_chr{
 			$transcript_id{$result2[2]} = [$result2[6],$result2[11],$result2[3],$result2[4]];
 			$transcript_coding{$result2[2]} = [$result2[1],$result2[5],$result2[7],$result2[8],$result2[9],$result2[10]];
 			$transcript_count{$result2[1]}{$result2[2]} = 0; # Initialize count hash
+				# Attr1 = canonical; Attr2 = ccds
+				my $canonical = ($result2[2] eq $result2[12]) ? "Yes" : "No";
+				my $ccds = "No";
+			$transcript_attributes{$result2[2]} = [$canonical,$ccds];
 		}
 		$execute2->finish();
 		
+		#### transcripts with CCDS info
+		my $queryCCDS = "SELECT a.transcript_id, e.dbprimary_acc 
+		FROM transcript a 
+		INNER JOIN gene b ON a.gene_id = b.gene_id 
+		INNER JOIN translation c ON a.transcript_id = c.transcript_id 
+		INNER JOIN object_xref d ON a.transcript_id = d.ensembl_id 
+		INNER JOIN xref e ON d.xref_id = e.xref_id WHERE b.seq_region_id = '$seq_region' AND e.external_db_id = '3800'";
+		
+		my $executeCCDS = $dbh->prepare($queryCCDS);
+		$executeCCDS->execute();
+	
+		while(my @resultCCDS = $executeCCDS->fetchrow_array()){
+			
+			my $ccds = $resultCCDS[1];
+			$transcript_attributes{$resultCCDS[0]}[1] = $ccds;
+		}
+		$executeCCDS->finish();
+		
 		## Next for the NON-PROTEIN-CODING transcripts -> no UTR/translation-info 
-		my $query3 = "SELECT b.gene_id,b.stable_id,a.transcript_id,a.seq_region_start,a.seq_region_end,a.seq_region_strand,a.stable_id,a.biotype FROM transcript a INNER JOIN gene b ON a.gene_id = b.gene_id LEFT OUTER JOIN translation c ON a.transcript_id = c.transcript_id WHERE c.transcript_id IS NULL AND b.seq_region_id = '$seq_region'";
+		my $query3 = "SELECT b.gene_id, b.stable_id, a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, a.biotype, b.canonical_transcript_id 
+		FROM transcript a 
+		INNER JOIN gene b ON a.gene_id = b.gene_id 
+		LEFT OUTER JOIN translation c ON a.transcript_id = c.transcript_id 
+		WHERE c.transcript_id IS NULL AND b.seq_region_id = '$seq_region'";
+		
 		my $execute3 = $dbh->prepare($query3);
 		$execute3->execute();
 	
@@ -313,8 +350,31 @@ sub translation_per_chr{
 			$transcript_id{$result3[2]} = [$result3[6],$result3[7],$result3[3],$result3[4]];
 			$transcript_noncoding{$result3[2]} = [$result3[1],$result3[5]];
 			$transcript_count{$result3[1]}{$result3[2]} = 0; # Initialize count hash
+			# Attr1 = canonical; Attr2 = ccds
+				my $canonical = ($result3[2] eq $result3[8]) ? "Yes" : "No";
+				my $ccds  = "No";
+			$transcript_attributes{$result3[2]} = [$canonical,$ccds];
 		}
 		$execute3->finish();
+		
+		#### transcripts with CCDS info
+		my $queryCCDS2 = "SELECT a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, a.biotype, b.canonical_transcript_id, e.dbprimary_acc 
+		FROM transcript a 
+		INNER JOIN gene b ON a.gene_id = b.gene_id 
+		INNER JOIN object_xref d ON a.transcript_id = d.ensembl_id 
+		INNER JOIN xref e ON d.xref_id = e.xref_id 
+		LEFT OUTER JOIN translation c ON a.transcript_id = c.transcript_id 
+		WHERE c.transcript_id IS NULL AND b.seq_region_id = '$seq_region' AND e.external_db_id = '3800'";
+		
+		my $executeCCDS2 = $dbh->prepare($queryCCDS2);
+		$executeCCDS2->execute();
+	
+		while(my @resultCCDS2 = $executeCCDS2->fetchrow_array()){
+			
+			my $ccds = $resultCCDS2[1];
+			$transcript_attributes{$resultCCDS2[0]}[1] = $ccds;
+		}
+		$executeCCDS2->finish();
 		
 		####
 		# Get all exons(positions) per transcript
@@ -658,7 +718,7 @@ sub translation_per_chr{
 			
 				# Write to csv-file
 				if($transcount > 0){
-					print TMPtrans $transcript.",".$transcript_id{$transcript}[0].",".$chr.",".$seq_region.",".$gene_id{$gene}[1].",".$transcript_id{$transcript}[2].",".$transcript_id{$transcript}[3].",".$transcount.",".$norm_transcount.",".$transcript_id{$transcript}[1].",".$exon_premise.",".$gene."\n";	
+					print TMPtrans $transcript.",".$transcript_id{$transcript}[0].",".$chr.",".$seq_region.",".$gene_id{$gene}[1].",".$transcript_id{$transcript}[2].",".$transcript_id{$transcript}[3].",".$transcount.",".$norm_transcount.",".$transcript_id{$transcript}[1].",".$exon_premise.",".$transcript_attributes{$transcript}[0].",".$transcript_attributes{$transcript}[1].",".$gene."\n";	
 				}
 			}
 		}

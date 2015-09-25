@@ -12,7 +12,7 @@
 	
     <inputs>
         
-        <param name="sqlite_db" type="data" format="sqlitedb" size="30" label="Sqlite DB with information of steps 1-2-3, optionally 5" help="The sqlite results database should contain output from the mapping (step 1), the transcript calling (step 2), TIS calling (step 3) and optionally SNP calling (step 5)."/>
+        <param name="sqlite_db" type="data" format="sqlite" size="30" label="Sqlite DB with information of steps 1-2-3, optionally 5" help="The sqlite results database should contain output from the mapping (step 1), the transcript calling (step 2), TIS calling (step 3) and optionally SNP calling (step 5)."/>
         <param name="snp" type="select" size="15" multiple="false">
             <option value="NO" selected="true">NO</option>
             <option value="samtools">samtools</option>
@@ -39,7 +39,7 @@
     </inputs>
     
     <outputs>
-        <data format="sqlitedb" name="out_sqlite" label="SQLite database with mapping/tr and TIS (and SNP) calling and protein assembly (step1-2-3-4(-5)-6)"/>
+        <data format="sqlite" name="out_sqlite" label="SQLite database with mapping/tr and TIS (and SNP) calling and protein assembly (step1-2-3-4(-5)-6)"/>
     </outputs>
     
     <help>
@@ -78,6 +78,15 @@ An extra TIS_id_transcripts table with all translation products.
     ENSMUST00000134291  1           -1          178335900   GTG          414                       NA            no_translation  -1 0        14.0        0.148350964210667                                      GTGGTTTGTCTTGATACTTGTAAGTGAGGCGGACTTTCCCGCTCTTTGCTAGTTTTCAAGTGCAGTGTTAACATTGGTTTTAAGTGTTAGGAAAAATGTGTTGATCTTAAAGTGGAAAAAACCAGTTAAGAAACTTATTTTAAAGCAGGAAGGTAGTAGCTTAATGCTCAGGCTACAGTAGTTTAATATTAATACCACTTCAGTTGTATTGATTTAACAAGCTCTAGTAATTGGTAATATTTACGAGTTGAAACTTCTC  MVCLDTCK*
     ...
 
+------
+
+**Citation:**
+
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
+
+PROTEOFORMER is licensed under the GPL v3.
+
+For more information visit http://www.biobix.be/PROTEOFORMER.
 
     </help>
 

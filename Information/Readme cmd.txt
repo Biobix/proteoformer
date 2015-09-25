@@ -1,3 +1,27 @@
+Command line Script version of the PROTEOFORMER pipeline -  http://www.biobix.be/PROTEOFORMER
+
+
+#####################################
+##	PROTEOFORMER: deep proteome coverage through ribosome profiling and MS integration
+##
+##	Copyright (C) 2014 G. Menschaert, J.Crappé, E. Ndah, A. Koch & S. Steyaert
+##
+##	This program is free software: you can redistribute it and/or modify
+##	it under the terms of the GNU General Public License as published by
+##	the Free Software Foundation, either version 3 of the License, or
+##	(at your option) any later version.
+##	
+##	This program is distributed in the hope that it will be useful,
+##	but WITHOUT ANY WARRANTY; without even the implied warranty of
+##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##	GNU General Public License for more details.
+##
+##	You should have received a copy of the GNU General Public License
+##	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+##
+## 	For more (contact) information visit http://www.biobix.be/PROTEOFORMER
+#####################################
+
 #################################################################
 ### Using the Ribosome Profiling Pipeline on the command line ###
 #################################################################
@@ -23,18 +47,17 @@ It is also dependant on a set of tool binaries which should all be installed on 
 
 	Tool binaries:
 	--------------
-		- STAR (https://code.google.com/p/rna-star/)
-		- TOPHAT2 (http://tophat.cbcb.umd.edu/)
-		- BLASTP[**] ( ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) or USEARCH[***] (http://www.drive5.com/usearch/download.html)
+		- STAR, v2.4.2a or higher (https://code.google.com/p/rna-star/)
+		- TOPHAT2, v.2.0.13 or higher  (http://tophat.cbcb.umd.edu/)
+		- BLASTP ( ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) or USEARCH[*] (http://www.drive5.com/usearch/download.html)
 		- R (http://www.r-project.org/)
-		- SAMTOOLS 1.19 or above (http://sourceforge.net/projects/samtools/files/samtools/)
+		- SAMTOOLS, v. 1.19 or higher (http://sourceforge.net/projects/samtools/files/samtools/)
 		- GATK (http://www.broadinstitute.org/gatk/download)
 		- PICARD (http://sourceforge.net/projects/picard/files/picard-tools/)
 		- SQLITE3 (http://www.sqlite.org/download.html)
-		- FASTX toolkit (http://hannonlab.cshl.edu/fastx_toolkit/)
+		- FASTX toolkit, v.0.0.13 or higher  (http://hannonlab.cshl.edu/fastx_toolkit/)
 		
-		[**]
-		[***] The usearchX.Y.Z executatble should be renamed to "usearch"
+		[*] The usearchX.Y.Z executatble should be renamed to "usearch"
 		
 	The tool binary paths should be included in the $PATH variable. 
 	The path to the picard tool JAR files should be added to the $CLASSPATH variable. 
@@ -56,6 +79,7 @@ It is also dependant on a set of tool binaries which should all be installed on 
 	snpIndexBuilder.pl
 	splitVCFaltRecords.pl
 	TIScalling_categorised.pl
+	run.sh
 
 	All necessary scripts should be added to your working directory.
 
@@ -67,17 +91,22 @@ It is also dependant on a set of tool binaries which should all be installed on 
 	Install the igenomes in a specific igenomes_root folder and make sure it is accessible to the user running the pipeline.
 	(http://support.illumina.com/sequencing/sequencing_software/igenome.ilmn)
 	
-		- gtf file: 							IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Annotation/Genes/genes.gtf
-		- reference whole genome sequence: 		IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Sequence/WholeGenomeFasta/
-		- reference chromosome sequences: 		IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Sequence/Chromosomes/
-		- PHIX-control sequences: 				IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Sequence/AbundantSequences/phix.fa
-		- Chr size file: 						IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Annotation/Genes/ChromInfo.txt
-		- TopHat2 (Bowtie2) and STAR indexes: 	IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Sequence/Bowtie2Index
-												IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Sequence/STARIndex
-		- rRNA seq file	(custom made)			IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Sequence/AbundantSequences/rRNA_species.fa[****]
+		- gtf file: 					${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Annotation/Genes/genes.gtf
+		- reference whole genome sequence: 		${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Sequence/WholeGenomeFasta/
+		- reference chromosome sequences: 		${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Sequence/Chromosomes/
+		- PHIX-control sequences: 			${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Sequence/AbundantSequences/phix.fa
+		- Chr size file: 				${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Annotation/Genes/ChromInfo.txt
+		- TopHat2 (Bowtie2) and STAR indexes: 		${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Sequence/Bowtie2Index
+								${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Sequence/STARIndex (this folder and the STAR indexes are created 
+								automatically when ther first STAR job is launched)
+                - rRNA seq file	(custom made)                   ${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Sequence/AbundantSequences/species_rRNA.fa[***]
+		- rRNA seq file	(custom made)			${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Sequence/AbundantSequences/species_tRNA.fa[***]
+		- rRNA seq file	(custom made)			${IGENOMES_ROOT}/Mus_musculus/Ensembl/GRCm38/Sequence/AbundantSequences/species_sn-o-RNA.fa[***]
 		
-		[****] rRNA seq fasta files have to be compiled, you can download pre-formatted rRNA sequence fasta files from the website (www.biobix.be/TODO)
-												
+        [***] use 3-letter abbreviation for species: e.g. dme for Drosophila melanogaster, hsa for Homo sapiens, mmu for Mus musculus
+              rRNA, tRNA, sn-o-RNA sequence fasta files have to be compiled. BioMart Ensembl allows you to download specific types of RNA sequences.
+
+											
 	Ensembl SQLite databases:
 	-------------------------
 	SQLite Ensembl DB with tables gene, coord_system, exon, exon_transcript, transcript, translation and seq_region. 
@@ -87,16 +116,17 @@ It is also dependant on a set of tool binaries which should all be installed on 
  		  		
  		  		Database naming convention:		ENS_[species short name]_[Ensembl annotation version].db
  		  		Species short name: 			Human:			hsa	
- 		  										Mouse:			mmu
- 		  										Fruitfly:		dme
- 		  										Arabidopsis:	ath
+ 		  							Mouse:			mmu
+ 		  							Fruitfly:		dme
+ 		  							Arabidopsis:	ath
  		  		
- 		  		Examples: 						ENS_hsa_70.db
- 		  										ENS_mmu_72.db
- 		 										ENS_dme_74.db
- 		  										ENS_ath_16.db
+ 		  		Examples: 				ENS_hsa_75.db
+ 		  							ENS_mmu_75.db
+ 		 							ENS_dme_75.db
+ 									ENS_ath_16.db
  		  					
- 		- You can also download pre-formatted sqlite databases from the website (www.biobix.be/TODO)
+ 		- You can also download pre-formatted sqlite databases from the website (www.biobix.be/PROTEOFORMER) 
+ 		  or use the provided python script ENS_db.py (usage example: python ENS_db.py -v 78 -s human)
 														
 	Blast search databases:
 	-----------------------
@@ -108,7 +138,7 @@ It is also dependant on a set of tool binaries which should all be installed on 
 		- ublast
 			usearch -makeudb_ublast <protein sequence file in fasta> -output <database name>
 			
-		- You can also download pre-formatted Blast search databases from the website (www.biobix.be/TODO)
+		- You can also download pre-formatted Blast search databases from the website (www.biobix.be/PROTEOFORMER)
 		
 3 Overview of the Ribosome Profiling Pipeline:
 ----------------------------------------------
@@ -143,10 +173,11 @@ Quality control 2: Gene Distribution
 
 	c) Command*
 	
-	./1_mapping.pl --name mESC_GA --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1
-	--inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAATAGATCGGA --readlength 50
-	--out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr
-	--out_sam_untr sam_untr --out_sam_tr sam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP)
+	./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1
+	 --inputfile2 file2 --igenomes_root ${IGENOMES_ROOT} (--mapper STAR --adaptor CTGTAGGCACCATCAAT --clipper STAR 
+	 --readlength 36 --phix N -- rRNA Y --snRNA N --tRNA N --splicing Y --mismatch 2 --maxmultimap 16
+     --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr 
+     --out_sam_untr sam_untr --out_sam_tr sam_tr --out_sqlite sqliteDBName  --work_dir getcwd --tmpfolder $TMP)
 	
 	* See the specific Perl script for a more detailed explanation of all optional/mandatory arguments
 	
@@ -175,17 +206,18 @@ Quality control 2: Gene Distribution
 	c) Command*
 	
 	./ribo_translation.pl (--work_dir getcwd --in_sqlite SQLite/results.db --ens_db SQLite/ens.db --tmp $TMP --out_sqlite SQLite/results.db)
-	* See the specific Perl script for a more detailed explanation of all optional/mandatory arguments
+	* See the specific Perl script for a more detailed explanation of all optional/manda
 	
 	d) Output
 	
 	An sqlite database holding all experimental data from the RNA-mapping (RIBO-seq) and transcript calling/translation tool. 
 	After the transcript calling an extra table will be added (tr_translation):
+	(NOTE: annotations as CCDS identifier and canonical transcript  are also inserted for further filtering of the transcripts)
         
-    transcript_id   |   stable_id               |   chr |   seq_region_id   | strand    |   seq_region_start    |   seq_region_end    | read_counts |   normalized_counts   |   biotype             |   exon_coverage   |   gene_stable_id
-    ---------------- --------------------------- ------- ------------------- ----------- ----------------------- --------------------- ------------- ----------------------- ----------------------- ------------------- -------------------
-    423279          |    ENSMUST00000066279     |   1   |   20598           |   1       |   89070415.0          |   89155068.0        | 415.0       |   0.145155648828262   |   protein_coding      |   Yes             |   ENSMUSG00000036206
-	...	
+    transcript_id  stable_id        chr         seq_region_id  seq_region_strand  seq_region_start  seq_region_end  read_counts  normalized_counts    biotype         exon_coverage  canonical   ccds        gene_stable_id 
+    -------------  ---------------  ----------  -------------  -----------------  ----------------  --------------  -----------  -------------------  --------------  -------------  ----------  ----------  ---------------
+    2427712        ENST00000445884  1           27511          1                  10002981.0        10010032.0      3.0          0.00681818181818182  sense_intronic  Yes            Yes         No          ENSG00000228150	
+    ...	
 
 6 Step 3: TIS Calling
 ---------------------
@@ -251,7 +283,7 @@ Quality control 2: Gene Distribution
 	
 	c) Command*
 	
-	snp_calling_samtools -e experimentName -r pathToMappedReads -c pathToChromosomeSequencesFolder -o organism -t 1 
+	snp_calling -e experimentName -r pathToMappedReads -c pathToChromosomeSequencesFolder -o organism -t 1 
 	--mincoverage 3 --maxcoverage 100 --high_af 0.95 --lower_af 0.3 --upper_af 0.7
 	
 	* See the specific bash script for a more detailed explanation of all optional/mandatory arguments
@@ -424,7 +456,12 @@ Quality control 2: Gene Distribution
 	-ranked gene abundance
 
 
-
+12 Executing the Proteoformer pipeline: 
+---------------------------------------
+	The Proteoformer scripts can be executed individually from step 1 through step 7 as described above or through a 
+	wrapper bash script run_proteoformer.sh. 
+	
+	The input arguments to the bash script are described in the individual perl scripts.
 
 
 

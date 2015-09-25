@@ -10,7 +10,7 @@
         #end if
     </command>
     <inputs>
-        <param name="sqlite_db" type="data" format="sqlitedb" size="30" label="Sqlite DB with information of steps 1, 2 and 3." help="The sqlite results database should contain output from the mapping (step 1), TIS calling (step 2) and sORF translation assembly (step 3)."/>
+        <param name="sqlite_db" type="data" format="sqlite" size="30" label="Sqlite DB with information of steps 1, 2 and 3." help="The sqlite results database should contain output from the mapping (step 1), TIS calling (step 2) and sORF translation assembly (step 3)."/>
         <param name="maf_root" type="select"   label="Select the corresponding MAF root folder" >
             <options from_data_table="sORF_pipeline_maf" />
         </param>
@@ -34,7 +34,7 @@
         </conditional>
          </inputs>
     <outputs>
-        <data format="sqlitedb" name="out_sqlite" label="SQLite database with mapping, TIS calling, sORF assembly and PhyloCSF MAF input(step1-2-3-4a)"/>
+        <data format="sqlite" name="out_sqlite" label="SQLite database with mapping, TIS calling, sORF assembly and PhyloCSF MAF input(step1-2-3-4a)"/>
     </outputs>
     
     <help>

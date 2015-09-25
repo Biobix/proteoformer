@@ -9,9 +9,9 @@
     </command>
     
     <inputs>
-        <param name="sqlite_db" type="data" format="sqlitedb" label="Sqlite db with information from mapping, transcript calling, TIS calling and translation assembly."/>
+        <param name="sqlite_db" type="data" format="sqlite" label="Sqlite db with information from mapping, transcript calling, TIS calling and translation assembly."/>
         <conditional name="tisids">
-            <param name="assembl" type="select" label="Select options for assembly based on TIS calling analysis
+            <param name="assembl" type="select" label="Select options for assembly based on TIS calling analysis">
                 <option value="all">Perform assembly for all TIS-analysis ids</option>
                 <option value="specific">Perform assembly for specific TIS-analysis ids</option>
             </param>
@@ -29,11 +29,11 @@
         </conditional>
     </inputs>
     <outputs>
-        <data format="sqlitedb" name="out_sqlite" label="SQLite database with mapping, transcript calling, TIS calling, translation assembly and FLOSS calculation"/>
+        <data format="sqlite" name="out_sqlite" label="SQLite database with mapping, transcript calling, TIS calling, translation assembly and FLOSS calculation"/>
     </outputs>
     
     <help>
-        
+    
 .. class:: infomark
         
 **What it does**
@@ -92,7 +92,17 @@ A table TIS_(analysisID)_transcripts_FLOSS containg the amount of Ribo reads, th
             --------- ---------------------- ----------  ------------------------ -----------------
             1        |   426972_121413981  |   978     |    0.0959806966454703  |     Good
             2        |   423089_34772322   |   10468   |    0.0368119161096991  |     Good
-        
+
+
+------
+
+**Citation:**
+
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
+
+PROTEOFORMER is licensed under the GPL v3.
+
+For more information visit http://www.biobix.be/PROTEOFORMER.
 
     </help>
     

@@ -23,7 +23,7 @@
     </inputs>
     
     <outputs>
-        <data name="sqlite_db_out" format="sqlite_db" metadata_source="sqlite_db" />
+        <data name="sqlite_db_out" format="sqlite" metadata_source="sqlite_db" />
         <data name="output_file" format="txt" label="bash script output" />
     </outputs>
     

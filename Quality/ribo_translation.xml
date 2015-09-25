@@ -4,13 +4,13 @@
         ribo_translation.pl --in_sqlite "${sqlite_db}" --ens_db "${ensembl_db.fields.path}" --out_sqlite "${out_sqlite_db}"
     </command>
 	<inputs>
-		<param name="sqlite_db" type="data" format="sqlitedb" size="50" label="Sqlite DB with RIBO-seq data after mapping" help="The sqlite results database should at least contain output from the RNA-seq mapping (RIBO-seq)."/>
+		<param name="sqlite_db" type="data" format="sqlite" size="50" label="Sqlite DB with RIBO-seq data after mapping" help="The sqlite results database should at least contain output from the RNA-seq mapping (RIBO-seq)."/>
 		<param name="ensembl_db" type="select" label="Select the correct ensembl annotation DB" help="The Ensembl sqlite databases are species and annotation version specific. If your genome of interest is not listed - contact your administrator.">
             <options from_data_table="PROTEOFORMER_ENS" />
         </param>
 	</inputs>
     <outputs>
-        <data format="sqlitedb" name="out_sqlite_db" label="SQLite DB with mapping/tr_calling results (step1-2)"/>
+        <data format="sqlite" name="out_sqlite_db" label="SQLite DB with mapping/tr_calling results (step1-2)"/>
     </outputs>
 	<help>
 .. class:: infomark
@@ -39,13 +39,25 @@ A species and annotation-version specific sqlite Ensembl database. The location 
 
 An sqlite database holding all experimental data from the RNA-mapping (RIBO-seq) and transcript calling/translation tool. After the transcript calling an extra table will be added:
 
+(NOTE: annotations as CCDS identifier and canonical transcript  are also inserted for further filtering of the transcripts)
 ::
 
-    transcript_id   |   stable_id               |   chr |   seq_region_id   | strand    |   seq_region_start    |   seq_region_end    | read_counts |   normalized_counts   |   biotype             |   exon_coverage   |   gene_stable_id
-    ---------------- --------------------------- ------- ------------------- ----------- ----------------------- --------------------- ------------- ----------------------- ----------------------- ------------------- -------------------
-    423279          |    ENSMUST00000066279     |   1   |   20598           |   1       |   89070415.0          |   89155068.0        | 415.0       |   0.145155648828262   |   protein_coding      |   Yes             |   ENSMUSG00000036206
-    423286          |    ENSMUST00000123745     |   1   |   20598           |   1       |   89070453.0          |   89112860.0        | 47.0        |   0.13782991202346    |   processed_tran      |   No              |   ENSMUSG00000036206
+
+    transcript_id  stable_id        chr         seq_region_id  seq_region_strand  seq_region_start  seq_region_end  read_counts  normalized_counts    biotype         exon_coverage  canonical   ccds        gene_stable_id
+    -------------  ---------------  ----------  -------------  -----------------  ----------------  --------------  -----------  -------------------  --------------  -------------  ----------  ----------  ---------------
+    2427712        ENST00000445884  1           27511          1                  10002981.0        10010032.0      3.0          0.00681818181818182  protein coding  Yes            Yes         No          ENSG00000228150
     ...
+
+
+------
+
+**Citation:**
+
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
+
+PROTEOFORMER is licensed under the GPL v3.
+
+For more information visit http://www.biobix.be/PROTEOFORMER.
 
 	</help>
 </tool>

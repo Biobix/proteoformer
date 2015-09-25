@@ -6,7 +6,7 @@
 #              	Triggers are not converted
 #              	The dump must be done with
 #              	> mysqldump --skip-triggers -u [user] --p [database] > dumpfile
-# EXAMPLE		> mysqldump --skip-triggers -u you -p ensembl_mus_musculus_core_72_38 gene coord_system exon exon_transcript transcript translation seq_region > ENS_MMU_72.sql				
+# EXAMPLE		> mysqldump --skip-triggers -u you -p ensembl_mus_musculus_core_72_38 gene coord_system exon exon_transcript transcript translation seq_region xref object_xref > ENS_MMU_72.sql				
 # REQUIREMENTS: Perl and module SQL::Translator, SQLite
 #===============================================================================
 use strict;

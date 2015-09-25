@@ -22,7 +22,7 @@ use Cwd;
 # ./TIScalling_categorised.pl --sqlite_db "${sqlite_db}" --ens_db "${ensembl_db.fields.path}" --cores "${cores}" --igenomes_root "${igenomes_root.fields.path}" --out_sqlite "${out_sqlite}"
 
 # get the command line arguments
-my ($work_dir,$local_max,$out_sqlite,$tmpfolder,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,$sqlite_db);
+my ($work_dir,$local_max,$out_sqlite,$tmpfolder,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,$sqlite_db,$transcriptfilter);
 GetOptions(
 "dir=s"=>\$work_dir,                            # Path to the working directory                                                                 optional argument
 "tmp:s" =>\$tmpfolder,                          # Folder where temporary files are stored,                                                      optional  argument (default = $TMP env setting)
@@ -36,9 +36,10 @@ GetOptions(
 "R_CDS:f" => \$R_CDS,                           # The Rltm - Rchx value calculated based on both CHX and LTM data for a CDS TIS                 optional argument (default .15)
 "min_count_3:i" =>\$min_count_3,                # The minimum count of riboseq profiles mapping to the 3'UTR site                               optional argument (default 10)
 "R_3:f" => \$R_3,                               # The Rltm - Rchx value calculated based on both CHX and LTM data for a 3'UTR TIS               optional argument (default .05)
-"min_count_ntr:i" =>\$min_count_ntr,  # The minimum count of riboseq profiles mapping to the no translation site                      optional argument (default 10)
-"R_ntr:f" => \$R_ntr,                 # The Rltm - Rchx value calculated based on both CHX and LTM data for a no translation TIS      optional argument (default .05)
-"out_sqlite:s" =>\$out_sqlite                   # Galaxy specific history file location                                                         Galaxy specific
+"min_count_ntr:i" =>\$min_count_ntr,  # The minimum count of riboseq profiles mapping to the no translation site                                optional argument (default 10)
+"R_ntr:f" => \$R_ntr,                 # The Rltm - Rchx value calculated based on both CHX and LTM data for a no translation TIS                optional argument (default .05)
+"out_sqlite:s" =>\$out_sqlite,                  # Galaxy specific history file location                                                         Galaxy specific
+"transcriptfilter:s" =>\$transcriptfilter      # Use certain filters at transcript level to reduce complexity (CCDS-id, canonical)             optional argument (default none), this means that protein_coding and non protein_coding with exon_coverage = 'YES' will be exported
 );
 
 my $CWD             = getcwd;
@@ -124,6 +125,12 @@ if ($R_ntr){
 } else {
     #Choose default value for R
     $R_ntr = 0.05;
+}
+if ($transcriptfilter){
+    print "The transcripts are filtered based on            : $transcriptfilter\n";
+} else {
+    #Choose a transcript filter
+    $transcriptfilter = 'none';
 }
 
 # Create output files for command line script
@@ -957,8 +964,14 @@ sub get_transcripts_and_reads {
     my $LTM_rev     = {};
     
     # Get transcripts
-    my $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes'))";
-
+    my $query;
+    if (uc($transcriptfilter) eq "NONE") {
+        $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes'))";
+    } elsif (uc($transcriptfilter) eq "CANONICAL") {
+        $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes')) and canonical = 'Yes'";
+    } elsif (uc($transcriptfilter) eq "CCDS") {
+         $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes')) and ccds <> 'No'";
+    }
     my $sth = $dbh->prepare($query);
 	$sth->execute();
 	$trs = $sth->fetchall_hashref('transcript_id');
@@ -1256,11 +1269,12 @@ sub get_id{
     `R_3UTR` decimal(11,8) NOT NULL default '',
     `min_count_ntr` int(10) NOT NULL default '',
     `R_ntr` decimal(11,8) NOT NULL default '',
-    `SNP` varchar(20) default NULL)";
+    `SNP` varchar(20) default NULL),
+    `filter` varchar(20) default NULL";
     $dbh->do($query);
     
     # Add parameters to overview table and get ID
-    $dbh->do("INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr)");
+    $dbh->do("INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,$transcriptfilter)");
     my $id= $dbh->func('last_insert_rowid');
     
     # Return

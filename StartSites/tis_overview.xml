@@ -9,7 +9,7 @@
     </command>
 	
     <inputs>
-        <param name="sqlite_db" type="data" format="sqlitedb" size="30" label="Sqlite DB with RIBO-seq data after transcript translation" />
+        <param name="sqlite_db" type="data" format="sqlite" size="30" label="Sqlite DB with RIBO-seq data after transcript translation" />
     </inputs>
     
     <outputs>
@@ -32,7 +32,17 @@ This tool creates a TAB separated file from the TIS_overview table from a Riboso
 **Output**
         
         A TAB separated file with TIScalling ids and parameters. 
-        
+
+------
+
+**Citation:**
+
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
+
+PROTEOFORMER is licensed under the GPL v3.
+
+For more information visit http://www.biobix.be/PROTEOFORMER.
+
     </help>
 
 </tool>
