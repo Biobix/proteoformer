@@ -180,7 +180,7 @@ my $start = time;
 
 print "\nGet analysis id...";
 ## Get Analysis ID
-my $id = get_id($dsn_results,$us_results,$pw_results,$local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr);
+my $id = get_id($dsn_results,$us_results,$pw_results,$local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,$transcriptfilter);
 print "                                       : ".$id." \n";
 
 print "Get chromosomes... \n";
@@ -1269,12 +1269,13 @@ sub get_id{
     `R_3UTR` decimal(11,8) NOT NULL default '',
     `min_count_ntr` int(10) NOT NULL default '',
     `R_ntr` decimal(11,8) NOT NULL default '',
-    `SNP` varchar(20) default NULL),
-    `filter` varchar(20) default NULL";
+    `SNP` varchar(20) default NULL,
+    `filter` varchar(20) default NULL)";
     $dbh->do($query);
     
     # Add parameters to overview table and get ID
-    $dbh->do("INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,$transcriptfilter)");
+    print "INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter')\n";
+    $dbh->do("INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter')");
     my $id= $dbh->func('last_insert_rowid');
     
     # Return
