@@ -8,7 +8,7 @@ use Cwd;
 use Getopt::Long;
 use Storable 'dclone';
 use Parallel::ForkManager;
-use lib "/home/steven/perl5/lib/perl5";
+#use lib "/home/steven/perl5/lib/perl5";
 use Statistics::R;
 
 #################
