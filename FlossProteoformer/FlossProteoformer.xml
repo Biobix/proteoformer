@@ -1,4 +1,4 @@
-<tool id="floss_sorfs" name="Step 5: FLOSS calculation" version="1.0">
+<tool id="FlossProteoformer" name="Step 8: FLOSS calculation" version="1.0">
     <description>Calculates first (if not already done for that analysis id) the reference fractions and cut off values based on known protein-coding transcripts. With these, the FLOSS scores are calculated and classified for each possible translation product.</description>
     <command interpreter="perl">
         #if $tisids.assembl == "all"
