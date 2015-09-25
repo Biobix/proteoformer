@@ -917,9 +917,9 @@ sub map_STAR {
 	system("mv ".$directory."Aligned.sorted.sam ".$bamf);
 	
 	# remove redundant files
-	system("rm ".$directory."Aligned.out.bam");
-	system("rm ".$directory."Aligned.out.sam");
-	system("rm ".$directory."Aligned.sorted.bam");
+	system("rm ".$directory."Aligned.out.bam > /dev/null 2>&1");
+	system("rm ".$directory."Aligned.out.sam > /dev/null 2>&1");
+	system("rm ".$directory."Aligned.sorted.bam > /dev/null 2>&1");
 	
 	# Handle transcript coordinates if required
 	if (uc($tr_coord) eq "Y" ) {
@@ -941,7 +941,7 @@ sub map_STAR {
 		system("mv ".$directory."Aligned.toTranscriptome.out.sorted.bam ".$bamf);
 		
 		print "transcript coordinate $bamf\n";
-		system("rm ".$directory."Aligned.toTranscriptome.out.bam");
+		system("rm ".$directory."Aligned.toTranscriptome.out.bam > /dev/null 2>&1");
 		#system("rm ".$directory."Aligned.toTranscriptome.out.sorted.bam");
 		#system("rm ".$directory."Aligned.toTranscriptome.out.sorted.sam");	
 	}
@@ -1284,9 +1284,9 @@ sub map_topHat2 {
     system("mv ".$directory."Aligned.sorted.sam ".$bamf);
     
     # remove redundant files
-    system("rm ".$directory."Aligned.out.bam");
-    system("rm ".$directory."Aligned.out.sam");
-    system("rm ".$directory."Aligned.sorted.bam");
+    system("rm ".$directory."Aligned.out.bam> /dev/null 2>&1");
+    system("rm ".$directory."Aligned.out.sam> /dev/null 2>&1");
+    system("rm ".$directory."Aligned.sorted.bam> /dev/null 2>&1");
 
     open (STATS, ">>".$stat_file);
     my ($inReads,$mappedReadsU,$mappedReadsM, $unmappedReads) = parseLogTopHat($seqFileName);

@@ -51,7 +51,7 @@ location files need to be added to specific folders of your galaxy system. These
 			- tools/proteoformer/metagenic_classification.pl
 			- tools/proteoformer/metagenic_classification.xml
 			- tools/proteoformer/metagenenic_piecharts.R
-			- tools/proteoformer/quality.R
+			- tools/proteoformer/quality_plots.R
 			- tools/proteoformer/ribo_translation.pl
 			- tools/proteoformer/ribo_translation.xml
 			- tools/proteoformer/snp_calling

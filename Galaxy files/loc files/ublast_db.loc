@@ -1,0 +1,12 @@
+# This is a sample file distributed with Galaxy that is used to define a
+# list of Blast search databases, using three columns tab separated
+# (longer whitespace are TAB characters):
+
+# Download tool specific Ensembl sqlite databases from ………
+
+#<value>	<dbkey>	<name>	<path>
+
+ublast_mm	db2	Mus Musculus	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/Mus_Musculus/Mus_Musculus.udb
+ublast_arath	db3	Arabidopsis Thaliana	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/ARATH/ARATH.udb
+ublast_dme	db4	Drosophila Melanogaster	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/drosophilia/drosophilia.udb
+ublast_hs	db5	Homo Sapiens	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/Homo_sapiens/Homo_sapiens.udb

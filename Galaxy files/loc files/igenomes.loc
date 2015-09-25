@@ -2,8 +2,8 @@
 # list of igenomes, using four columns tab separated
 # (longer whitespace are TAB characters):
 
-# Information on downloading igenomes from UCSC (http://hgdownload.soe.ucsc.edu/downloads.html)
+# Information on downloading igenomes from https://support.illumina.com/sequencing/sequencing_software/igenome.ilmn
 
 #<value>	<dbkey>	<name>	<path>
 
-maf	mafroot	MAF root folder	/data2/MAF/
+igenomes	igroot	igenomes root folder	/data/galaxyp/data/igenomes
