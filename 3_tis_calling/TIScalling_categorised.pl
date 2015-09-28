@@ -1269,8 +1269,8 @@ sub get_id{
     `R_3UTR` decimal(11,8) NOT NULL default '',
     `min_count_ntr` int(10) NOT NULL default '',
     `R_ntr` decimal(11,8) NOT NULL default '',
-    `SNP` varchar(20) default NULL,
-    `filter` varchar(20) default NULL)";
+    `SNP` varchar(20) default '',
+    `filter` varchar(20) default '')";
     $dbh->do($query);
     
     # Add parameters to overview table and get ID

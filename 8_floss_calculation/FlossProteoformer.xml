@@ -4,7 +4,7 @@
         #if $tisids.assembl == "all"
         ./FlossProteoformer.pl --sqlite "${sqlite_db}"  --tis_ids $tisids.all --out_sqlite "${out_sqlite}"
         #else if $tisids.assembl == "specific"
-        ./FlossProteoformer.pl --sqlite "${sqlite_db}"  --tis_ids $tisids.select --out_sqlite "${out_sqlite}"
+        ./FlossProteoformer.pl --sqlite "${sqlite_db}"  --tis_ids $tisids.specific --out_sqlite "${out_sqlite}"
         #end if
     </command>
     
