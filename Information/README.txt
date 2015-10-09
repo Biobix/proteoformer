@@ -115,13 +115,14 @@ It is also dependant on a set of tool binaries which should all be installed on 
 		- BioPerl
 		- LWP::UserAgent
 		- XML::Smart
+		- Statistics::R
 
 	Tool binaries:
 	------
 		- STAR, v2.4.2a or higher (https://code.google.com/p/rna-star/)
 		- TOPHAT2, v2.0.13 or higher (http://tophat.cbcb.umd.edu/)
 		- BLASTP ( ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/) or USEARCH[**] (http://www.drive5.com/usearch/download.html)
-		- R (http://www.r-project.org/)
+		- R (http://www.r-project.org/) + Zoo library (https://cran.r-project.org/web/packages/zoo/index.html) for Floss calculation.
 		- SAMTOOLS, v. 1.19 or higher (http://sourceforge.net/projects/samtools/files/samtools/)
 		- GATK (http://www.broadinstitute.org/gatk/download)
 		- PICARD (http://sourceforge.net/projects/picard/files/picard-tools/)

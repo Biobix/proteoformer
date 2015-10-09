@@ -60,7 +60,7 @@ if ($tis_ids){
 if (!defined($out_sqlite))       {$out_sqlite          = $work_dir."/".$sqlite_db;}
 
 # R library location (zoo package)
-my $RlibLocation = "/data/steven/sorf_pipeline_mmu";
+#my $RlibLocation = "/data/steven/sorf_pipeline_mmu";
 
 # DB settings
 # Sqlite Riboseq
@@ -972,12 +972,13 @@ sub cutoff {
         my $pathOutput = $TMP."/toPerl.csv";
         $R->set('file', $path) || die $!;
         $R->set('fileOutput', $pathOutput) || die $!;
-        $R->set('RlibLocation', $RlibLocation) || die $!;
+        #$R->set('RlibLocation', $RlibLocation) || die $!;
         
         print "Run R script \n";
         
-            $R->run(q`library("zoo", lib.loc=RlibLocation)`);
-        
+            #$R->run(q`library("zoo", lib.loc=RlibLocation)`);
+            $R->run(q`library("zoo")`);
+
             #Read perl data in
             $R->run(q`unsorted <- read.csv(file, header = TRUE, sep = ",")`);
         
