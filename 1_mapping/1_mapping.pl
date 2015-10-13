@@ -1640,6 +1640,8 @@ sub RIBO_parse_store {
     my $bedgr_as = ($seqFileName  eq 'fastq1') ? $out_bg_as_untr : $out_bg_as_tr;
     my $sam = ($seqFileName  eq 'fastq1') ? $out_sam_untr : $out_sam_tr;
     
+	if ($uniq eq 'N') {$seqFileName = $seqFileName."_unique"; $unique = "Y"};
+		
     ## Get chromosome sizes and cDNA identifiers #############
     print "Getting chromosome sizes and cDNA to chromosome mappings ...\n";
     my %chr_sizes = %{get_chr_sizes($chromosome_sizes)};
@@ -1653,8 +1655,6 @@ sub RIBO_parse_store {
     my $dbh_count = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
 
     # Create table if not exist
-	if ($uniq eq 'N') {$seqFileName = $seqFileName."_unique"};
-	
     my $query_table = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName."` (
     `chr` char(50) NOT NULL default '',
     `strand` char(1) NOT NULL default '0',
