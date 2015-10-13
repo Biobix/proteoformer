@@ -1653,16 +1653,16 @@ sub RIBO_parse_store {
     my $dbh_count = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
 
     # Create table if not exist
-	my $seqFileName_tmp = ($uniq eq 'N') ? $seqFileName."_unique" : $seqFileName;
-
-    my $query_table = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName_tmp."` (
+	if ($uniq eq 'N') {$seqFileName = $seqFileName."_unique"};
+	
+    my $query_table = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName."` (
     `chr` char(50) NOT NULL default '',
     `strand` char(1) NOT NULL default '0',
     `start` int(10) NOT NULL default '0',
     `count` float default NULL)";
     
     # Create table if not exist
-    my $query_table2 = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName_tmp."_splitRPF` (
+    my $query_table2 = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName."_splitRPF` (
     `chr` char(50) NOT NULL default '',
     `strand` char(1) NOT NULL default '0',
     `start` int(10) NOT NULL default '0',
