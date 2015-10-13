@@ -719,7 +719,7 @@ sub map_STAR {
 				
 				$ref_loc = get_ref_loc($prev_mapper);
 				# Build command
-				$command = $STAR_loc." --genomeLoad NoSharedMemory --seedSearchStartLmaxOverLread .5 ".$clip_stat." --genomeDir ".$ref_loc.$IndexrRNA." --readFilesIn ".$fasta." --outFilterMultimapNmax 40 --outFilterMismatchNmax 2 --outFileNamePrefix ".$work_dir."/fastq/ --runThreadN ".$cores." --outReadsUnmapped Fastx";
+				$command = $STAR_loc." --genomeLoad NoSharedMemory --seedSearchStartLmaxOverLread .5 ".$clip_stat." --genomeDir ".$ref_loc.$IndexrRNA." --readFilesIn ".$fasta." --outFilterMultimapNmax 1000 --outFilterMismatchNmax 2 --outFileNamePrefix ".$work_dir."/fastq/ --runThreadN ".$cores." --outReadsUnmapped Fastx";
 				
 				#print "     $command\n";
 				# Run
