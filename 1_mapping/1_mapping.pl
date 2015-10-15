@@ -1640,14 +1640,26 @@ sub RIBO_parse_store {
     my $bedgr_as = ($seqFileName  eq 'fastq1') ? $out_bg_as_untr : $out_bg_as_tr;
     my $sam = ($seqFileName  eq 'fastq1') ? $out_sam_untr : $out_sam_tr;
     
-	if ($uniq eq 'N') {$seqFileName = $seqFileName."_unique"; $unique = "Y"};
+    #If you only want the unique reads
+    if ($unique eq 'Y') {
+        $seqFileName = $seqFileName;
+    #For multimapping, make two sorts of count tables
+    } elsif ($unique eq 'N') {
+        if ($uniq eq 'N') {
+            #the count tables with unique and multimapping reads
+            $seqFileName = $seqFileName;
+        } elsif ($uniq eq 'Y') {
+            #the count tables with only unique reads, although the option for multimapping was selected
+            $seqFileName = $seqFileName."_unique";
+        }
+    }
 		
     ## Get chromosome sizes and cDNA identifiers #############
     print "Getting chromosome sizes and cDNA to chromosome mappings ...\n";
     my %chr_sizes = %{get_chr_sizes($chromosome_sizes)};
     
     print "Splitting genomic mapping per chromosome...\n";
-    split_SAM_per_chr(\%chr_sizes,$work_dir,$seqFileName,$run_name,$sam);
+    split_SAM_per_chr(\%chr_sizes,$work_dir,$seqFileName,$run_name,$sam,$uniq);
     
     #Create count tables
     
@@ -1949,6 +1961,7 @@ sub split_SAM_per_chr {
     my $seqFileName   = $_[2];
     my $run_name       = $_[3];
     my $sam = $_[4];
+    my $uni = $_[5];
     
     my @splitsam = split(/\//, $sam );
     my $samFileName = $splitsam[$#splitsam];
@@ -1989,10 +2002,10 @@ sub split_SAM_per_chr {
         # Unique vs. (Unique+Multiple) alignment selection
         # NH:i:1 means that only 1 alignment is present
         # HI:i:xx means that this is the xx-st ranked (for Tophat ranking starts with 0, for STAR ranking starts with 1)
-        if ($unique eq "Y") {
+        if ($uni eq "Y") {
             next unless (($mapping_store[4] == 255 && uc($mapper) eq "STAR") || ($line =~ m/NH:i:1\D/ && uc($mapper) eq "TOPHAT2"));
         }
-        elsif ($unique eq "N") {
+        elsif ($uni eq "N") {
             #If multiple: best scoring or random (if equally scoring) is chosen
             #next unless (($mapping_store[12] eq "HI:i:1" && uc($mapper) eq "STAR") || (($line =~ m/HI:i:0/ || $line =~ m/NH:i:1\D/) && uc($mapper) eq "TOPHAT2"));
             
