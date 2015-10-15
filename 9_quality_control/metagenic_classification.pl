@@ -69,11 +69,11 @@ if($in_sqlite){
 # Get ARG vars
 my $user = "";
 my $pw = "";
+my $db_ribo= $in_sqlite;
 my ($species,$version,$run_name,$mapper,$IGENOMES_ROOT,$ens_db,$unique) = get_ARG_vars($db_ribo,$user,$pw);
 
 
 # Create/define SQLite DBs/tables for the ribo-run
-my $db_ribo= $in_sqlite;
 my $table_ribo;
 if($treated eq 'untreated'){
 	$table_ribo = ($unique eq 'N') ? 'count_fastq1_unique' : 'count_fastq1';
