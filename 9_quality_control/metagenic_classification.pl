@@ -65,20 +65,21 @@ if($in_sqlite){
     print "Name of SQLite input db					: $in_sqlite\n";
 }
 
+
+# Get ARG vars
+my $user = "";
+my $pw = "";
+my ($species,$version,$run_name,$mapper,$IGENOMES_ROOT,$ens_db,$unique) = get_ARG_vars($db_ribo,$user,$pw);
+
+
 # Create/define SQLite DBs/tables for the ribo-run
 my $db_ribo= $in_sqlite;
 my $table_ribo;
 if($treated eq 'untreated'){
-	$table_ribo = "count_fastq1";
+	$table_ribo = ($unique eq 'N') ? 'count_fastq1_unique' : 'count_fastq1';
 }elsif($treated eq 'treated'){
-	$table_ribo = "count_fastq2";
+	$table_ribo = ($unique eq 'N') ? 'count_fastq2_unique' : 'count_fastq2';
 }
-
-my $user = "";
-my $pw = "";
-
-# Get ARG vars
-my ($species,$version,$run_name,$mapper,$IGENOMES_ROOT,$ens_db) = get_ARG_vars($db_ribo,$user,$pw);
 
 # Igenomes
 #$IGENOMES_ROOT = ($ENV{'IGENOMES_ROOT'}) ? $ENV{'IGENOMES_ROOT'} : $IGENOMES_ROOT;
@@ -185,6 +186,12 @@ sub get_ARG_vars{
 	$sth->execute();
 	my $run_name = $sth->fetch()->[0];
 	$sth->finish();
+    
+    $query = "select value from arguments where variable = \'unique\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $unique = $sth->fetch()->[0];
+    $sth->finish();
 	
 	$query = "select value from arguments where variable = \'mapper\'";
     $sth = $dbh_results->prepare($query);
@@ -207,7 +214,7 @@ sub get_ARG_vars{
 	$dbh_results -> disconnect();
 	
 	# Return ENS variables
-	return($species,$version,$run_name,$mapper,$IGENOMES_ROOT,$ens_db);
+	return($species,$version,$run_name,$mapper,$IGENOMES_ROOT,$ens_db,$unique);
 	
 } # Close sub
 
