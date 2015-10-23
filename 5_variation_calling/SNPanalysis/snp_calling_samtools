@@ -160,7 +160,11 @@ for chr in ${CHROMOSOMES[@]}
 do
     echo "running mpileup for chromosome $chr"
     chrSequenceFile=$(find "$CHROMOSOMESFOLDER" -name "$chr.fa")
-    samtools mpileup -uD -f "$chrSequenceFile" tmp/aligned.sorted.chr"${chr}".bam | bcftools view -bvcg - > tmp/snp.raw.chr"$chr".bcf &
+    #samtools mpileup -uD -f "$chrSequenceFile" tmp/aligned.sorted.chr"${chr}".bam | bcftools view -bvcg - > tmp/snp.raw.chr"$chr".bcf &
+    #Options for newer versions of samtools
+    samtools mpileup -u -t DP -f "${chrSeq}" aligned.sorted.chr"${chr}".bam | bcftools call -O b -cv - > snp.raw.chr"${chr}".bcf &
+
+
     while (( $(jobs | wc -l) >= $THREADS )); do
         sleep 0.1
         jobs > /dev/null
