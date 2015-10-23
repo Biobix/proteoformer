@@ -138,7 +138,7 @@ def download(ftp_link,core):
 #
 
 if (species=='human' or species=='homo_sapiens'):
-    if(int(ens_v) >= 76 and int(ens_v) <= 81):
+    if(int(ens_v) >= 76 and int(ens_v) <= 82):
          core='/homo_sapiens_core_' + ens_v + '_38.sql.gz'
          download('ftp://ftp.ensembl.org/pub/release-'+ ens_v +'/mysql/homo_sapiens_core_' + ens_v + '_38/',core)
     elif(int(ens_v) >= 74 and int(ens_v) <= 75):
@@ -146,47 +146,47 @@ if (species=='human' or species=='homo_sapiens'):
          download('ftp://ftp.ensembl.org/pub/release-'+ ens_v +'/mysql/homo_sapiens_core_' + ens_v + '_37/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 81")
+        print("supported ensembl versions: from 74 till 82")
         sys.exit()
 elif (species=='mouse' or species=='mus_musculus'):
-    if(int(ens_v) >= 74 and int(ens_v) <= 81):
+    if(int(ens_v) >= 74 and int(ens_v) <= 82):
         core='/mus_musculus_core_' + ens_v + '_38.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/mus_musculus_core_' + ens_v +'_38/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 75 till 81")
+        print("supported ensembl versions: from 75 till 82")
         sys.exit()
 elif (species=='fruitfly' or species=='drosophila_melanogaster'):
-    if(int(ens_v) >= 74 and int(ens_v) <= 81):
+    if(int(ens_v) >= 74 and int(ens_v) <= 82):
         core='/drosophila_melanogaster_core_' + ens_v + '_546.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/drosophila_melanogaster_core_' + ens_v +'_546/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 81 ")
+        print("supported ensembl versions: from 74 till 82 ")
         sys.exit()
 elif (species == 'saccharomyces_cerevisiae' or species == 'yeast'):
-    if(int(ens_v) >= 74 and int(ens_v) <= 81):
+    if(int(ens_v) >= 74 and int(ens_v) <= 82):
         core='/saccharomyces_cerevisiae_core_' + ens_v + '_4.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/saccharomyces_cerevisiae_core_' + ens_v +'_4/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 81")
+        print("supported ensembl versions: from 74 till 82")
         sys.exit()
 elif (species=='caenorhabditis_elegans' or species =="c.elegans"):
-    if(int(ens_v) >= 74 and int(ens_v) <= 81):
+    if(int(ens_v) >= 74 and int(ens_v) <= 82):
         core='/caenorhabditis_elegans_core' + ens_v + '_245.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/caenorhabditis_elegans_core_' + ens_v +'_245/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 81")
+        print("supported ensembl versions: from 74 till 82")
         sys.exit()
 elif (species=='danio_rerio' or species =="zebrafish"):
-    if(int(ens_v) >= 74 and int(ens_v) <= 81):
+    if(int(ens_v) >= 74 and int(ens_v) <= 82):
         core='/danio_rerio_core_' + ens_v + '_9.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/danio_rerio_core_' + ens_v +'_9/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 81")
+        print("supported ensembl versions: from 74 till 82")
         sys.exit()
 else:
     print("Error: unsupported species: " +species )
