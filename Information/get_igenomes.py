@@ -94,9 +94,17 @@ if(ens_v == ''):
 if(cores == ''):
     print("Error: do no forget to pass the amount of cores!")
     sys.exit()
-elif(cores>15):
+elif(int(cores)>15):
     print("Error: the amount of cores cannot be larger than 15!")
     sys.exit()
+if(species == 'arabidopsis'):
+    if(int(ens_v)>29):
+        print("Error: latest Ensembl Plants version is 29!")
+        sys.exit()
+else:
+    if(int(ens_v)>82):
+        print("Error: latest Ensembl version is 82!")
+        sys.exit()
 #Remove last "/" from instal dir path
 pattern=re.compile('^(\S+)/$')
 m = pattern.match(instalDir)
@@ -186,7 +194,7 @@ if(species=='arabidopsis'):
     chromList['4']='18585042'
     chromList['5']='26992728'
     chromList['Pt']='154478'
-    chromList['M']='366923'
+    chromList['MT']='366923'
 else:
     #Other species: download from UCSC
     os.system("wget -q ftp://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz")
@@ -198,7 +206,13 @@ else:
             pattern = re.compile('^chr(\w{1,4})\t(\d+)\t\S+\n$') #chrVIII (yeast) is the longest one to capture
             m = pattern.match(line)
             if m:
-                chromList[m.group(1)]=m.group(2)
+                if(species=='fruitfly'):
+                    chromList[m.group(1)]=m.group(2) #For fruitfly we want to use 'M' as mitochondrial symbol
+                else:
+                    if(m.group(1)=='M'):#Ensembl uses MT instead of M for mitochondrial genome in UCSC, except for fruitfly
+                        chromList['MT']=m.group(2)
+                    else:
+                        chromList[m.group(1)]=m.group(2)
 #Write standard chromosomes to chromosome sizes file
 outFile = open('ChromInfo.txt','w')
 for key in chromList:
@@ -219,19 +233,19 @@ os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chro
 #Defenition of one download process
 def downloadChromosomeFasta(chr):
     if(species=='arabidopsis'):#Arabidopsis is on the site of ensembl Plants instead of normal Ensembl. This site cannot use rsync yet.
-        if(chr=='M'):
+        if(chr=='MT'):#Ensembl uses 'Mt' for Arabidopsis mitochondrial genome
             os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome.Mt.fa.gz")
             os.system("gunzip "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome.Mt.fa.gz")
-            os.system("mv "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome.Mt.fa Mt.fa")
+            os.system("mv "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome.Mt.fa MT.fa")
         else:
-            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+ens_v+"/plants/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome."+chr+".fa.gz")
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome."+chr+".fa.gz")
             os.system("gunzip "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome."+chr+".fa.gz")
             os.system("mv "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome."+chr+".fa "+chr+".fa")
         print("\t\t*) Chromosome "+chr+" finished")
     else:#use rsync for other species
-        if(chr=='M'): #Ensembl uses MT instead of M for mitochondrial genome
+        if(chr=='MT' or chr=='M'):
             if(species=='fruitfly'):#Other name 'dmel_mitochondrion_genome' for fruitfly
-                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz") #Give name 'M' instead of 'MT' like in real igenomes bundles
+                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
                 os.system("gunzip M.fa.gz")
             elif(species=='yeast'):#Other name 'Mito' for yeast
                 os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.Mito.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
@@ -267,15 +281,7 @@ os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Whol
 #Whole genome fasta file is a concatenation of all chromosome fasta files: first, construct command
 command = ""
 for chr in chromList:
-    if(chr=='M'):#Different names for mitochondrial chromosome file
-        if(species=='arabidopsis'):
-            command=command+" "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/Mt.fa"
-        elif(species=='fruitfly'):
-            command=command+" "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa"
-        else:
-            command=command+" "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa"
-    else:
-        command=command+" "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa"
+    command=command+" "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa"
 #Do concatenation
 os.system("cat"+command+"> genome.fa")
 
