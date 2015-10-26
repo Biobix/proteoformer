@@ -135,7 +135,7 @@ if ($ensemblversion){
     die "\nDon't forget to pass the Ensembl Version using the --ensembl or -ens argument!\n\n";
 }
 if ($cores){
-    print "Number of cores to use for  mapping                       : $cores\n";
+    print "Number of cores to use for  mapping                      : $cores\n";
 } else {
     die "\nDon't forget to pass number of cores to use for mapping using the --cores or -c argument!\n\n";
 }
@@ -171,7 +171,7 @@ if ($unique){
     die "\nDon't forget to pass the unique or multiple read retention parameter --unique or -u argument!\n\n";
 }
 if ($maxmultimap){
-    print "Maximun number of loci for reads to be acceptable       : $maxmultimap\n";
+    print "Maximun number of loci for reads to be acceptable        : $maxmultimap\n";
 } else {
 	$maxmultimap = 16;
     print "Maximun number of loci for reads to be acceptable        : $maxmultimap\n";
@@ -262,7 +262,7 @@ my $bowtie2Setting = "local"; # Or "end-to-end"
 my $prev_mapper = (uc($mapper) eq "STAR") ? 'STAR' : "bowtie2"; # For STAR runs     => prev_mapper = "STAR",
                                                             # For TopHat2 runs  => prev_mapper = "bowtie2" (prev_mapper is used for Phix and rRNA mapping)
 
-print "Phix/rRNA/tRNA/snRNA mapper                                  : $prev_mapper\n";
+print "Phix/rRNA/tRNA/snRNA mapper                              : $prev_mapper\n";
 #Set program run_name
 my $run_name_short = $run_name;
 $run_name = $run_name."_".$mapper."_".$unique."_".$ensemblversion;
@@ -326,7 +326,7 @@ my $cDNA_fasta   =  $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Ab
 my $tRNA_fasta   =  $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/AbundantSequences/".$IndextRNA.".fa";
 
 my $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
-print "chromosome_sizes_file=".$IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt\n";
+#print "chromosome_sizes_file=".$IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt\n";
 
 ########################
 #### Initiate results DB
