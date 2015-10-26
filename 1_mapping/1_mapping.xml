@@ -6,29 +6,15 @@
     
         1_mapping.pl --name $experimentname --species $organism --ensembl $ensembl --cores $cores --igenomes_root $igenomes_root.fields.path --readtype $readtype.riboSinPair --readlength $readtype.readlength --splicing $splicing --clipper $clipper --unique $MultiUnique.unique --mismatch $mismatch --adaptor $readtype.adaptor --phix $readtype.phix --rRNA $readtype.rrna
         
-        
          --mapper $choose.mapper
-        
+        --tr_coord $choose.tr_coord
         
         #if $MultiUnique.unique == "N"
     
             --maxmultimap $MultiUnique.maxmultimap
     
         #end if
-    
-            #if $choose.mapper == "STAR"
-    
-            --tr_coord $choose.tr_coord
-    
-                #if $choose.tr_coord == "Y"
-    
-                --out_bam_tr_untr "${untreat_bam_tr}"
-                --out_bam_tr_tr "${treat_bam_tr}"
-    
-                #end if
-    
-            #end if
-    
+
         #if $readtype.riboSinPair == "ribo"
 
             --snRNA $readtype.snrna
@@ -43,6 +29,10 @@
             --out_sam_tr "${treat_sam}"
             --out_sqlite "${out_sqlite}"
 
+			#if $choose.tr_coord == "Y"
+            	--out_bam_tr_untr "${untreat_bam_tr}"
+            	--out_bam_tr_tr "${treat_bam_tr}"
+			#end if
         #else if $readtype.riboSinPair == "PE_polyA"
 
             --inputfile1 $readtype.input_file1
@@ -52,7 +42,9 @@
             --out_sam_untr $PE_polyA_sam
             --out_sqlite $PE_polyA_out_sqlite
 
-
+			#if $choose.tr_coord == "Y"
+            	--out_bam_tr_untr "${PE_polyA_bam_tr}"
+			#end if
         #else if $readtype.riboSinPair == "PE_total"
 
             --inputfile1 $readtype.input_file1
@@ -62,7 +54,9 @@
             --out_sam_untr $PE_total_sam
             --out_sqlite $PE_total_out_sqlite
 
-
+			#if $choose.tr_coord == "Y"
+            	--out_bam_tr_untr "${PE_total_bam_tr}"
+			#end if
         #else if $readtype.riboSinPair == "SE_polyA"
 
             --inputfile1 $readtype.input_file1
@@ -71,7 +65,11 @@
             --out_bg_s_untr $SE_polyA_s_bg
             --out_bg_as_untr $SE_polyA_as_bg
 
-        #end if
+			#if $choose.tr_coord == "Y"
+            	--out_bam_tr_untr "${SE_polyA_bam_tr}"
+			#end if
+		#end if
+
     </command>
     
     <inputs>
@@ -222,14 +220,15 @@
         <data format="sqlite" name="out_sqlite"  label="SQLite DB with mapping results (step1)">
         <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-
         <data format="bam" name="untreat_bam_tr" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads based on transcript coord">
             <filter>choose['mapper'] == 'STAR'</filter>
-            <filter>choose['tr_coord'] == 'Y'</filter>
+        	<filter>readtype['riboSinPair'] == 'ribo'</filter>
+			<filter>choose['tr_coord'] == 'Y'</filter>
         </data>
         <data format="bam" name="treat_bam_tr"   label="$choose.mapper on ${on_string}: alignment PUR_HAR_LTM RIBOseq reads based on transcript coord">
             <filter>choose['mapper'] == 'STAR'</filter>
-            <filter>choose['tr_coord'] == 'Y'</filter>
+        	<filter>readtype['riboSinPair'] == 'ribo'</filter>
+			<filter>choose['tr_coord'] == 'Y'</filter>
         </data>
 
 
@@ -239,12 +238,18 @@
         <data format="sqlite" name="SE_polyA_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="SE_polyA_as_bg" label="RIBOseq footprint count data Antisense Bedgraph (as)">
+        <data format="bedGraph" name="SE_polyA_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="SE_polyA_s_bg" label="RIBOseq footprint count data Sense Bedgraph (s)">
+        <data format="bedGraph" name="SE_polyA_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
+        <data format="bam" name="SE_polyA_bam_tr" label="$choose.mapper on ${on_string}: RNA-seq reads based on transcript coordinates">
+            <filter>choose['mapper'] == 'STAR'</filter>
+			<filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
+			<filter>choose['tr_coord'] == 'Y'</filter>
+        </data>
+
 
         <data format="sam" name="PE_polyA_sam" label="$choose.mapper on ${on_string}: alignment PE_polyA RNAseq reads">
         	 <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
@@ -252,11 +257,16 @@
         <data format="sqlite" name="PE_polyA_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="PE_polyA_as_bg" label="RIBOseq footprint count data Antisense Bedgraph (as)">
+        <data format="bedGraph" name="PE_polyA_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="PE_polyA_s_bg" label="RIBOseq footprint count data Sense Bedgraph (s)">
+        <data format="bedGraph" name="PE_polyA_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
+        </data>
+        <data format="bam" name="PE_polyA_bam_tr" label="$choose.mapper on ${on_string}: RNA-seq reads based on transcript coordinates">
+            <filter>choose['mapper'] == 'STAR'</filter>
+			<filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
+			<filter>choose['tr_coord'] == 'Y'</filter>
         </data>
 
         <data format="sam" name="PE_total_sam" label="$choose.mapper on ${on_string}: alignment PE_total RNAseq reads">
@@ -265,11 +275,16 @@
         <data format="sqlite" name="PE_total_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
-        <data format="bedGraph" name="PE_total_as_bg" label="RIBOseq footprint count data Antisense Bedgraph (as)">
+        <data format="bedGraph" name="PE_total_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
-        <data format="bedGraph" name="PE_total_s_bg" label="RIBOseq footprint count data Sense Bedgraph (s)">
+        <data format="bedGraph" name="PE_total_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'PE_total'</filter>
+        </data>
+        <data format="bam" name="PE_total_bam_tr" label="$choose.mapper on ${on_string}: RNA-seq reads based on transcript coordinates">
+            <filter>choose['mapper'] == 'STAR'</filter>
+			<filter>readtype['riboSinPair'] == 'PE_total'</filter>
+			<filter>choose['tr_coord'] == 'Y'</filter>
         </data>
 
     </outputs>
