@@ -270,10 +270,11 @@ $run_name = $run_name."_".$mapper."_".$unique."_".$ensemblversion;
 #Conversion for species terminology
 my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" : (uc($species) eq "HUMAN") ? "Homo_sapiens" : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" : "";
 my $spec_short = (uc($species) eq "MOUSE") ? "mmu" : (uc($species) eq "HUMAN") ? "hsa" : (uc($species) eq "ARABIDOPSIS") ? "ath" : (uc($species) eq "FRUITFLY") ? "dme" : "";
-#Old mouse assembly = NCBIM37, new one is GRCm38
+#Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
 my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
-: (uc($species) eq "HUMAN") ? "GRCh37"
+: (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
+: (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
 : (uc($species) eq "FRUITFLY") ? "BDGP5" : "";
 
