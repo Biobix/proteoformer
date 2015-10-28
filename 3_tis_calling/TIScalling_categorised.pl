@@ -160,10 +160,11 @@ my $dsn_ENS = "DBI:SQLite:dbname=$db_ENS";
 my $us_ENS  = "";
 my $pw_ENS  = "";
 
-#Old mouse assembly = NCBIM37, new one is GRCm38
+#Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly is GRCh37, new one is GRCh38.
 my $assembly = ($species eq "mouse" && $ensemblversion >= 70 ) ? "GRCm38"
 : ($species eq "mouse" && $ensemblversion < 70 ) ? "NCBIM37"
-: ($species eq "human") ? "GRCh37"
+: ($species eq "human" && $ensemblversion >= 76) ? "GRCh38"
+: ($species eq "human" && $ensemblversion < 76) ? "GRCh37"
 : ($species eq "arabidopsis") ? "TAIR10"
 : ($species eq "fruitfly") ? "BDGP5" : "";
 
