@@ -1,0 +1,90 @@
+<tool id="snp_calling" name="Step 5: SNP calling" version="1.3.1">
+    
+    <description>using mapped next-generation sequencing reads</description>
+    
+    <command interpreter="bash">
+        #if $remove_duplicates.remove_duplicates_check and $snpdb.snpdb_selected == "y"
+        snp_calling --galaxydir "${__root_dir__}" --sqlitein "${sqlite_db}" --sqliteout "${sqlite_out}" --snpdbselected $snpdb.snpdb_selected --snpdb "${snpdb.snpdb_file.fields.path}" --removeduplicates true --picardpath $remove_duplicates.picard_path --toolsdir $tools_dir --reads "${mapped_reads}" --mincoverage $min_coverage --maxcoverage $max_coverage --high_af $high_af --lower_af $lower_af --upper_af $upper_af 2>&amp;1
+        #else if $remove_duplicates.remove_duplicates_check and $snpdb.snpdb_selected == "n"
+        snp_calling --galaxydir "${__root_dir__}" --sqlitein "${sqlite_db}" --sqliteout "${sqlite_out}" --snpdbselected $snpdb.snpdb_selected --removeduplicates true --picardpath $remove_duplicates.picard_path --toolsdir $tools_dir --reads "${mapped_reads}" --mincoverage $min_coverage --maxcoverage $max_coverage --high_af $high_af --lower_af $lower_af --upper_af $upper_af 2>&amp;1
+        #else if $snpdb.snpdb_selected == "y"
+        snp_calling --galaxydir "${__root_dir__}" --sqlitein "${sqlite_db}" --sqliteout "${sqlite_out}" --snpdbselected $snpdb.snpdb_selected --snpdb "${snpdb.snpdb_file.fields.path}" --removeduplicates false --picardpath $remove_duplicates.picard_path --toolsdir $tools_dir --reads "${mapped_reads}" --mincoverage $min_coverage --maxcoverage $max_coverage --high_af $high_af --lower_af $lower_af --upper_af $upper_af 2>&amp;1
+        #else if $snpdb.snpdb_selected == "n"
+        snp_calling --galaxydir "${__root_dir__}" --sqlitein "${sqlite_db}" --sqliteout "${sqlite_out}" --snpdbselected $snpdb.snpdb_selected --removeduplicates false --picardpath $remove_duplicates.picard_path --toolsdir $tools_dir --reads "${mapped_reads}" --mincoverage $min_coverage --maxcoverage $max_coverage --high_af $high_af --lower_af $lower_af --upper_af $upper_af 2>&amp;1
+        #end if
+    </command>
+    
+    <inputs>
+        <param name="sqlite_db" type = "data" format="sqlite" label="SQLite DB with RIBO-seq data after mapping" help="The SQLite database should contain at least a table 'arguments' with the species information." />
+        <param name="mapped_reads" type="data" format="sam" label="Select the sam file with the mapped untreated reads" />
+        <conditional name="remove_duplicates">
+            <param name="remove_duplicates_check" type="select" label="remove duplicate reads with picard">
+                <option value="y" selected="true">yes</option>
+                <option value="n">no</option>
+            </param>
+            <when value="y">
+                <param name="picard_path" type="hidden" value="/data2/galaxy-central/lib/picard-tools-1.119"/>
+            </when>
+        </conditional>
+        <conditional name="snpdb">
+            <param name="snpdb_selected" type="select" label="Compare the SNP calling results to SNPdb data">
+                <option value="y" selected="true">yes</option>
+                <option value="n">no</option>
+            </param>
+            <when value="y">
+                <param name="snpdb_file" type="select" label="Select the corresponding SNPdb" help="The variant databases are species and annotation version specific. If your genome of interest is not listed - contact your administrator.">
+                    <options from_data_table="PROTEOFORMER_snpdb" />
+                </param>
+            </when>
+        </conditional>
+        <param name="tools_dir" type="hidden" value="/data2/galaxy-central/tools/proteoformer" />
+        <param name="min_coverage" type="integer" size="5" value="3" label="enter the minimal coverage to call a SNP" />
+        <param name="max_coverage" type="integer" size="5" value="100" label="enter the maximal coverage to call a SNP" />
+        <param name="high_af" type="float" size="5" value="0.95" label="enter the high allelic frequency cut-off" help="This parameter will select SNPs and INDELS with an allelic frequency above its value. The idea behind this parameter is to select homozygous variants." />
+        <param name="lower_af" type="float" size="5" value="0.3" label="enter the lower allelic frequency cut-off" help="together with the upper cut-off, this parameter will select SNPs and INDELS with an allelic frequency between the lower and upper cut-offs and add them to the list selected with the high cut-off. The idea behind this parameter is to select heterozygous variants." />
+        <param name="upper_af" type="float" size="5" value="0.7" label="enter the upper allelic frequency cut-off" />
+    </inputs>
+    
+    <outputs>
+        <data format="sqlite" name="sqlite_out" label="SQLite database with mapping/tr and TIS (and SNP) calling and protein assembly (step1-2-3-(4)-5)"/>
+    </outputs>
+    
+    <help>
+
+.. class:: infomark
+
+**What it does**
+
+This tool uses samtools to call variants in mapped next-generation sequencing reads.
+
+The user has the option to compare the mapping and snp calling results to SNP data from the Sanger Institute.
+
+When you check the appropriate box, duplicate reads in the input file will be remove with picard.
+Next, the variants are called by chromosome and the results are stored in a separate VCF file for each chromosome.
+The benefit of calling variants per chromosome is that the tool can easily be multithreaded and can be run on up to x different cores (where x = number of chromosomes).
+When the SNP calling is finished, all the VCF files are combined in one single VCF file. This file is filtered based on the parameters high_af, lower_af and upper_af (allelic frequency) and the results are written to an SQLite database (table snp_samtools).
+
+-----
+
+.. class:: infomark
+
+**Input**
+
+A sam file with the mapped next-generation sequencing reads and an SQLite database where the results will be added to.
+
+-----
+
+.. class:: infomark
+
+**Output**
+
+This tool adds a table (snp_samtools), which contains the SNP calling result, to the SQLite database.
+
+The column "new" is added when the results are compared to SNPdb. A "y" (yes) indicates that a variant was new, ie NOT found in SNPdb.
+A "n" (no) means not new (ie found in SNPdb) and an "m" (mismatch) is used for those mismatches in the mapped reads that were found in SNPdb.
+There is no allelic frequency information for the "m" variants, so this has been set to 0.0.
+
+
+    </help>
+    
+</tool>
