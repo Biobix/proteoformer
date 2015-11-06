@@ -886,8 +886,7 @@ sub map_STAR {
     } elsif (uc($readtype) =~ m/SE/) {
 	
 		if ($unique eq 'Y') {$maxmultimap = 1}	# to ensure unique mapping
-        $command = $STAR_loc." --outSAMattributes Standard --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta.
-            " --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outSAMunmapped Within --outReadsUnmapped Fastx --outFilterType BySJout";
+        $command = $STAR_loc." --outSAMattributes Standard --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta;
 		if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
         if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
     }
