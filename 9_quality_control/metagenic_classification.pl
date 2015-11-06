@@ -766,6 +766,6 @@ sub piecharts{
 	my $tooldir = $_[4];
 	
 	# Execute Rscript
-    system("Rscript ".$tooldir."/tools/proteoformer/metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
+    system("Rscript ".$tooldir."/metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
     #system("Rscript metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
 }
