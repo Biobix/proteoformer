@@ -1,7 +1,7 @@
 <tool id="metagenic_classification" name="QUALITY CONTROL 1:">
     <description> Metagenic Classification </description>
     <command interpreter="perl">
-        metagenic_classification.pl --galaxydir "${__root_dir__}" --cores "${cores}" --treated "${treatment}" --in_sqlite "${sqlite_db}" --out_table1 "${out_table1}" --out_table2 "${out_table2}" --out_pdf1 "${out_pdf1}" --out_pdf2 "${out_pdf2}"
+        metagenic_classification.pl --tooldir "${__tool_directory__}" --cores "${cores}" --treated "${treatment}" --in_sqlite "${sqlite_db}" --out_table1 "${out_table1}" --out_table2 "${out_table2}" --out_pdf1 "${out_pdf1}" --out_pdf2 "${out_pdf2}"
     </command>
     
     <inputs>

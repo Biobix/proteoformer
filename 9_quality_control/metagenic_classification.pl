@@ -9,7 +9,7 @@
 # ./metagenic_classification.pl --cores 3 --treated untreated (or 'treated') (--work_dir getcwd --in_sqlite SQLite/results.db --output_file run_name_annotation)
 # **example: ./metagenic_classification.pl --cores 3 --treated untreated (--work_dir /data/RIBO_runs/RIBO_Ingolia_GerbenM/ --in_sqlite SQLite/results.db --output_file mESC_GA_ens72_STAR_untreated_annotation)
 # GALAXY
-# metagenic_classification.pl --galaxydir "${__root_dir__}" --cores "${cores}" --treated "${treatment}" --in_sqlite "${sqlite_db}" --out_table1 "${out_table1}" --out_table2 "${out_table2}" --out_pdf1 "${out_pdf1}" --out_pdf2 "${out_pdf2}"
+# metagenic_classification.pl --tooldir "${__tool_directory__}" --cores "${cores}" --treated "${treatment}" --in_sqlite "${sqlite_db}" --out_table1 "${out_table1}" --out_table2 "${out_table2}" --out_pdf1 "${out_pdf1}" --out_pdf2 "${out_pdf2}"
 ################
 
 use strict;
@@ -26,9 +26,9 @@ use Cwd;
 ################
 
 # Parameters, get the command line arguments
-my ($galaxydir,$cores,$work_dir,$in_sqlite,$output_file,$treated,$out_table1,$out_table2,$out_pdf1,$out_pdf2);
+my ($tooldir,$cores,$work_dir,$in_sqlite,$output_file,$treated,$out_table1,$out_table2,$out_pdf1,$out_pdf2);
 GetOptions(
-"galaxydir:s"=>\$galaxydir,				# Top-level Galaxy source directory made absolute via os.path.abspath() => /home/galaxy/app
+"tooldir:s"=>\$tooldir,                 # The directory the tool currently resides in (included for Galaxy) optional argument (default = $CWD env setting: for script version)
 "cores=i"=>\$cores,                     # Number of cores to use 										mandatory argument
 "work_dir:s" =>\$work_dir,              # Working directory												optional  argument (default = $CWD env setting)
 "in_sqlite:s" =>\$in_sqlite,            # Results db (relative of CWD)                              	optional  argument (default = SQLite/results.db)
@@ -64,6 +64,14 @@ if($in_sqlite){
     $in_sqlite = $work_dir."/SQLite/results.db";
     print "Name of SQLite input db					: $in_sqlite\n";
 }
+if ($tooldir){
+    print "The tooldir is set to    : $tooldir\n";
+} else {
+    #Choose default value for tooldir
+    $tooldir = $CWD;
+    print "The tooldir is set to   : $tooldir\n";
+}
+
 
 
 # Get ARG vars
@@ -88,12 +96,13 @@ print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
 #Conversion for species terminology
 my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
 my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
-#Old mouse assembly = NCBIM37, new one is GRCm38
-my $assembly = ($species eq "mouse" && $version >= 70 ) ? "GRCm38"
-: ($species eq "mouse" && $version < 70 ) ? "NCBIM37"
-: ($species eq "human") ? "GRCh37"
-: ($species eq "arabidopsis") ? "TAIR10"
-: ($species eq "fruitfly") ? "BDGP5" : "";
+#Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
+my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
+: (uc($species) eq "MOUSE" && $version < 70 ) ? "NCBIM37"
+: (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
+: (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
+: (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
+: (uc($species) eq "FRUITFLY") ? "BDGP5" : "";
 
 # Define ENSEMBL SQLite DB
 #my $db_ensembl = ($ens_db) ? $ens_db : $work_dir."/SQLite/"."ENS_".$spec_short."_".$version.".db";
@@ -147,7 +156,7 @@ print OUT2 "\n";
 metagenic_analysis($db_ribo,$db_ensembl,$table_ribo,\@ch,$cores,$coord_system_id,$user,$pw);
 
 # Make Pie Charts
-piecharts($out_table1,$out_table2,$out_pdf1,$out_pdf2,$galaxydir);
+piecharts($out_table1,$out_table2,$out_pdf1,$out_pdf2,$tooldir);
 
 print "DONE!\n";
 
@@ -225,9 +234,10 @@ sub get_chr{
     # Catch
     my %chr_sizes;
     my $filename = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
+    print "$filename\n";
     if (-e $filename) {
         # Work
-        open (Q,"<".$filename) || die "Cannot open chr sizes input\n";
+        open (Q,"<".$filename) || die "Cannot open chr sizes input $filename\n";
         while (<Q>){
             my @a = split(/\s+/,$_);
             $chr_sizes{$a[0]} = $a[1];
@@ -236,7 +246,7 @@ sub get_chr{
     else
     {
         $filename = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/WholeGenomeFasta/GenomeSize.xml";
-        open (Q,"<".$filename) || die "Cannot open chr sizes input\n";
+        open (Q,"<".$filename) || die "Cannot open chr sizes input $filename\n";
         while (<Q>){
             if ($_ =~ /contigName=\"(.*)\".*totalBases=\"(\d+)\"/) {
                 $chr_sizes{$1} = $2;
@@ -753,9 +763,9 @@ sub piecharts{
 	my $out_table2 = $_[1];
 	my $out_pdf1 = $_[2];
 	my $out_pdf2 = $_[3];
-	my $galaxydir = $_[4];
+	my $tooldir = $_[4];
 	
 	# Execute Rscript
-	system("Rscript ".$galaxydir."/tools/proteoformer/metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
-	#system("Rscript metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
+    system("Rscript ".$tooldir."/tools/proteoformer/metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
+    #system("Rscript metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
 }

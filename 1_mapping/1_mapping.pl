@@ -706,8 +706,9 @@ sub map_STAR {
         
     }
     
-    # If RIBO-SEQ: prior rRNA and/or snRNA and/or trRNA mapping is necessary
-    if (uc($readtype) eq "RIBO") {
+    # If RIBO-SEQ: prior rRNA and/or snRNA and/or trRNA mapping is NECESSARY
+    # If RNA-SEQ:  prior filtering on rRNA snRNA and/or trRNA is OPTIONAL
+    #if (uc($readtype) eq "RIBO") {
         #GO FOR rRNA mapping
         if ($rRNA eq "Y") {
 			if ($prev_mapper eq 'STAR') {
@@ -860,7 +861,7 @@ sub map_STAR {
             }
         $fasta = $work_dir."/fastq/$seqFileName"."_norrna_nosnrna_notrna.fq";
         }
-    }
+        #}
 
     # Check genomic STAR index
     # If it doesn't exist, it's created from data within the iGenome directory
@@ -885,7 +886,8 @@ sub map_STAR {
     } elsif (uc($readtype) =~ m/SE/) {
 	
 		if ($unique eq 'Y') {$maxmultimap = 1}	# to ensure unique mapping
-        $command = $STAR_loc." --outSAMattributes Standard --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta;
+        $command = $STAR_loc." --outSAMattributes Standard --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta.
+            " --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outSAMunmapped Within --outReadsUnmapped Fastx --outFilterType BySJout";
 		if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
         if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
     }
@@ -1159,8 +1161,9 @@ sub map_topHat2 {
         
     }
 
-    # If RIBO-SEQ: prior rRNA and/or snRNA and/or trRNA mapping is necessary
-    if (uc($readtype) eq "RIBO") {
+    # If RIBO-SEQ: prior rRNA and/or snRNA and/or trRNA mapping is NECESSARY
+    # if RNA-seq:  prior rRNA, snRNA and/or trRNA filtering is OPTIONAL
+    #if (uc($readtype) eq "RIBO") {
         #GO FOR rRNA mapping
         if ($rRNA eq "Y") {
             # GO FOR BOWTIE2_LOCAL_SENSITIVE to get norRNA reads
@@ -1246,7 +1249,7 @@ sub map_topHat2 {
             }
         $fasta = $work_dir."/fastq/$seqFileName"."_norrna_nosnrna_notrna.fq";
         }
-    }
+    #}
     
     # Run TopHat2
     $ref_loc = get_ref_loc($mapper);
@@ -1854,7 +1857,8 @@ sub RNA_parse_store {
     my $bedgr_as = ($seqFileName  eq 'fastq1') ? $out_bg_as_untr : $out_bg_as_tr;
     my $sam = ($seqFileName  eq 'fastq1') ? $out_sam_untr : $out_sam_tr;
     
-	my $sorted_bam = $work_dir."/".$mapper."/".$seqFileName."/Aligned.sorted.bam";
+    #my $sorted_bam = $work_dir."/".$mapper."/".$seqFileName."/Aligned.sorted.bam";
+    my $sorted_bam = $work_dir."/".$mapper."/".$seqFileName."/Aligned.sortedByCoord.out.bam";
 
 	#if ($unique eq 'Y') {
 	#	$sorted_bam = $work_dir."/".$mapper."/".$seqFileName."/Aligned.sorted.unique.bam";

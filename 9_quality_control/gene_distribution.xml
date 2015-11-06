@@ -1,7 +1,7 @@
 <tool id="gene_distribution" name="QUALITY CONTROL 2:">
     <description> Gene Distribution </description>
     <command interpreter="perl">
-        gene_distribution.pl --galaxydir "${__root_dir__}" --in_sqlite "${sqlite_db}" --treated "${treatment}" --out_table "${out_table}" --out_pdf1 "${out_pdf1}" --out_pdf2 "${out_pdf2}" --out_pdf3 "${out_pdf3}"
+        gene_distribution.pl --tooldir "${__tool_directory__}" --in_sqlite "${sqlite_db}" --treated "${treatment}" --out_table "${out_table}" --out_pdf1 "${out_pdf1}" --out_pdf2 "${out_pdf2}" --out_pdf3 "${out_pdf3}"
     </command>
     
     <inputs>

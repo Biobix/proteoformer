@@ -9,7 +9,7 @@
 # ./gene_distribution.pl --treated untreated (or 'treated') (--work_dir getcwd --in_sqlite SQLite/results.db --output_file run_name_genedistribution)
 # **example: ./gene_distribution.pl --treated untreated (--work_dir /data/RIBO_runs/RIBO_Ingolia_GerbenM/ --in_sqlite SQLite/results.db --output_file mESC_GA_ens72_STAR_untreated_genedistribution)
 # GALAXY
-# gene_distribution.pl --galaxydir "${__root_dir__}" --in_sqlite "${sqlite_db}" --treated "${treatment}" --out_table "${out_table}" --out_pdf1 "${out_pdf1}" --out_pdf2 "${out_pdf2}" --out_pdf3 "${out_pdf3}"
+# gene_distribution.pl --tooldir "${__tool_directory__}" --in_sqlite "${sqlite_db}" --treated "${treatment}" --out_table "${out_table}" --out_pdf1 "${out_pdf1}" --out_pdf2 "${out_pdf2}" --out_pdf3 "${out_pdf3}"
 ################
 
 use strict;
@@ -26,10 +26,10 @@ use Cwd;
 ################
 
 # Parameters, get the command line arguments
-my ($galaxydir,$work_dir,$in_sqlite,$output_file,$treated,$out_table,$out_pdf1,$out_pdf2,$out_pdf3);
+my ($tooldir,$work_dir,$in_sqlite,$output_file,$treated,$out_table,$out_pdf1,$out_pdf2,$out_pdf3);
 GetOptions(
 #"cores=i"=>\$cores,                     # Number of cores to use 										mandatory argument
-"galaxydir:s"=>\$galaxydir,				# Top-level Galaxy source directory made absolute via os.path.abspath() => /home/galaxy/app
+"tooldir:s"=>\$tooldir,                 # The directory the tool currently resides in (included for Galaxy) optional argument (default = $CWD env setting: for script version)
 "work_dir:s" =>\$work_dir,              # Working directory												optional  argument (default = $CWD env setting)
 "in_sqlite:s" =>\$in_sqlite,            # Results db (relative of CWD)                              	optional  argument (default = SQLite/results.db)
 #"ens_db:s" =>\$ens_db,                  # ENSEMBL db (relative of CWD)                              	optional  argument (default = SQLite/name_build_from_arguments.db)
@@ -64,6 +64,13 @@ if($in_sqlite){
     $in_sqlite = $work_dir."/SQLite/results.db";
     print "Name of SQLite input db					: $in_sqlite\n";
 }
+if ($tooldir){
+    print "The tooldir is set to    : $tooldir\n";
+} else {
+    #Choose default value for tooldir
+    $tooldir = $CWD;
+    print "The tooldir is set to   : $tooldir\n";
+}
 
 
 # Get arguments vars
@@ -91,12 +98,13 @@ print "Number of cores to use for analysis			: $cores\n";
 #Conversion for species terminology
 my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
 my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
-#Old mouse assembly = NCBIM37, new one is GRCm38
-my $assembly = ($species eq "mouse" && $version >= 70 ) ? "GRCm38"
-: ($species eq "mouse" && $version < 70 ) ? "NCBIM37"
-: ($species eq "human") ? "GRCh37"
-: ($species eq "arabidopsis") ? "TAIR10"
-: ($species eq "fruitfly") ? "BDGP5" : "";
+#Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
+my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
+: (uc($species) eq "MOUSE" && $version < 70 ) ? "NCBIM37"
+: (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
+: (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
+: (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
+: (uc($species) eq "FRUITFLY") ? "BDGP5" : "";
 
 # Define ENSEMBL SQLite DB
 #my $db_ensembl = ($ens_db) ? $ens_db : $work_dir."/SQLite/"."ENS_".$spec_short."_".$version.".db";
@@ -140,7 +148,7 @@ print OUT "GeneID\tread_count\n";
 gene_distribution($db_ribo,$db_ensembl,$table_ribo,\@ch,$coord_system_id,$user,$pw,$cores);
 
 # Make Plots
-make_plots($out_table,$out_pdf1,$out_pdf2,$out_pdf3,$galaxydir);
+make_plots($out_table,$out_pdf1,$out_pdf2,$out_pdf3,$tooldir);
 
 timer($startRun);	# Get Run time
 
@@ -527,10 +535,12 @@ sub make_plots{
 	my $out_pdf1 = $_[1];
 	my $out_pdf2 = $_[2];
 	my $out_pdf3 = $_[3];
-	my $galaxydir = $_[4];
+	my $tooldir = $_[4];
 	
 	# Execute Rscript
-	system("Rscript ".$galaxydir."/tools/proteoformer/quality_plots.R ".$out_table." ".$out_pdf1." ".$out_pdf2." ".$out_pdf3);
+    #system("Rscript ".$galaxydir."/tools/proteoformer/quality_plots.R ".$out_table." ".$out_pdf1." ".$out_pdf2." ".$out_pdf3);
+    system("Rscript ".$tooldir."/quality_plots.R ".$out_table." ".$out_pdf1." ".$out_pdf2." ".$out_pdf3);
+    #system("Rscript quality_plots.R ".$out_table." ".$out_pdf1." ".$out_pdf2." ".$out_pdf3);
 }
 
 sub timer {
