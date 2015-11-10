@@ -1196,6 +1196,7 @@ sub translate {
             }
         }
         $SNP_NS =~ s/:$//;
+        $href_tr_seq->{'seq'} = substr($href_tr_seq->{'seq'},0,length($AAseq)*3);
         $href_tr_seq->{'AAseq'} = $AAseq;
         $href_tr_seq->{'SNP_NS'} = $SNP_NS;
     }
