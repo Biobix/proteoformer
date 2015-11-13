@@ -508,12 +508,6 @@ sub construct_trans_prod {
     print "   Using ".$cores." core(s)\n   ---------------\n";
     
     
-###### FOR TESTING ON Y CHROM ##########
-#    my $chrsY = {};
-#    $chrsY->{'Y'} = $chrs->{'Y'};
-#    $chrs = $chrsY;
-########################################
-    
     # Open each chromosome in seperate core
     foreach my $chr (sort keys %{$chrs}){
         
