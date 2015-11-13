@@ -11,7 +11,7 @@ use v5.10;
 use Parallel::ForkManager;
 use Cwd;
 
-##test 2
+##test
 
 ##############
 ##Command-line
@@ -299,58 +299,58 @@ sub get_input_vars {
     # Get input variables
     $query = "select value from arguments where variable = \'run_name\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $run_name = $sth->fetch()->[0];
+    $sth->execute();
+    my $run_name = $sth->fetch()->[0];
     
     $query = "select value from arguments where variable = \'ensembl_version\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $ensemblversion = $sth->fetch()->[0];
-
+    $sth->execute();
+    my $ensemblversion = $sth->fetch()->[0];
+    
     $query = "select value from arguments where variable = \'species\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $species = $sth->fetch()->[0];
+    $sth->execute();
+    my $species = $sth->fetch()->[0];
     
     $query = "select value from arguments where variable = \'mapper\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $mapper = $sth->fetch()->[0];
+    $sth->execute();
+    my $mapper = $sth->fetch()->[0];
     
     $query = "select value from arguments where variable = \'unique\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $unique = $sth->fetch()->[0];
+    $sth->execute();
+    my $unique = $sth->fetch()->[0];
     
     $query = "select value from arguments where variable = \'adaptor\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $adaptorSeq = $sth->fetch()->[0];
+    $sth->execute();
+    my $adaptorSeq = $sth->fetch()->[0];
     
     $query = "select value from arguments where variable = \'readlength\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $readlength = $sth->fetch()->[0];
-
+    $sth->execute();
+    my $readlength = $sth->fetch()->[0];
+    
     $query = "select value from arguments where variable = \'readtype\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $readtype = $sth->fetch()->[0];
+    $sth->execute();
+    my $readtype = $sth->fetch()->[0];
     
     $query = "select value from arguments where variable = \'igenomes_root\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $IGENOMES_ROOT = $sth->fetch()->[0];
+    $sth->execute();
+    my $IGENOMES_ROOT = $sth->fetch()->[0];
     
     $query = "select value from arguments where variable = \'nr_of_cores\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $nr_of_cores = $sth->fetch()->[0];
+    $sth->execute();
+    my $nr_of_cores = $sth->fetch()->[0];
     
     $query = "select value from arguments where variable = \'ens_db\'";
     $sth = $dbh_results->prepare($query);
-	$sth->execute();
-	my $ensDB = $sth->fetch()->[0];
+    $sth->execute();
+    my $ensDB = $sth->fetch()->[0];
     
     # Return input variables
     return($run_name,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$nr_of_cores,$ensDB);
@@ -512,8 +512,8 @@ sub construct_trans_prod {
     # Open each chromosome in seperate core
     foreach my $chr (sort keys %{$chrs}){
         
-    #my @chrs = (1);
-    #foreach my $chr (@chrs) {
+        #my @chrs = (1);
+        #foreach my $chr (@chrs) {
         my $SNP_chr = {};
         
         ### Start parallel process
@@ -532,7 +532,7 @@ sub construct_trans_prod {
         ## Get SNPs per chr from SNP SQLite
         if ( $snp ne "NO" ) {
             $SNP_chr = get_SNPs_per_chromosome($dbh_results,$chr,$snp);
-
+            
         }
         
         ## Get transcript_ids per chr from transcript calling
@@ -541,8 +541,8 @@ sub construct_trans_prod {
         # Init
         my ($cnt, $transcript_start,$tr_id,$TIS,$exons,$strand,$start_codon,$dist_to_transcript_start,$dist_to_aTIS,$annotation,$aTIS_call,$peak_shift,$count,$Rltm_min_Rchx,$exon,$tr_stable_id,$e_rank,$e_start,$e_end,$e_start_phase,$e_end_phase,$e_stable_id,$seq,$tr_seq,$AA_seq,$exon_SNP,$CDS_tmp_length);
         
-            #my @tr = ("440589_118628041");
-            #foreach $transcript_start ( @tr){
+        #my @tr = ("440589_118628041");
+        #foreach $transcript_start ( @tr){
         foreach $transcript_start ( keys %{$transcript_starts}){
             my %tr_SNPs;
             $tr_seq = '';
@@ -631,7 +631,7 @@ sub construct_trans_prod {
                             $tr_SNPs{$exon_SNPs{$exon_SNP}{'tr_pos'}}{'af'} =        $exon_SNPs{$exon_SNP}{'af'};
                         }
                         
-                    
+                        
                         #print Dumper ('exon_SNPs_after',\%exon_SNPs);
                     }
                     
@@ -843,16 +843,16 @@ sub get_analysis_id {
     #1|lane3|lane4|72|N|Mus_musculus|1|5|0.05|10|0.05|15|0.15|10|0.05|10|0.05
     
     my $query_analysis_id = "select max(ID) as ID from TIS_overview where local_max = ".$local_max. " and min_count_aTIS = ".$min_count_aTIS." and R_aTis = ".$Rltm_minus_Rchx_aTIS.
-        " and min_count_5UTR = ".$min_count_5UTR." and R_5UTR = ".$Rltm_minus_Rchx_5UTR.
-        " and min_count_3UTR = ".$min_count_3UTR." and R_3UTR= ".$Rltm_minus_Rchx_3UTR.
-        " and min_count_CDS = ".$min_count_CDS." and R_CDS = ".$Rltm_minus_Rchx_CDS.
-        " and min_count_no_trans = ".$min_count_no_translation." and R_no_trans = ".$Rltm_minus_Rchx_no_translation;
+    " and min_count_5UTR = ".$min_count_5UTR." and R_5UTR = ".$Rltm_minus_Rchx_5UTR.
+    " and min_count_3UTR = ".$min_count_3UTR." and R_3UTR= ".$Rltm_minus_Rchx_3UTR.
+    " and min_count_CDS = ".$min_count_CDS." and R_CDS = ".$Rltm_minus_Rchx_CDS.
+    " and min_count_no_trans = ".$min_count_no_translation." and R_no_trans = ".$Rltm_minus_Rchx_no_translation;
     
     #print "$query_analysis_id\n";
     
     my $sth = $dbh->prepare($query_analysis_id);
-	$sth->execute();
-	$analysis_id = $sth->fetch()->[0];
+    $sth->execute();
+    $analysis_id = $sth->fetch()->[0];
     print "Analysis ID = $analysis_id\n";
     return($analysis_id);
 }
@@ -898,16 +898,16 @@ sub get_SNPs_per_chromosome {
         my @name_split = split(/_/,$snp);
         $query = "select chr,pos,ref,alt,case when new='m' then 0.5 else af end as af from snp_".$name_split[0]." where chr = '".$chr_name."' and af <> 'INDEL' ";
     }
-
-        
+    
+    
     
     #print "$query\n";
-	my $sth = $dbh->prepare($query);
-	$sth->execute();
-	$SNPs = $sth->fetchall_hashref('pos');
-	
-	# Return
-	return($SNPs);
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    $SNPs = $sth->fetchall_hashref('pos');
+    
+    # Return
+    return($SNPs);
     
 }
 
@@ -953,12 +953,12 @@ sub get_transcripts_per_chromosome {
     ##Test for annotation='aTIS' and aTIS_call='True'
     #my $query = "SELECT transcript_id||'_'||start as transcript_start,transcript_id,biotype,chr,strand,start,dist_to_transcript_start,dist_to_aTIS,annotation,aTIS_call,start_codon,peak_shift,count,Rltm_min_Rchx FROM TIS_".$analysis_id." WHERE chr = '".$chr_name."' (";
     #print "$query\n";
-	my $sth = $dbh->prepare($query);
-	$sth->execute();
-	$transcript_starts = $sth->fetchall_hashref('transcript_start');
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    $transcript_starts = $sth->fetchall_hashref('transcript_start');
     
-	# Return
-	return($transcript_starts);
+    # Return
+    return($transcript_starts);
 }
 
 ### Get all exons of transcript (Ensembl) ###
@@ -979,9 +979,9 @@ sub get_exons_for_tr {
     "   inner join seq_region r on r.seq_region_id = tr.seq_region_id ".
     " where tr.transcript_id = '". $transcript_id ."'";
     #print "$query\n";
-	my $sth = $dbh->prepare($query);
-	$sth->execute();
-	$exons = $sth->fetchall_hashref('rank');
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    $exons = $sth->fetchall_hashref('rank');
     
     #Return
     return($exons);
