@@ -507,6 +507,13 @@ sub construct_trans_prod {
     my $pm = new Parallel::ForkManager($cores);
     print "   Using ".$cores." core(s)\n   ---------------\n";
     
+    
+###### FOR TESTING ON Y CHROM ##########
+#    my $chrsY = {};
+#    $chrsY->{'Y'} = $chrs->{'Y'};
+#    $chrs = $chrsY;
+########################################
+    
     # Open each chromosome in seperate core
     foreach my $chr (sort keys %{$chrs}){
         
@@ -566,6 +573,11 @@ sub construct_trans_prod {
             $exons = get_exons_for_tr($dbh_ENS,$tr_id);
             my $start_exon_check;
             $CDS_tmp_length = 0;
+            # Hash will be needed to include positions of genomic positions of the ORF -> needed for ORF based counts
+            my $tmp_orf_structure = {};
+            my $orf_structure = {};
+            my $orf_exon_counter = 0;
+            my $stop_coord;
             
             # Get sequence starting from TIS and concatenated exon seqs
             # Loop over exons ascending for sense, descending for antisense
@@ -633,6 +645,14 @@ sub construct_trans_prod {
                     #print "$seq\n";
                     $tr_seq = $tr_seq . $seq;
                     
+                    #Save ORF structure
+                    $orf_exon_counter++;
+                    $tmp_orf_structure->{$orf_exon_counter}->{'start'} = $e_start;
+                    $tmp_orf_structure->{$orf_exon_counter}->{'end'} = $e_end;
+                    $tmp_orf_structure->{$orf_exon_counter}->{'e_stable_id'} = $e_stable_id;
+                    $tmp_orf_structure->{$orf_exon_counter}->{'rank'} = $e_rank;
+                    $tmp_orf_structure->{$orf_exon_counter}->{'length'} = $e_end - $e_start + 1;
+                    
                     # Build the temporary CDS length
                     my $l = length($seq);
                     $CDS_tmp_length = $CDS_tmp_length + ($e_end - $e_start + 1);
@@ -647,7 +667,6 @@ sub construct_trans_prod {
                 #print "DNA  $tr_seq\n";
                 #translate
                 my $tr_seqs_all = translate($tr_seq,\%tr_SNPs);
-                
                 #print Dumper ('seqs_all',$tr_seqs_all);
                 
                 #Loop over all entries in AoH_tr_seqs_all
@@ -659,9 +678,66 @@ sub construct_trans_prod {
                     
                     #Only output transcripts that actually terminate with a STOP-codon (transcript forms with missing 3' exons resulting in missing STOP-codon are excluded)
                     if ($AA_seq =~ /\*$/ && $AA_seq ne '') {
+                        
+                        #Adapt the orf structure in function of the length of the AA seq to find the stop codon coordinate
+                        if($strand eq '1'){
+                            #Determine how long the translated sequence spans over the exon structure
+                            my $orf_length = length($AA_seq) * 3;
+                            my $i = 1;
+                            for(;$orf_length>$tmp_orf_structure->{$i}->{'length'};$i++){
+                                $orf_structure->{$i} = $tmp_orf_structure->{$i};
+                                $orf_length = $orf_length - $tmp_orf_structure->{$i}->{'length'};
+                            }
+                            $orf_structure->{$i} = $tmp_orf_structure->{$i};
+                            #Determine stop coordinate and adapt in last exon of the orf
+                            $stop_coord = $orf_structure->{$i}->{'start'} + $orf_length - 1;
+                            $orf_structure->{$i}->{'end'} = $stop_coord;
+                            $orf_structure->{$i}->{'length'} = $orf_length;
+                        }
+                        elsif($strand eq '-1'){ #For antisense
+                            my $orf_length = length($AA_seq) * 3;
+                            my $i = 1;
+                            for(;$orf_length>$tmp_orf_structure->{$i}->{'length'};$i++){
+                                $orf_structure->{$i} = $tmp_orf_structure->{$i};
+                                $orf_length = $orf_length - $tmp_orf_structure->{$i}->{'length'};
+                            }
+                            $orf_structure->{$i} = $tmp_orf_structure->{$i};
+                            #Determine stop coordinate and adapt in last exon of the orf
+                            $stop_coord = $orf_structure->{$i}->{'end'} - $orf_length + 1;
+                            $orf_structure->{$i}->{'start'} = $stop_coord;
+                            $orf_structure->{$i}->{'length'} = $orf_length;
+                        }
+                        
+                        #Make underscore seperated sequences of start and stop coordinates
+                        my $starts_seq="";
+                        my $ends_seq="";
+                        if($strand eq '1'){
+                            for(my $i=1;$i<=scalar(keys(%{$orf_structure}));$i++){
+                                if($i==1){
+                                    $starts_seq = $orf_structure->{$i}->{'start'};
+                                    $ends_seq = $orf_structure->{$i}->{'end'};
+                                } elsif ($i>1) {
+                                    $starts_seq = $starts_seq."_".$orf_structure->{$i}->{'start'};
+                                    $ends_seq = $ends_seq."_".$orf_structure->{$i}->{'end'};
+                                }
+                            }
+                        } elsif ($strand eq '-1'){
+                            for(my $i=scalar(keys(%{$orf_structure}));$i>=1;$i--){
+                                if($i==scalar(keys(%{$orf_structure}))){
+                                    $starts_seq = $orf_structure->{$i}->{'start'};
+                                    $ends_seq = $orf_structure->{$i}->{'end'};
+                                } elsif($i<scalar(keys(%{$orf_structure})) && $i>=1){
+                                    $starts_seq = $starts_seq."_".$orf_structure->{$i}->{'start'};
+                                    $ends_seq = $ends_seq."_".$orf_structure->{$i}->{'end'};
+                                }
+                            }
+                        }
+                        
                         #Replace near-cognate start to cognate methionine...
                         $AA_seq = (substr($AA_seq,0,1) ne 'M') ? 'M'.substr($AA_seq,1) : $AA_seq;
-                        print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",".$tr_seq.",".$AA_seq."\n";
+                        print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",".$tr_seq.",".$AA_seq."\n";
+                        
+                        
                     }
                     else {
                         #print "$tr_stable_id,$AA_seq\n";
@@ -717,6 +793,9 @@ sub store_in_db{
     `strand` int(2) NOT NULL default '',
     `start` int(10) NOT NULL default '',
     `start_codon` varchar(128) NOT NULL default '',
+    `stop` int(10) NOT NULL default '',
+    `starts_list` varchar(512) NOT NULL default '',
+    `ends_list` varchar(512) NOT NULL default '',
     `dist_to_transcript_start` int(10) NOT NULL default '',
     `dist_to_aTIS` int(10) NOT NULL default 'NA',
     `annotation` varchar(128) NOT NULL default 'NA',
