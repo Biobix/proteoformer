@@ -71,12 +71,21 @@ for o, a in myopts:
     if o in ('-s','--species'):
         species=a
     if o in ('-v','--version'):
-        ens_v=a
+        stringEns_v=a
+        try:
+            ens_v=int(stringEns_v)
+        except:
+            print "Error: could not parse the Ensembl version argument into an int"
+            sys.exit()
     if o in ('-r','--remove'):
         removeExisting=True
     if o in ('-c', '--cores'):
         stringCores=a
-        cores=int(a)
+        try:
+             cores=int(stringCores)
+        except:
+            print "Error: could not parse the cores argument into an int"
+            sys.exit()
 
 #
 # Check for correct arguments
@@ -88,7 +97,7 @@ if(instalDir == ''):
 if(species == ''):
     print("Error: do not forget to pass the species argument!")
     sys.exit()
-if(ens_v == ''):
+if(stringEns_v == ''):
     print("Error: do not forget to pass the ensembl version argument!")
     sys.exit()
 if(cores == ''):
@@ -98,11 +107,11 @@ elif(int(cores)>15):
     print("Error: the amount of cores cannot be larger than 15!")
     sys.exit()
 if(species == 'arabidopsis'):
-    if(int(ens_v)>29):
+    if(ens_v>29):
         print("Error: latest Ensembl Plants version is 29!")
         sys.exit()
 else:
-    if(int(ens_v)>82):
+    if(ens_v>82):
         print("Error: latest Ensembl version is 82!")
         sys.exit()
 #Remove last "/" from instal dir path
@@ -112,20 +121,27 @@ if(m):
     instalDir=m.group(1)
 #Report on input
 print("The igenomes structure will be installed in : " + instalDir)
-print("Ensembl version used                        : " + ens_v)
+print("Ensembl version used                        : " + stringEns_v)
 print("Selected species                            : " + species)
 print("Amount of cores                             : " + stringCores)
-print("")
 
 #Convert species and construct additional info. New assemblies can be modified here.
 if(species=='human'):
     speciesLong='Homo_sapiens'
-    assembly='GRCh38'
-    ucscCode='hg38'
+    if(ens_v>75):
+        assembly='GRCh38'
+        ucscCode='hg38'
+    else:
+        assembly='GRCh37'
+        ucscCode='hg19'
 elif(species=='mouse'):
     speciesLong='Mus_musculus'
-    assembly='GRCm38'
-    ucscCode='mm10'
+    if(ens_v>67):
+        assembly='GRCm38'
+        ucscCode='mm10'
+    else:
+        assembly='NCBIM37'
+        ucscCode='mm9'
 elif(species=='fruitfly'):
     speciesLong='Drosophila_melanogaster'
     assembly='BDGP6'
@@ -149,28 +165,34 @@ else:
     print("Species has to be one of the following list: human, mouse, fruitfly, yeast, zebrafish, arabidopsis, c.elegans")
     sys.exit()
 
+print("Assembly                                    : " + assembly)
+print("UCSC code                                   : " + ucscCode)
+print("")
 
 os.chdir(instalDir)
 
 #Check if the igenomes folder already exists
 if os.path.isdir("igenomes"):
-    if os.path.isdir("igenomes/"+speciesLong):
+    if os.path.isdir("igenomes/"+speciesLong+"/Ensembl/"+assembly):
         if(removeExisting==False):
-            print("There is already folder called igenomes/"+speciesLong+" for "+species+" in "+instalDir)
+            print("There is already a folder called igenomes/"+speciesLong+"/Ensembl/"+assembly+" for "+species+" in "+instalDir)
             print("If you want to overwrite the existing structure for that species in "+instalDir+", please use the -r or --remove option.")
             sys.exit()
         else:
             print("Overwriting existing igenomes folder for "+species)
-            shutil.rmtree("igenomes/"+speciesLong)
+            shutil.rmtree("igenomes/"+speciesLong+"/Ensembl/"+assembly)
 else:
     os.system("mkdir igenomes")
 
 
 
 #construct the basic folder structure
-os.system("mkdir igenomes/"+speciesLong)
-os.system("mkdir igenomes/"+speciesLong+"/Ensembl")
-os.system("mkdir igenomes/"+speciesLong+"/Ensembl/"+assembly)
+if(not os.path.isdir("igenomes/"+speciesLong)):
+	os.system("mkdir igenomes/"+speciesLong)
+if(not os.path.isdir("igenomes/"+speciesLong+"/Ensembl")):
+	os.system("mkdir igenomes/"+speciesLong+"/Ensembl")
+if(not os.path.isdir("igenomes/"+speciesLong+"/Ensembl/"+assembly)):
+	os.system("mkdir igenomes/"+speciesLong+"/Ensembl/"+assembly)
 os.system("mkdir igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Annotation")
 os.system("mkdir igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence")
 
@@ -234,30 +256,45 @@ os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chro
 def downloadChromosomeFasta(chr):
     if(species=='arabidopsis'):#Arabidopsis is on the site of ensembl Plants instead of normal Ensembl. This site cannot use rsync yet.
         if(chr=='MT'):#Ensembl uses 'Mt' for Arabidopsis mitochondrial genome
-            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome.Mt.fa.gz")
-            os.system("gunzip "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome.Mt.fa.gz")
-            os.system("mv "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome.Mt.fa MT.fa")
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
+            os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
+            os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa MT.fa")
         else:
-            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome."+chr+".fa.gz")
-            os.system("gunzip "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome."+chr+".fa.gz")
-            os.system("mv "+speciesLong+"."+assembly+"."+ens_v+".dna.chromosome."+chr+".fa "+chr+".fa")
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz")
+            os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz")
+            os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa "+chr+".fa")
         print("\t\t*) Chromosome "+chr+" finished")
     else:#use rsync for other species
         if(chr=='MT' or chr=='M'):
             if(species=='fruitfly'):#Other name 'dmel_mitochondrion_genome' for fruitfly
-                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
                 os.system("gunzip M.fa.gz")
             elif(species=='yeast'):#Other name 'Mito' for yeast
-                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.Mito.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.Mito.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mito.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 os.system("gunzip MT.fa.gz")
             elif(species=='c.elegans'):#Other name 'MtDNA' for c elegans
-                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 os.system("gunzip MT.fa.gz")
             else:#MT for other species
-                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 os.system("gunzip MT.fa.gz")
         else:
-            os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+            if(ens_v>75):
+                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+            else:
+                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
             os.system("gunzip "+chr+".fa.gz")
         print("\t\t*) Chromosome "+chr+" finished")
 
@@ -295,10 +332,10 @@ print("\n")
 print("Download genes.gtf file")
 os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Annotation/Genes")
 if(species=='arabidopsis'):#Arabidopsis from Ensembl Plants
-    os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+ens_v+"/plants/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+ens_v+".gtf.gz")
-    os.system("mv "+speciesLong+"."+assembly+"."+ens_v+".gtf.gz genesTmp.gtf.gz")
+    os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/plants/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz")
+    os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
 else:
-    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+ens_v+"/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+ens_v+".gtf.gz genesTmp.gtf.gz")
+    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
 os.system("gunzip genesTmp.gtf.gz")
 
 #The first lines are comments and are unwanted: delete them
@@ -338,9 +375,9 @@ month=datetime.date(1900, monthinteger, 1).strftime('%B')
 day=downloadDate.day
 readmeFile.write("The contents of the annotation directories were downloaded from Ensembl on: "+month+" "+str(day)+", "+str(year)+".\n")
 if(species=='arabidopsis'):
-    readmeFile.write("Gene annotation files were downloaded from Ensembl Plants release "+ens_v+".")
+    readmeFile.write("Gene annotation files were downloaded from Ensembl Plants release "+stringEns_v+".")
 else:
-    readmeFile.write("Gene annotation files were downloaded from Ensembl release "+ens_v+".")
+    readmeFile.write("Gene annotation files were downloaded from Ensembl release "+stringEns_v+".")
 readmeFile.close()
 
 
