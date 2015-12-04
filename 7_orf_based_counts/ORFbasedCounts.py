@@ -284,7 +284,7 @@ def ORF_based_counts_per_chr(chr, sqlitedb, tis_id, trim, nt_trim, ltm, workdir)
 		orfs = match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMrev)
 		
 		#Write to csv file for each chromosome
-		write_to_csv(chr, orfs, ltm, workdir)
+		write_to_csv(chr, orfs, exonBoundaries, ltm, workdir)
 		
 		print "*) Process for chromosome "+chr+" completed"
 	except:
@@ -317,6 +317,8 @@ def dumpSQLite(tisid, chrs, ltm, workdir, sqlitedb):
 				"'chr' char(50) NOT NULL default '',"\
 				"'strand' int(2) NOT NULL default '',"\
 				"'trim' int(4) NOT NULL default '',"\
+				"'start_main_orf' int(10) NOT NULL default '',"\
+				"'end_main_orf' int(10) NOT NULL default '',"\
 				"'pre_count' float default NULL,"\
 				"'count' float default NULL,"\
 				"'post_count' float default NULL)"
@@ -348,6 +350,8 @@ def dumpSQLite(tisid, chrs, ltm, workdir, sqlitedb):
 					"'chr' char(50) NOT NULL default '',"\
 					"'strand' int(2) NOT NULL default '',"\
 					"'trim' int(4) NOT NULL default '',"\
+					"'start_main_orf' int(10) NOT NULL default '',"\
+					"'end_main_orf' int(10) NOT NULL default '',"\
 					"'pre_count' float default NULL,"\
 					"'count' float default NULL,"\
 					"'post_count' float default NULL)"
@@ -372,21 +376,21 @@ def dumpSQLite(tisid, chrs, ltm, workdir, sqlitedb):
 
 
 ##Write ORF information and count data to csv file for that chromosome
-def write_to_csv(chr, orfs, ltm, workdir):
+def write_to_csv(chr, orfs, exonBoundaries, ltm, workdir):
 	try:
 		#Define a csv writer object
 		csvWriter = csv.writer(open(workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_tmp.csv","wb"))
 		
 		#Write all ORFs and their info to the csv file
 		for id in orfs:
-			csvWriter.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], orfs[id]['pre_count'], orfs[id]['count'], orfs[id]['post_count']])
+			csvWriter.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['pre_count'], orfs[id]['count'], orfs[id]['post_count']])
 		
 		if(ltm=='y'):
 			#The same for treated counts
 			csvWriterLTM = csv.writer(open(workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_LTM_tmp.csv","wb"))
 			
 			for id in orfs:
-				csvWriterLTM.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], orfs[id]['LTMpre_count'], orfs[id]['LTMcount'], orfs[id]['LTMpost_count']])
+				csvWriterLTM.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['LTMpre_count'], orfs[id]['LTMcount'], orfs[id]['LTMpost_count']])
 		
 	except:
 		traceback.print_exc()
@@ -450,9 +454,9 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 					for exonRank in range(1,exonBoundaries[OrfId]['number_of_exons']+1):#Also the rank number are here strand independent (see get_exon_structure)
 						if(readPosition>=exonBoundaries[OrfId][exonRank]['start'] and readPosition<=exonBoundaries[OrfId][exonRank]['end']):
 							if(readPosition<exonBoundaries[OrfId]['start_main_orf']):
-								orfs[OrfId]['pre_count'] = orfs[OrfId]['pre_count'] + CHXrev[readPosition]['count']
+								orfs[OrfId]['post_count'] = orfs[OrfId]['post_count'] + CHXrev[readPosition]['count'] #Start_main_orf and end_main_orf are absolute, so change post and pre count here for antisense
 							elif(readPosition>exonBoundaries[OrfId]['end_main_orf']):
-								orfs[OrfId]['post_count'] = orfs[OrfId]['post_count'] + CHXrev[readPosition]['count']
+								orfs[OrfId]['pre_count'] = orfs[OrfId]['pre_count'] + CHXrev[readPosition]['count']
 							else:
 								orfs[OrfId]['count'] = orfs[OrfId]['count'] + CHXrev[readPosition]['count']
 		
@@ -514,9 +518,9 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 						for exonRank in range(1,exonBoundaries[OrfId]['number_of_exons']+1):#Also the rank number are here strand independent (see get_exon_structure)
 							if(readPosition>=exonBoundaries[OrfId][exonRank]['start'] and readPosition<=exonBoundaries[OrfId][exonRank]['end']):
 								if(readPosition<exonBoundaries[OrfId]['start_main_orf']):
-									orfs[OrfId]['LTMpre_count'] = orfs[OrfId]['LTMpre_count'] + LTMrev[readPosition]['count']
+									orfs[OrfId]['LTMpost_count'] = orfs[OrfId]['LTMpost_count'] + LTMrev[readPosition]['count'] #Start_main_orf and end_main_orf are absolute, so change post and pre count here for antisense
 								elif(readPosition>exonBoundaries[OrfId]['end_main_orf']):
-									orfs[OrfId]['LTMpost_count'] = orfs[OrfId]['LTMpost_count'] + LTMrev[readPosition]['count']
+									orfs[OrfId]['LTMpre_count'] = orfs[OrfId]['LTMpre_count'] + LTMrev[readPosition]['count']
 								else:
 									orfs[OrfId]['LTMcount'] = orfs[OrfId]['LTMcount'] + LTMrev[readPosition]['count']
 			
@@ -579,7 +583,7 @@ def get_exon_structure(chr, dbpath, analysis_id, trim, nt_trim, ltm):
 				exonBoundaries[id][i]['start']=starts[i-1]
 				exonBoundaries[id][i]['end']=ends[i-1]
 			
-			#Define start border of the main part of the ORF. Start and stop position are already part of the main ORF
+			#Define start border of the main part of the ORF. Absolute, similar to starts_list and ends_list, not relative like start (TIS) and stop. (Start and stop position are already part of the main ORF)
 			if(trim=='absolute'):
 				if(orfs[id]['length']<=300):#For absolute, starting from 300nt (sORFs border), keep the trimming relatively constant
 					nt_trim_rel = nt_trim/300.0 #Too short: switch to relative
