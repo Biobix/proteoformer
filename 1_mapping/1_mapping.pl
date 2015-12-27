@@ -36,13 +36,13 @@ use Cwd;
 ##############
 ##Command-line
 ##############
-# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP)
+# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP)
 
 #For GALAXY
 #1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing);
 
 GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
@@ -74,6 +74,7 @@ GetOptions(
 "snRNA:s" =>\$snRNA,                    	# map to snRNA DB prior to genomic mapping (Y or N)                				optional argument (default = N)
 "tRNA:s" =>\$tRNA,                      	# map to tRNA DB prior to genomic mapping (Y or N)                   			optional argument (default = N)
 "tr_coord=s" =>\$tr_coord,					# Generate alignment file based on transcript coordinates (Y or N)				optional argument (default = N)
+"truseq=s" =>\$truseq,                      # If strands (+ and -) are assigned as in TruSeq or not (Y or N)                optional argument (default = Y)
 "mismatch=i" =>\$mismatch,	                # Alignment will be output only if it has fewer mismatches than this value		optional argument (default = 2)
 "maxmultimap=i" =>\$maxmultimap,		    # Alignments will be output only if the read maps fewer than this value		    optional argument (default = 16)
 "splicing=s" =>\$splicing                   # Allow splicing for genome alignment for eukaryotic species (Y or N)           optional argument (default = Y)
@@ -204,6 +205,12 @@ if ($clipper){
 		#Choose default value for clipper
         $clipper = 'none';
 		print "The clipper used is                                      : $clipper\n";
+}
+if ($truseq){
+    print "TruSeq strand assignment                                 : $truseq\n";
+} else {
+    $truseq = 'Y';
+    print "TruSeq strand assignment                                 : $truseq\n";
 }
 
 if ($phix){
@@ -400,11 +407,11 @@ foreach (@loopfastQ) {
         }
         if (uc($readtype) eq "SE_POLYA") {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
-            RNA_parse_store($_,$fastqName);
+            RNA_parse_store($_,$fastqName, $unique, $truseq);
         }
         if (uc($readtype) =~ m/PE/) {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
-            RNA_parse_store($_,$fastqName);
+            RNA_parse_store($_,$fastqName, $unique, $truseq);
         }
 
         my $end = time - $start;
@@ -421,11 +428,11 @@ foreach (@loopfastQ) {
         }
         if (uc($readtype) eq "SE_POLYA") {
             map_STAR($_,$fastqName,$clipper,$mismatch);
-			RNA_parse_store($_,$fastqName);
+			RNA_parse_store($_,$fastqName, $unique, $truseq);
         }
         if (uc($readtype) =~ m/PE/) {
             map_STAR($_,$fastqName,$clipper,$mismatch);
-            RNA_parse_store($_,$fastqName);
+            RNA_parse_store($_,$fastqName , $unique, $truseq);
         }
 
         my $end = time - $start;
@@ -1851,6 +1858,8 @@ sub RNA_parse_store {
     # Catch
     my $seqFile = $_[0];
     my $seqFileName = $_[1];
+    my $uniq = $_[2];
+    my $truseq = $_[3];
     
     my $bedgr_s = ($seqFileName  eq 'fastq1') ? $out_bg_s_untr : $out_bg_s_tr;
     my $bedgr_as = ($seqFileName  eq 'fastq1') ? $out_bg_as_untr : $out_bg_as_tr;
@@ -1862,19 +1871,136 @@ sub RNA_parse_store {
 	#if ($unique eq 'Y') {
 	#	$sorted_bam = $work_dir."/".$mapper."/".$seqFileName."/Aligned.sorted.unique.bam";
 	#}
-	    
+    
+    ## Get chromosome sizes and cDNA identifiers
+    print "Getting chromosome sizes and cDNA to chromosome mappings ... \n";
+    my %chr_sizes = %{get_chr_sizes($chromosome_sizes)};
+    
+    print "Splitting genomic mapping per chromosome...\n";
+    split_SAM_per_chr(\%chr_sizes, $work_dir, $seqFileName, $run_name, $sam, $uniq);
+    
+    #Create count tables
+    
+    #Init dbh
+    my $dbh_count = dbh($dsn_sqlite_results, $us_sqlite_results, $pw_sqlite_results);
+    
+    
+    #Create table if not exist
+    my $query_table = "CREATE TABLE IF NOT EXISTS `count_".$seqFileName."` (
+    `chr` char(50) NOT NULL default '',
+    `strand` char(1) NOT NULL default '0',
+    `start` int(10) NOT NULL default '0',
+    `count` float default NULL)";
+    
+	
+    $dbh_count->do($query_table);
+    
+    #Disconnect
+    $dbh_count->disconnect;
+    
+    #Init multi core
+    my $pm = new Parallel::ForkManager($cores);
+    print "   Using ".$cores." core(s)\n  --------------\n";
+    
+    foreach my $chr (keys %chr_sizes){
+        
+        ### Start parallel process
+        $pm->start and next;
+        
+        ### DBH per process
+        my $dbh = dbh($dsn_sqlite_results, $us_sqlite_results, $pw_sqlite_results);
+        
+        ### RNA parsing
+        my $hits = RNA_parsing_genomic_per_chr($work_dir,$seqFileName,$run_name,$sam,$chr);
+        
+        ### To file
+        store_in_file_per_chr_RNA($hits,$dbh,$seqFileName,$chr,$run_name, $truseq);
+        
+        ### Finish
+        print "* Finished chromosome ".$chr."\n";
+        $dbh->disconnect();
+        $pm->finish;
+    }
+    
+    #Finish all subprocesses
+    $pm->wait_all_children;
+    
+    # Creat indexes on count table
+    my $table_name = "count_".$seqFileName;
+    my $index1_st = "create index if not exists ".$table_name."_chr on ".$table_name." (chr)";
+    my $index2_st = "create index if not exists ".$table_name."_strand on ".$table_name." (strand)";
+    my $system_cmd1 = $sqlite_loc." ".$db_sqlite_results." \"".$index1_st."\"";
+    my $system_cmd2 = $sqlite_loc." ".$db_sqlite_results." \"".$index2_st."\"";
+    system($system_cmd1);
+    system($system_cmd2);
+    
+    ####### Combine and generate all output ########
+    ##SQLite Dump
+    
+    #Gather all temp_chrom_csv files in one file
+    my $temp_csv_all = $TMP."/genomic/".$run_name."_".$seqFileName."_".$seqFileName.".csv";
+    system("touch ".$temp_csv_all);
+    
+    foreach my $chr (keys %chr_sizes){
+        my $temp_csv = $TMP."/genomic/".$run_name."_".$seqFileName."_".$chr."_tmp.csv";
+        system("cat ".$temp_csv." >> ".$temp_csv_all);
+    }
+    
+    #Remove chr tmp csv files
+    system("rm -rf ".$TMP."/genomic/".$run_name."_".$seqFileName."_*_tmp.csv");
+    
+    #Dump into sqlite
+    system($sqlite_loc." -separator , ".$db_sqlite_results." \".import ".$temp_csv_all." ".$table_name."\"")==0 or die "system failed: $?";
+    system("rm -rf ".$temp_csv_all);
+    
     # BEDGRAPH /split for sense and antisense (since double entries, both (anti)sense cannot be visualized)
     my $bed_allgr_sense = $TMP."/genomic/".$run_name."_".$seqFileName."_sense.bedgraph";
     my $bed_allgr_antisense = $TMP."/genomic/".$run_name."_".$seqFileName."_antisense.bedgraph";
 	system("touch ".$bedgr_s);
 	system("touch ".$bedgr_as);
 
-	# Convert BAM to BEDGRAPH files for each strand
-	my $command_bedgraphS = "bedtools genomecov -bg -strand + -split -ibam ".$sorted_bam." -g ".$chromosome_sizes." >".$bedgr_s." 2>&1";
-	my $command_bedgraphAS = "bedtools genomecov -bg -strand - -split -ibam ".$sorted_bam." -g ".$chromosome_sizes." >".$bedgr_as." 2>&1";
-	system($command_bedgraphS);
-	system($command_bedgraphAS);
-
+	# Convert BAM to BEDGRAPH files for each strand (strand assignment depends on RNAseq protocol)
+    if($truseq eq "Y"){
+        my $command_bedgraphS = "bedtools genomecov -bg -strand - -split -ibam ".$sorted_bam." -g ".$chromosome_sizes." >".$bedgr_s." 2>&1";
+        my $command_bedgraphAS = "bedtools genomecov -bg -strand + -split -ibam ".$sorted_bam." -g ".$chromosome_sizes." >".$bedgr_as." 2>&1";
+        system($command_bedgraphS);
+        system($command_bedgraphAS);
+    } else {
+        my $command_bedgraphS = "bedtools genomecov -bg -strand + -split -ibam ".$sorted_bam." -g ".$chromosome_sizes." >".$bedgr_s." 2>&1";
+        my $command_bedgraphAS = "bedtools genomecov -bg -strand - -split -ibam ".$sorted_bam." -g ".$chromosome_sizes." >".$bedgr_as." 2>&1";
+        system($command_bedgraphS);
+        system($command_bedgraphAS);
+    }
+    
+    #Adapt BEDGRAPH files to UCSC conventions
+    system("mv ".$bedgr_s." ".$TMP."/genomic/bedgraph_old_sense.bedgraph");
+    system("mv ".$bedgr_as." ".$TMP."/genomic/bedgraph_old_antisense.bedgraph");
+    open(BEDALLGRS,">".$bedgr_s) || die "Cannot open the BEDGRAPH sense output file";
+    open(BEDALLGRAS,">".$bedgr_as) || die "Cannot open the BEDGRAPH antisense output file";
+    print BEDALLGRS "track type=bedGraph name=\"".$run_name."_".$seqFileName."_s\" description=\"".$run_name."_".$seqFileName."_s\" visibility=full color=3,189,0 priority=20\n";
+    print BEDALLGRAS "track type=bedGraph name=\"".$run_name."_".$seqFileName."_as\" description=\"".$run_name."_".$seqFileName."_as\" visibility=full color=239,61,14 priority=20\n";
+    open(OLDBEDGRS,"<".$TMP."/genomic/bedgraph_old_sense.bedgraph");
+    while(<OLDBEDGRS>){
+        if($_ =~ m/^MT/){
+            next;
+        } else {
+            print BEDALLGRS "chr".$_;
+        }
+    }
+    close(OLDBEDGRS);
+    system("rm -rf ".$TMP."/genomic/bedgraph_old_sense.bedgraph");
+    close(BEDALLGRS);
+    open(OLDBEDGRAS,"<".$TMP."/genomic/bedgraph_old_antisense.bedgraph");
+    while(<OLDBEDGRAS>){
+        if($_ =~ m/^MT/){
+            next;
+        } else {
+            print BEDALLGRAS "chr".$_;
+        }
+    }
+    close(OLDBEDGRAS);
+    system("rm -rf ".$TMP."/genomic/bedgraph_old_antisense.bedgraph");
+    close(BEDALLGRAS);
 }
 
 
@@ -2134,6 +2260,72 @@ sub RIBO_parsing_genomic_per_chr {
     return($hits_genomic,$hits_genomic_splitRPF);
 }
 
+### RNA PARSE PER CHR ###
+sub RNA_parsing_genomic_per_chr {
+    
+    #Catch
+    my $work_dir = $_[0];
+    my $seqFileName = $_[1];
+    my $run_name = $_[2];
+    my $sam = $_[3];
+    my $chr = $_[4];
+    
+    my @splitsam = split(/\//, $sam);
+    my $samFileName = $splitsam[$#splitsam];
+    
+    #Initialize
+    my $lineCount=0; my $plus_count = 0; my $min_count = 0;
+    my $hits_genomic = {};
+    my ($genmatchL,$offset,$intron_total,$extra_for_min_strand);
+    my $start;
+    my $lendistribution;
+    my $read_mapped_length=0; #needed if you want to expand this RNA module to be expanded for fruitfly)
+    my $nr_reads=0;
+    
+    open(LD,">".$TMP."/LD_".$seqFileName."_".$chr.".txt");
+    open(I,"<".$TMP."/genomic/".$samFileName."_".$chr) || die "Cannot open ".$samFileName." file for chromosome ".$chr."\n";
+    while(my $line=<I>){
+        
+        $lineCount++;
+        
+        #Proccess alignment line
+        my @mapping_store = split(/\t/,$line);
+        
+        #Get strand specifics
+        #The sam flag (second tab in alignment line) is bitwise. (0x10 SEQ being reverse complemented)
+        # 0x10 = 16 in decimal. -> negative strand
+        my $strand = ($mapping_store[1] & 16) ? "-": "+"; # & is a bitwise operation
+        my $CIGAR = $mapping_store[5];
+        
+        #Parse CIGAR to obtain offset, genomic matching length and total covered intronic region before reaching the offset (Not adapted for FRUITFLY yet!). For RNA, offset will be set to 26 nt as in RiboTaper paper (Calviello et al. 2015).
+        ($offset,$genmatchL,$intron_total,$extra_for_min_strand) = parse_RNA_CIGAR($CIGAR,$strand);
+        $lendistribution->{$genmatchL}++;
+        
+        #Determine the genomic position based on CIGAR string output, mapping position and strand direction
+        $start = ($strand eq "+") ? $mapping_store[3] + $offset + $intron_total : ($strand eq "-") ? $mapping_store[3] - $offset - $intron_total + $extra_for_min_strand + 1 : "";
+        
+        #Save in reads hash
+        $hits_genomic->{$chr}->{$start}->{$strand}++;
+        if ($strand eq "+") {$plus_count++;} elsif ($strand eq "-") { $min_count ++; }
+    
+    }
+    
+    #Create R_temp file and write read alignment statistics to file (for fruitfly, although not used for RNA so far)
+    open (RTMP,">".$TMP."/R_TMP_".$seqFileName."_".$chr.".txt") || die "ERROR opening R_tmp file to write \n";
+    print RTMP "$read_mapped_length\t$nr_reads";
+    
+    my $cnttot = $plus_count + $min_count;
+    for my $key ( sort { $a <=> $b } keys %$lendistribution ) {
+        print LD "$key\t$lendistribution->{$key}\n";
+    }
+    
+    close(LD);
+    close(I);
+    close(RTMP);
+    
+    return $hits_genomic;
+}
+
 ### STORE IN FILE PER CHR ###
 sub store_in_file_per_chr {
     
@@ -2237,6 +2429,61 @@ sub store_in_file_per_chr {
     close(TMPBED);
     close(TMPBEDGRS);
     close(TMPBEDGRAS);
+}
+
+### STORE IN FILE PER CHR (RNA), only for count table ###
+sub store_in_file_per_chr_RNA {
+    
+    #Catch
+    my $hits = $_[0];
+    my $dbh = $_[1];
+    my $seqFileName = $_[2];
+    my $chromosome = $_[3];
+    my $run_name = $_[4];
+    my $truseq = $_[5];
+    
+    my $directory = $work_dir."/".$mapper."/".$seqFileName."/";
+    
+    #Init temporary csv-file
+    my $temp_csv = $TMP."/genomic/".$run_name."_".$seqFileName."_".$chromosome."_tmp.csv";
+    
+    open TMP, "+>>".$temp_csv or die $!;
+    
+    # Store
+    foreach my $start (sort {$a <=> $b} keys %{$hits->{$chromosome}}){
+        
+        #Vars
+        my $size = 1;
+        my $plus_count = ($hits->{$chromosome}->{$start}->{'+'}) ? $hits->{$chromosome}->{$start}->{'+'}/$size : 0;
+        my $min_count = ($hits->{$chromosome}->{$start}->{'-'}) ? $hits->{$chromosome}->{$start}->{'-'}/$size : 0;
+        my $start_pos = $start;
+        my $strand;
+        
+        #Write to files
+        if ($min_count != 0){
+            if ($truseq eq 'Y'){
+                $strand="1";
+            } else {
+                $strand="-1";
+            }
+            $min_count = sprintf("%.3f", $min_count);
+            
+            print TMP $chromosome.",".$strand.",".$start_pos.",".$min_count."\n";
+        }
+        if ($plus_count != 0){
+            if ($truseq eq "Y"){
+                $strand="-1";
+            } else {
+                $strand="1";
+            }
+            $plus_count = sprintf("%.3f", $plus_count);
+            
+            print TMP $chromosome.",".$strand.",".$start_pos.",".$plus_count."\n";
+        }
+    }
+    
+    close(TMP);
+    
 }
 
 #Parse dme RIBO_CIGARS to obtain pruned alignment,read mapping length and total intronic length for each pruned alignment position
@@ -2492,6 +2739,123 @@ sub parse_RIBO_CIGAR {
     }
     
     return($offset,$genmatchL,$intron_total,$extra_for_min_strand)
+}
+
+### Parse RNA_CIGARs to obtain offset, genomic read mapping length and total intronic length before offset is reached
+sub parse_RNA_CIGAR {
+    
+    #Catch
+    my $CIGAR = $_[0];
+    my $strand = $_[1];
+    
+    my $CIGAR_SPLIT = splitCigar($CIGAR);
+    my $CIGAR_SPLIT_STR = [];
+    @$CIGAR_SPLIT_STR = ($strand eq "-") ? reverse @$CIGAR_SPLIT : @$CIGAR_SPLIT;
+    my $op_total = @$CIGAR_SPLIT_STR;
+    
+    #Init
+    my $genmatchL = 0;
+    my $op_count = 0;
+    my $extra_for_min_strand = 0; #To keep track of total length of genomic + intron (negative strand, reverse position)
+    
+    #Loop over operations to get total mapping length and to get the total
+    #extra length for min_strand (i.e. S(not 5adapt nor 1st TRIM), N (splicing), M, D, I)
+    foreach my $operation (@$CIGAR_SPLIT_STR) {
+        my $op_length = $operation->[0];
+        my $op_type = $operation->[1];
+        $op_count++;
+        
+        if($op_type =~ /^S$/) {
+            #Trim leading substitution if only 1 substitution @ 5'
+            if ($op_count ==1 && $op_length == 1){
+                next;
+            }
+            #Clip trailing adaptor substitution
+            elsif ($op_count == $op_total) {
+                next;
+            }
+            #Other substitutions are added to RNAread genomic-match length
+            #And also added to the total matching count
+            else{
+                $genmatchL = $genmatchL + $op_length;
+                $extra_for_min_strand = $extra_for_min_strand + $op_length;
+            }
+        }
+        #Sum matching operations
+        elsif($op_type =~ /^M$/) {
+            $genmatchL = $genmatchL + $op_length;
+            $extra_for_min_strand = $extra_for_min_strand + $op_length;
+        }
+        #Insertions elongate the readL and the insertion size is added to the total matching count
+        elsif($op_type =~ /^I$/) {
+            $genmatchL = $genmatchL + $op_length;
+            $extra_for_min_strand = $extra_for_min_strand + $op_length;
+        }
+        #Splice intronic regions are added to the extra length needed for the min strand
+        elsif($op_type =~ /^N$/) {
+            $extra_for_min_strand = $extra_for_min_strand + $op_length;
+        }
+    }
+
+    #Init
+    my $offset = 26; #For RNA, reads are pinpointed at nucleotide 26 as in RiboTaper paper (Calviello et al. 2015).
+    my $match_count_total = 0;
+    $op_count = 0; #Reset to zero
+    my $offset_covered = "N";
+    my $intron_total = 0;
+    
+    #Loop over operations to calculate the total intron length
+    foreach my $operation (@$CIGAR_SPLIT_STR) {
+        my $op_length = $operation->[0];
+        my $op_type = $operation->[1];
+        $op_count++;
+        
+        if ($op_type =~ /^S$/) {
+            #Trim leading substitution if only 1 substitution @5'
+            if ($op_count == 1 && $op_length == 1) {
+                next;
+            }
+            #Clip trailing adaptor substituion
+            elsif ($op_count == $op_total) {
+                next;
+            }
+            #Other substitutions are added to RNAread genomic-match length
+            #And also adde to the total matching count
+            else {
+                $match_count_total = $match_count_total = $op_length;
+                if ($match_count_total >= $offset) {
+                    $offset_covered = "Y";
+                    last;
+                }
+            }
+        }
+        #Sum matching operations until the offset is reached, then change the status to "Y"
+        elsif($op_type =~ /^M$/) {
+            $match_count_total = $match_count_total + $op_length;
+            if ($match_count_total >= $offset) {
+                $offset_covered = "Y";
+                last;
+            }
+        }
+        #Sum intronic region lengths until the offset has been covered by matching operations
+        elsif($op_type =~ /^N$/ && $offset_covered eq "N") {
+            $intron_total = $intron_total + $op_length;
+        }
+        #Deletions are not counted for the readL
+        elsif($op_type =~ /^D$/) {
+            next;
+        }
+        #Insertions elongate the readL and the insertion size is added to the total matching count
+        elsif($op_type =~ /^I$/) {
+            $match_count_total = $match_count_total + $op_length;
+            if ($match_count_total >= $offset) {
+                $offset_covered="Y";
+                last;
+            }
+        }
+    }
+    
+    return ($offset,$genmatchL,$intron_total,$extra_for_min_strand);
 }
 
 

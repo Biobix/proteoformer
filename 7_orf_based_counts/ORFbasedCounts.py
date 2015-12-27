@@ -18,7 +18,7 @@ ARGUMENTS:
 	
 EXAMPLE:
 
-python ORFbasedCounts.py --sqlitedb SQLite/results.db --tis_ids 1 --trim absolute --nt_trim 15  --ltm n
+python ORFbasedCounts.py --sqlitedb SQLite/results.db --tis_ids 1 --trim absolute --nt_trim 15 --ltm n --rna /data2/steven/eIF1/NTmRNA/SQLite/results.db
 
 DEPENDENCIES:
 sqlite3
@@ -59,7 +59,7 @@ def main():
 	
 	#Catch command line with getopt
 	try:
-		myopts, args = getopt.getopt(sys.argv[1:],"w:s:t:c:n:l:",["work_dir=","sqlitedb=","tis_ids=","trim=","nt_trim=","ltm="])
+		myopts, args = getopt.getopt(sys.argv[1:],"w:s:t:c:n:l:r:",["work_dir=","sqlitedb=","tis_ids=","trim=","nt_trim=","ltm=","rna="])
 	except getopt.GetoptError as err:
 		print err
 		sys.exit()
@@ -80,6 +80,9 @@ def main():
 			nt_trim=a
 		elif o in ('-l', '--ltm'):
 			ltm=a
+		elif o in ('r', '--rna'):
+			rna='y'
+			rnadb=a
 	
 	try:
 		workdir
@@ -105,6 +108,11 @@ def main():
 		ltm
 	except:
 		ltm=''
+	try:
+		rnadb
+	except:
+		rna='n'
+		rnadb=''
 	
 	# Check for correct arguments and parse
 	if(workdir == ''):
@@ -193,6 +201,9 @@ def main():
 	print "  Igenomes root folder:                      "+igenomes_root
 	print "  Species:                                   "+species
 	print "  Cores:                                     "+str(cores)
+	print "  Include RNA:                               "+rna
+	if(rna=='y'):
+		print "      RNA DB:                                "+rnadb
 	print
 
 	#Conversion of species terminology
@@ -232,7 +243,16 @@ def main():
 			sys.exit()
 	#Get coordinate system id for chromosomes
 	coordSystemId = get_coord_system_id_chr(ensDB, assembly)
-
+	
+	
+	######## FOR TESTING #########
+	# chrsY={}
+# 	chrsY['Y']=chrs['Y']
+# 	chrs={}
+# 	chrs=chrsY
+	##############################
+	
+	
 	##############
 	###  MAIN  ###
 	##############
@@ -242,7 +262,7 @@ def main():
 		print "Determine ORF based counts for each chromosome seperately by starting up multiple processes"
 		print
 		pool = Pool(processes=cores)
-		[pool.apply_async(ORF_based_counts_per_chr, args=(chr,sqlitedb, id, trim, nt_trim, ltm, workdir)) for chr in chrs.keys()]
+		[pool.apply_async(ORF_based_counts_per_chr, args=(chr,sqlitedb, id, trim, nt_trim, ltm, rna, rnadb, workdir)) for chr in chrs.keys()]
 		pool.close()
 		pool.join()
 	
@@ -250,7 +270,7 @@ def main():
 		print
 		print "Dump data into SQLite database"
 		print
-		dumpSQLite(id, chrs, ltm, workdir, sqlitedb)
+		dumpSQLite(id, chrs, ltm, rna, workdir, sqlitedb)
 	
 	#Timer
 	stopTime = timeit.default_timer()
@@ -267,10 +287,10 @@ def main():
 ##############
 
 ## Get the ORF based counts per chromosome ##
-def ORF_based_counts_per_chr(chr, sqlitedb, tis_id, trim, nt_trim, ltm, workdir):
+def ORF_based_counts_per_chr(chr, sqlitedb, tis_id, trim, nt_trim, ltm, rna, rnadb, workdir):
 	try:
 		#Get the exon structure for each ORF
-		orfs, exonBoundaries = get_exon_structure(chr, sqlitedb, tis_id, trim, nt_trim, ltm)
+		orfs, exonBoundaries = get_exon_structure(chr, sqlitedb, tis_id, trim, nt_trim, ltm, rna)
 		
 		#Get reads
 		CHXfor, CHXrev = getUntreatedReads(chr, sqlitedb)
@@ -279,12 +299,17 @@ def ORF_based_counts_per_chr(chr, sqlitedb, tis_id, trim, nt_trim, ltm, workdir)
 		else:
 			LTMfor=''
 			LTMrev=''
+		if (rna=='y'):
+			RNAfor, RNArev = getRNAReads(chr, rnadb)
+		else:
+			RNAfor=''
+			RNArev=''
 		
 		#Match the counts to the orfs
-		orfs = match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMrev)
+		orfs = match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMrev, rna, RNAfor, RNArev)
 		
 		#Write to csv file for each chromosome
-		write_to_csv(chr, orfs, exonBoundaries, ltm, workdir)
+		write_to_csv(chr, orfs, exonBoundaries, ltm, rna, workdir)
 		
 		print "*) Process for chromosome "+chr+" completed"
 	except:
@@ -293,7 +318,7 @@ def ORF_based_counts_per_chr(chr, sqlitedb, tis_id, trim, nt_trim, ltm, workdir)
 	return
 
 ## Dump counts of all chromosomes in SQLite DB ##
-def dumpSQLite(tisid, chrs, ltm, workdir, sqlitedb):
+def dumpSQLite(tisid, chrs, ltm, rna, workdir, sqlitedb):
 	try:
 		#Make DB connection
 		try:
@@ -310,19 +335,38 @@ def dumpSQLite(tisid, chrs, ltm, workdir, sqlitedb):
 			cur.execute(dropQuery)
 			
 			#Create new table for ORF based counts
-			createQuery = "CREATE TABLE IF NOT EXISTS '"+tableName+"' ("\
-				"'ORF_ID' varchar(128) NOT NULL default '',"\
-				"'tr_stable_id' varchar(128) NOT NULL default '',"\
-				"'start' int(10) NOT NULL default '',"\
-				"'chr' char(50) NOT NULL default '',"\
-				"'strand' int(2) NOT NULL default '',"\
-				"'trim' int(4) NOT NULL default '',"\
-				"'start_main_orf' int(10) NOT NULL default '',"\
-				"'end_main_orf' int(10) NOT NULL default '',"\
-				"'pre_count' float default NULL,"\
-				"'count' float default NULL,"\
-				"'post_count' float default NULL)"
-			cur.execute(createQuery)
+			if(rna=='n'):
+				createQuery = "CREATE TABLE IF NOT EXISTS '"+tableName+"' ("\
+					"'ORF_ID' varchar(128) NOT NULL default '',"\
+					"'tr_stable_id' varchar(128) NOT NULL default '',"\
+					"'start' int(10) NOT NULL default '',"\
+					"'chr' char(50) NOT NULL default '',"\
+					"'strand' int(2) NOT NULL default '',"\
+					"'trim' int(4) NOT NULL default '',"\
+					"'start_main_orf' int(10) NOT NULL default '',"\
+					"'end_main_orf' int(10) NOT NULL default '',"\
+					"'pre_count' float default NULL,"\
+					"'count' float default NULL,"\
+					"'post_count' float default NULL)"
+				cur.execute(createQuery)
+			elif(rna=='y'):
+				createQuery = "CREATE TABLE IF NOT EXISTS '"+tableName+"' ("\
+					"'ORF_ID' varchar(128) NOT NULL default '',"\
+					"'tr_stable_id' varchar(128) NOT NULL default '',"\
+					"'start' int(10) NOT NULL default '',"\
+					"'chr' char(50) NOT NULL default '',"\
+					"'strand' int(2) NOT NULL default '',"\
+					"'trim' int(4) NOT NULL default '',"\
+					"'start_main_orf' int(10) NOT NULL default '',"\
+					"'end_main_orf' int(10) NOT NULL default '',"\
+					"'pre_count' float default NULL,"\
+					"'count' float default NULL,"\
+					"'post_count' float default NULL,"\
+					"'RNApre_count' float default NULL,"\
+					"'RNA_count' float default NULL,"\
+					"'RNApost_count' float default NULL)"
+				cur.execute(createQuery)
+			
 			
 			#Store info from chromosomal csv files in SQLite DB
 			for chr in chrs:
@@ -343,19 +387,37 @@ def dumpSQLite(tisid, chrs, ltm, workdir, sqlitedb):
 				cur.execute(dropQuery)
 				
 				#Create new table for ORF based counts
-				createQuery = "CREATE TABLE IF NOT EXISTS '"+tableName+"' ("\
-					"'ORF_ID' varchar(128) NOT NULL default '',"\
-					"'tr_stable_id' varchar(128) NOT NULL default '',"\
-					"'start' int(10) NOT NULL default '',"\
-					"'chr' char(50) NOT NULL default '',"\
-					"'strand' int(2) NOT NULL default '',"\
-					"'trim' int(4) NOT NULL default '',"\
-					"'start_main_orf' int(10) NOT NULL default '',"\
-					"'end_main_orf' int(10) NOT NULL default '',"\
-					"'pre_count' float default NULL,"\
-					"'count' float default NULL,"\
-					"'post_count' float default NULL)"
-				cur.execute(createQuery)
+				if(rna=='n'):
+					createQuery = "CREATE TABLE IF NOT EXISTS '"+tableName+"' ("\
+						"'ORF_ID' varchar(128) NOT NULL default '',"\
+						"'tr_stable_id' varchar(128) NOT NULL default '',"\
+						"'start' int(10) NOT NULL default '',"\
+						"'chr' char(50) NOT NULL default '',"\
+						"'strand' int(2) NOT NULL default '',"\
+						"'trim' int(4) NOT NULL default '',"\
+						"'start_main_orf' int(10) NOT NULL default '',"\
+						"'end_main_orf' int(10) NOT NULL default '',"\
+						"'pre_count' float default NULL,"\
+						"'count' float default NULL,"\
+						"'post_count' float default NULL)"
+					cur.execute(createQuery)
+				elif(rna=='y'):
+					createQuery = "CREATE TABLE IF NOT EXISTS '"+tableName+"' ("\
+						"'ORF_ID' varchar(128) NOT NULL default '',"\
+						"'tr_stable_id' varchar(128) NOT NULL default '',"\
+						"'start' int(10) NOT NULL default '',"\
+						"'chr' char(50) NOT NULL default '',"\
+						"'strand' int(2) NOT NULL default '',"\
+						"'trim' int(4) NOT NULL default '',"\
+						"'start_main_orf' int(10) NOT NULL default '',"\
+						"'end_main_orf' int(10) NOT NULL default '',"\
+						"'pre_count' float default NULL,"\
+						"'count' float default NULL,"\
+						"'post_count' float default NULL,"\
+						"'RNApre_count' float default NULL,"\
+						"'RNA_count' float default NULL,"\
+						"'RNApost_count' float default NULL)"
+					cur.execute(createQuery)
 				
 				#Store info from chromosomal csv files in SQLite DB
 				for chr in chrs:
@@ -376,28 +438,36 @@ def dumpSQLite(tisid, chrs, ltm, workdir, sqlitedb):
 
 
 ##Write ORF information and count data to csv file for that chromosome
-def write_to_csv(chr, orfs, exonBoundaries, ltm, workdir):
+def write_to_csv(chr, orfs, exonBoundaries, ltm, rna, workdir):
 	try:
 		#Define a csv writer object
 		csvWriter = csv.writer(open(workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_tmp.csv","wb"))
 		
 		#Write all ORFs and their info to the csv file
-		for id in orfs:
-			csvWriter.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['pre_count'], orfs[id]['count'], orfs[id]['post_count']])
+		if(rna=='n'):
+			for id in orfs:
+				csvWriter.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['pre_count'], orfs[id]['count'], orfs[id]['post_count']])
+		elif(rna=='y'):
+			for id in orfs:
+				csvWriter.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['pre_count'], orfs[id]['count'], orfs[id]['post_count'], orfs[id]['RNApre_count'], orfs[id]['RNAcount'], orfs[id]['RNApost_count']])
 		
 		if(ltm=='y'):
 			#The same for treated counts
 			csvWriterLTM = csv.writer(open(workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_LTM_tmp.csv","wb"))
 			
-			for id in orfs:
-				csvWriterLTM.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['LTMpre_count'], orfs[id]['LTMcount'], orfs[id]['LTMpost_count']])
+			if(rna=='n'):
+				for id in orfs:
+					csvWriterLTM.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['LTMpre_count'], orfs[id]['LTMcount'], orfs[id]['LTMpost_count']])
+			elif(rna=='y'):
+				for id in orfs:
+					csvWriterLTM.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['LTMpre_count'], orfs[id]['LTMcount'], orfs[id]['LTMpost_count'], orfs[id]['RNApre_count'], orfs[id]['RNAcount'], orfs[id]['RNApost_count']])
 		
 	except:
 		traceback.print_exc()
 	return
 
 ## Match the counts to the orfs
-def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMrev):
+def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMrev, rna, RNAfor, RNArev):
 	try:
 		#Init
 		window = []
@@ -527,10 +597,84 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 			#Empty window
 			window=[]
 		
+		#The same for RNA reads but without trimming
+		if (rna=='y'):
+			#Make 2 lists of the ORF IDs, sorted by their start positon (absolute). One for sense, one for antisense.
+			orfs_for=[]
+			orfs_rev=[]
+			for id in orfs:
+				if(orfs[id]['strand']==1):
+					orfs_for.append(id)
+				elif(orfs[id]['strand']==-1):
+					orfs_rev.append(id)
+			orfs_for = sorted(orfs_for, key=lambda x: orfs[x]['start'])
+			orfs_rev = sorted(orfs_rev, key=lambda x: orfs[x]['stop'])
+			
+			#For sense
+			#Go through all sorted read positions
+			for readPosition in sorted(RNAfor):
+				for OrfId in orfs_for[:]:
+					if(orfs[OrfId]['start']<=readPosition):
+						window.append(OrfId)
+						orfs_for.remove(OrfId)
+					else:
+						break
+				for OrfId in window:
+					if(orfs[OrfId]['stop']<readPosition):
+						window.remove(OrfId)
+					else:
+						for exonRank in range(1, exonBoundaries[OrfId]['number_of_exons']+1):
+							if(readPosition>=exonBoundaries[OrfId][exonRank]['start'] and readPosition<=exonBoundaries[OrfId][exonRank]['end']):
+								if(readPosition<exonBoundaries[OrfId]['start_main_orf']):
+									orfs[OrfId]['RNApre_count'] = orfs[OrfId]['RNApre_count'] + RNAfor[readPosition]['count']
+								elif(readPosition>exonBoundaries[OrfId]['end_main_orf']):
+									orfs[OrfId]['RNApost_count'] = orfs[OrfId]['RNApost_count'] + RNAfor[readPosition]['count']
+								else:
+									orfs[OrfId]['RNAcount'] = orfs[OrfId]['RNAcount'] + RNAfor[readPosition]['count']
+			
+			#Empty window
+			window=[]
+			
+			
+			#Do similar for antisense
+			for readPosition in sorted(RNArev):
+				for OrfId in orfs_rev[:]:
+					if(orfs[OrfId]['stop']<=readPosition):
+						window.append(OrfId)
+						orfs_rev.remove(OrfId)
+					else:
+						break
+				for OrfId in window:
+					if(orfs[OrfId]['start']<readPosition):
+						window.remove(OrfId)
+					else:
+						for exonRank in range(1,exonBoundaries[OrfId]['number_of_exons']+1):
+							if(readPosition>=exonBoundaries[OrfId][exonRank]['start'] and readPosition<=exonBoundaries[OrfId][exonRank]['end']):
+								if(readPosition<exonBoundaries[OrfId]['start_main_orf']):
+									orfs[OrfId]['RNApost_count'] = orfs[OrfId]['RNApost_count'] + RNArev[readPosition]['count']
+								elif(readPosition>exonBoundaries[OrfId]['end_main_orf']):
+									orfs[OrfId]['RNApre_count'] = orfs[OrfId]['RNApre_count'] + RNArev[readPosition]['count']
+								else:
+									orfs[OrfId]['RNAcount'] = orfs[OrfId]['RNAcount'] + RNArev[readPosition]['count']
+			
+			#Empty window
+			window=[]
+		
 	except:
 		traceback.print_exc()
 	
 	return orfs
+
+## Get RNA reads ##
+def getRNAReads(chr, dbpath):
+	
+	#Fetch data from count tables
+	query = "SELECT start, count FROM count_fastq1 WHERE chr='"+chr+"' AND strand = '1';"
+	RNAfor = fetchDict(dbpath, query)
+	query = "SELECT start, count FROM count_fastq1 WHERE chr='"+chr+"' AND strand = '-1';"
+	RNArev = fetchDict(dbpath, query)
+	
+	return RNAfor, RNArev
 
 ## Get treated reads ##
 def getTreatedReads(chr, dbpath):
@@ -555,7 +699,7 @@ def getUntreatedReads(chr, dbpath):
 	return CHXfor, CHXrev
 
 ## Get exon structures of all ORFs ##
-def get_exon_structure(chr, dbpath, analysis_id, trim, nt_trim, ltm):
+def get_exon_structure(chr, dbpath, analysis_id, trim, nt_trim, ltm, rna):
 	try:
 		#Fetch data of all ORFs from assembly table
 		query = "SELECT tr_stable_id||'_'||start as transcript_start, tr_stable_id, strand, start, stop, starts_list, ends_list, aa_seq FROM TIS_"+str(analysis_id)+"_transcripts WHERE chr='"+str(chr)+"';"
@@ -566,6 +710,10 @@ def get_exon_structure(chr, dbpath, analysis_id, trim, nt_trim, ltm):
 			orfs[orf]['count']=0
 			orfs[orf]['pre_count']=0
 			orfs[orf]['post_count']=0
+			if(rna=='y'):
+				orfs[orf]['RNAcount']=0
+				orfs[orf]['RNApre_count']=0
+				orfs[orf]['RNApost_count']=0
 			if(ltm=='y'):
 				orfs[orf]['LTMcount']=0
 				orfs[orf]['LTMpre_count']=0
