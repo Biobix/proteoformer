@@ -111,8 +111,8 @@ if(species == 'arabidopsis'):
         print("Error: latest Ensembl Plants version is 29!")
         sys.exit()
 else:
-    if(ens_v>82):
-        print("Error: latest Ensembl version is 82!")
+    if(ens_v>83):
+        print("Error: latest Ensembl version is 83!")
         sys.exit()
 #Remove last "/" from instal dir path
 pattern=re.compile('^(\S+)/$')
