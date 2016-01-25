@@ -727,10 +727,11 @@ sub construct_trans_prod {
                             }
                         }
                         
-                        #Replace near-cognate start to cognate methionine...
-                        $AA_seq = (substr($AA_seq,0,1) ne 'M') ? 'M'.substr($AA_seq,1) : $AA_seq;
-                        print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",".$tr_seq.",".$AA_seq."\n";
-                        
+                        #Control if first codon is (near-)cognate and replace near-cognate start to cognate methionine.
+                        if(substr($tr_seq,0,3) =~ m/[ACTG]TG|A[ACTG]G|AT[ACTG]/){
+                            $AA_seq = (substr($AA_seq,0,1) ne 'M') ? 'M'.substr($AA_seq,1) : $AA_seq;
+                            print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",".$tr_seq.",".$AA_seq."\n";
+                        }
                         
                     }
                     else {
