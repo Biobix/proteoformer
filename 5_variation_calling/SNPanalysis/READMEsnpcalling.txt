@@ -50,7 +50,8 @@ Prerequisites:
 The input variables of the SNP calling script are:
 
 required variables:
--s/--sqlitedb = path to the SQLite database where the results need to be stored
+-s/--sqlitein = path to the SQLite database where previous results of the pipeline were stored
+--sqliteout = path to the SQLite database where the results need to be stored
 -e/--ensembldb = path to the Ensembl database
 --removeduplicates = "y" or "n", indicates whether or not duplicate reads have to be removed (uses picard)
 --snpdbselected = “y” or “n”, indicates whether or not the mapped reads will be searched for known SNPs data (Sanger institute)
