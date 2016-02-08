@@ -78,9 +78,9 @@ TOOLSDIR=
 READS=
 MINCOVERAGE=3
 MAXCOVERAGE=100
-HIGHAF=
-LOWERAF=
-UPPERAF=
+HIGHAF=0.95
+LOWERAF=0.3
+UPPERAF=0.7
 while [ "$1" != "" ]; do
     case $1 in
         --galaxydir )           shift
