@@ -173,7 +173,7 @@ elif [ "$ORGANISM" = "human" ]; then
     ORGANISM_LATIN="Homo_sapiens"
     query=$(sqlite3 $ENSEMBLDB "SELECT DISTINCT(name) FROM seq_region WHERE coord_system_id = 2 AND LENGTH(name) < 3")
     CHROMOSOMES=($(for i in $query; do echo $i; done))
-    VERSION=`sqlite3 $ENSEMBLDB "SELECT version FROM coord_system WHERE coord_system_id = 2"`
+    VERSION=`sqlite3 $ENSEMBLDB "SELECT version FROM coord_system WHERE coord_system_id = 3"`
 elif [ "$ORGANISM" = "fruitfly" ]; then
     ORGANISM_LATIN="Drosophila_melanogaster"
     query=$(sqlite3 $ENSEMBLDB "SELECT DISTINCT(name) FROM seq_region WHERE coord_system_id = 1 AND name NOT LIKE '%Het%' AND name NOT IN ('Uextra', 'U', 'dmel_mitochondrion_genome')")
@@ -199,7 +199,7 @@ elif [ ${READS: -4} = ".dat" ]; then
     samtools view -bS "$READS" -o aligned.out.bam
 fi
 echo "sorting..."
-samtools sort aligned.out.bam aligned.sorted
+samtools sort -o aligned.sorted.bam aligned.out.bam
 samtools index aligned.sorted.bam
 echo
 if [ "$REMOVEDUPLICATES" = "y" ]; then
