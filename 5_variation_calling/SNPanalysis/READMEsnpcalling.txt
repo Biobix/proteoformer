@@ -68,5 +68,5 @@ optional variables:
 
 Usage:
 
-bash snp_calling --sqlitein path/to/results/database.db —-sqliteout path/to/output/database.db --removeduplicates [y|n] ——picardpath /path/to/picardmap —-snpdbselected [y|n] --snpdb path/to/snpdb --tooldir /path/to/tooldir --reads path/to/mapped/reads.sam --mincoverage 3 --maxcoverage 100 --high_af 0.95 --lower_af 0.3 --upper_af 0.7
+bash snp_calling --sqlitein path/to/results/database.db --sqliteout path/to/output/database.db --removeduplicates [y|n] --picardpath /path/to/picardmap --snpdbselected [y|n] --snpdb path/to/snpdb --toolsdir /path/to/tooldir --reads path/to/mapped/reads.sam --mincoverage 3 --maxcoverage 100 --high_af 0.95 --lower_af 0.3 --upper_af 0.7
 
