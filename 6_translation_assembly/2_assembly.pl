@@ -10,7 +10,8 @@ use Getopt::Long;
 use v5.10;
 use Parallel::ForkManager;
 use Cwd;
-
+use IO::Handle;
+use Clone::PP qw(clone);
 
 ##############
 ##Command-line
@@ -682,7 +683,7 @@ sub construct_trans_prod {
                                 $orf_structure->{$i} = $tmp_orf_structure->{$i};
                                 $orf_length = $orf_length - $tmp_orf_structure->{$i}->{'length'};
                             }
-                            $orf_structure->{$i} = $tmp_orf_structure->{$i};
+                            $orf_structure->{$i} = clone($tmp_orf_structure->{$i});
                             #Determine stop coordinate and adapt in last exon of the orf
                             $stop_coord = $orf_structure->{$i}->{'start'} + $orf_length - 1;
                             $orf_structure->{$i}->{'end'} = $stop_coord;
@@ -695,7 +696,7 @@ sub construct_trans_prod {
                                 $orf_structure->{$i} = $tmp_orf_structure->{$i};
                                 $orf_length = $orf_length - $tmp_orf_structure->{$i}->{'length'};
                             }
-                            $orf_structure->{$i} = $tmp_orf_structure->{$i};
+                            $orf_structure->{$i} = clone($tmp_orf_structure->{$i});
                             #Determine stop coordinate and adapt in last exon of the orf
                             $stop_coord = $orf_structure->{$i}->{'end'} - $orf_length + 1;
                             $orf_structure->{$i}->{'start'} = $stop_coord;
