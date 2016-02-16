@@ -1270,19 +1270,22 @@ sub map_topHat2 {
     my $PATH_TO_GENOME_INDEX = $ref_loc."".$IndexGenome;
 
     # alignment dependent on read type
+    # Tophat parameters:
+    #   --max-multihits: only ouput that many hits if read maps to multiple locations, if more equally scoring options are available than set with this value, a limited number is randomly selected)
+    #   --report-secondary-alignments: this parameter shouldn't be set, suboptimal (i.e. with lower score) are not retained
     if (uc($readtype) eq "RIBO") {
 
-        if ($unique eq 'Y') {$maxmultimap = 1}  # to ensure unique mapping
-        $command = $tophat2_loc." -N ". $mismatch." --max-multihits ".$maxmultimap." --report-secondary-alignments  --no-coverage-search --segment-length 15 --output-dir ".$directory." -p ".$cores." --GTF ".$PATH_TO_GTF." ". $PATH_TO_GENOME_INDEX ." ". $fasta. " 2>&1";
+        if ($unique eq 'Y' || $FirstRankMultiMap eq 'Y') {$maxmultimap = 1}  # to ensure unique mapping
+        $command = $tophat2_loc." -N ". $mismatch." --max-multihits ".$maxmultimap." --no-coverage-search --segment-length 15 --output-dir ".$directory." -p ".$cores." --GTF ".$PATH_TO_GTF." ". $PATH_TO_GENOME_INDEX ." ". $fasta. " 2>&1";
 
     } elsif (uc($readtype) =~ m/PE/) {
 
-        if ($unique eq 'Y') {$maxmultimap = 1}  # to ensure unique mapping
-        $command = $tophat2_loc." -N ". $mismatch." --max-multihits ".$maxmultimap." --report-secondary-alignments  --no-coverage-search --segment-length 15 --output-dir ".$directory." -p ".$cores." --GTF ".$PATH_TO_GTF." ". $PATH_TO_GENOME_INDEX ." ". $fasta1. " ".$fasta2." 2>&1";
+        if ($unique eq 'Y' || $FirstRankMultiMap eq 'Y') {$maxmultimap = 1}  # to ensure unique mapping
+        $command = $tophat2_loc." -N ". $mismatch." --max-multihits ".$maxmultimap." --no-coverage-search --segment-length 15 --output-dir ".$directory." -p ".$cores." --GTF ".$PATH_TO_GTF." ". $PATH_TO_GENOME_INDEX ." ". $fasta1. " ".$fasta2." 2>&1";
     } elsif (uc($readtype) =~ m/SE/) {
 
-        if ($unique eq 'Y') {$maxmultimap = 1}  # to ensure unique mapping
-        $command = $tophat2_loc." -N ". $mismatch." --max-multihits ".$maxmultimap." --report-secondary-alignments  --no-coverage-search --segment-length 15 --output-dir ".$directory." -p ".$cores." --GTF ".$PATH_TO_GTF." ". $PATH_TO_GENOME_INDEX ." ". $fasta. " 2>&1";
+        if ($unique eq 'Y' || $FirstRankMultiMap eq 'Y') {$maxmultimap = 1}  # to ensure unique mapping
+        $command = $tophat2_loc." -N ". $mismatch." --max-multihits ".$maxmultimap." --no-coverage-search --segment-length 15 --output-dir ".$directory." -p ".$cores." --GTF ".$PATH_TO_GTF." ". $PATH_TO_GENOME_INDEX ." ". $fasta. " 2>&1";
     }
 
     print "     ".$command."\n";
@@ -2148,7 +2151,7 @@ sub split_SAM_per_chr {
                 next unless (($mapping_store[12] eq "HI:i:1\D" && uc($mapper) eq "STAR") || (($line =~ m/HI:i:0\D/ || $line =~ m/NH:i:1\D/) && uc($mapper) eq "TOPHAT2"));
             }
             #Keep all mappings, also MultipleMapping locations are available (alternative to pseudogenes mapping) GM:07-10-2013
-            #Note that we only retain the up until <15 multiple locations (to avoid including TopHat2 peak @ 15)
+            #Note that we only retain the up until <16 multiple locations (to avoid including TopHat2 peak @ 16)
             #next unless ( uc($mapper) eq "STAR" || uc($mapper) eq "TOPHAT2");
             next unless ( $line !~ m/NH:i:$maxmultimap/ );
 
