@@ -38,19 +38,18 @@ use Parallel::ForkManager;
 # ---------------------------------------------------------------------
 	##	GLOBAL VARIABLES
 
+my $user 			  = "";		# User name for sqlite database
+my $password 		  = "";		# Password for sqlite database
+my $total_tr 		  = 0;
+my $total_gene		  = 0;
+my $no_blast_tr 	  = 0;
+my $num_non_Red_trans = 0;
+
 my $blastdb;		# Usearch/blastp formatted database
 my $result_db;		# SQLite source database
 my $tis_ids;		# TIS ID to generate table from
 my $mapping;		# Ensembl database name to download biomart mapped transcripts 
 my $mflag;			# Flag for biomart mappings, 1 = remote download, 2 = local file, 3 = sequence based mapping, 4 = no mapping.
-my $total_tr = 0;
-my $no_blast_tr = 0;
-my $num_non_Red_trans = 0;
-
-# ---------------------------------------------------------------------
-	##	Other prameters
-my $user = "";		# User name for sqlite database
-my $password = "";	# Password for sqlite database
 my $work_dir;		# Working directory
 my $blast_pgm;		# The program to use for search, Default program = blastp [NB: Not valid when mflag = 4]
 my $min_blast_length;	# minimum sequence length to perform blast
@@ -64,6 +63,7 @@ my $matrix;			# Blast search matrix
 my $word_size;		# word size
 my $extra_info;		# Extra refererence
 my $translation_db;	# FASTA file of non redundant derived translation products
+my $snp_file;		# File to store SNP info for sequences in protein database
 my $tis_call;		# Allow annotated TIS that do not pass the TIS calling algorithm in the databases [Y or N]
 my $db_config_version; 	# Ensembl databset confirguration version
 my $external_ref;	# External reference in biomart to map transcripts to
@@ -85,8 +85,8 @@ GetOptions(
 	'mflag=i'	 			=> \$mflag,
 	'identity=f'			=> \$identity,
 	'coverage=i'			=> \$coverage,
-	'mapping=s'			=> \$mapping,
-	'db_config_version=f'		=> \$db_config_version,
+	'mapping=s'				=> \$mapping,
+	'db_config_version=f'	=> \$db_config_version,
 	'external_ref=s'		=> \$external_ref,
 	'extra_info=s'			=> \$extra_info,
 	'gapopen=f'	 			=> \$gapopen,
@@ -94,6 +94,7 @@ GetOptions(
 	'word_size=i'	 		=> \$word_size,
 	'matrix=s'	 			=> \$matrix,
 	'translation_db=s'		=> \$translation_db,
+	'snp_file=s'			=> \$snp_file,
 	'tis_call=s'			=> \$tis_call,
 	'tmp=s'					=> \$tmp
 );
@@ -102,7 +103,7 @@ GetOptions(
 	## EXECUTION
 
 ## Command line
-# perl generate_translation_db.pl -blast_db /path/to/blast_db -result_db results.db -tis_ids 1 -blast_pgm ublast -mflag 0 -external_ref uniprot_swissprot_accession -mapping_db mmusculus_gene_ensembl -num_threads 3 -work_dir working_dir -tis_call Y -tmp temporary_dir
+# perl generate_translation_db.pl -blast_db /path/to/blast_db -result_db results.db -tis_ids 1 -blast_pgm ublast -mflag 0 -external_ref uniprot_swissprot_accession -mapping_db mmusculus_gene_ensembl -num_threads 3 -work_dir new -tis_call Y
 # mmusculus_gene_ensembl
 # mart_export_mm.txt
 
@@ -119,176 +120,176 @@ if (!($work_dir)) {
 	system ("mkdir ". $work_dir);
 } 
 
-print "\n";
+print STDOUT "\n";
 if ($work_dir) {
 	$work_dir = abs_path($work_dir);
-	print "The following working directory : $work_dir\n";
+	print STDOUT "The following working directory : $work_dir\n";
 }
 
 my $TMP  = ($ENV{'TMP'}) ? $ENV{'TMP'} : ($tmp) ? $tmp : "$work_dir/tmp"; # (1) get the TMP environment variable, (2) get the $tmpfolder variable, (3) get current_working_dir/tmp
 if (!-d "$TMP") { 
 	system ("mkdir ".$TMP);
 } 
-print "The following tmpfolder is used: $TMP\n";
+print STDOUT "The following tmpfolder is used: $TMP\n";
 
 if ($result_db) {
-	print "SQLite database containing transcripts : $result_db\n";
+	print STDOUT "SQLite database containing transcripts : $result_db\n";
 } 
 if ($tis_ids) {
-	print "Database is generated for TIS ids : $tis_ids\n";
+	print STDOUT "Database is generated for TIS ids : $tis_ids\n";
 }
 
 if ($tis_call) {
-	print "Allow annotated transcripts that do not pass the TIS calling algorithm: $tis_call\n";
+	print STDOUT "Allow annotated transcripts that do not pass the TIS calling algorithm: $tis_call\n";
 } else {
 	$tis_call = "Y";
-	print "Allow annotated transcripts that do not pass the TIS calling algorithm: $tis_call\n";
+	print STDOUT "Allow annotated transcripts that do not pass the TIS calling algorithm: $tis_call\n";
 }
 
 if ($mflag) {
 
 	if ($mflag == 1) {
 		if ($mapping) {
-			print "Ensembl database for remote mapping : $mapping\n";
+			print STDOUT "Ensembl database for remote mapping : $mapping\n";
 			if ($db_config_version) {
-				print "Ensembl dataset configuration version : $db_config_version\n";
+				print STDOUT "Ensembl dataset configuration version : $db_config_version\n";
 			} else {
-				print "Dataset configuration version is require.\n";
+				print STDOUT "Dataset configuration version is require.\n";
 				exit;
 			}
 			
 			if ($external_ref) {
 			
-				print "External reference to map transcript with : $external_ref\n";
+				print STDOUT "External reference to map transcript with : $external_ref\n";
 				if ($extra_info) {
-					print "External reference to map transcript with : $extra_info\n";
+					print STDOUT "External reference to map transcript with : $extra_info\n";
 				}
 				
 			} else {
-				print "Ensembl external attribute for biomart mapping is required.\n";
+				print STDOUT "Ensembl external attribute for biomart mapping is required.\n";
 				exit;
 			}
 
 		} else {
-			print "Mapping database require!\n";
-			print "If mflag = 1, the name of the biomart database to download mapping to external Id is required.\n";
+			print STDOUT "Mapping database require!\n";
+			print STDOUT "If mflag = 1, the name of the biomart database to download mapping to external Id is required.\n";
 			exit;
 		}
 		
 	} elsif ($mflag == 2) {
 		if ($mapping) {
 			if (-e $mapping) {
-				print "Locale file containing ensembl to Swissprot mapping : $mapping\n";
+				print STDOUT "Locale file containing ensembl to Swissprot mapping : $mapping\n";
 			} else {
-				print "No such file $mapping.\tEnsure the file exist and you have the required permission.\n";
+				print STDOUT "No such file $mapping.\tEnsure the file exist and you have the required permission.\n";
 				exit;
 			}
 		} else {
-			print "If mflag = 2, a comma seperated file for the Transcript id to external reference file is require.\n";
-			print "See the Readme file more information.\n";
+			print STDOUT "If mflag = 2, a comma seperated file for the Transcript id to external reference file is require.\n";
+			print STDOUT "See the Readme file more information.\n";
 
 		}
 	} elsif ($mflag == 3) {
 	
-		print "Sequence based mapping of transcripts to canonical database by blast search.\n";
+		print STDOUT "Sequence based mapping of transcripts to canonical database by blast search.\n";
 		
 		if ($blast_pgm) {
-			print "Blast program used for mapping : $blast_pgm\n"; 
+			print STDOUT "Blast program used for mapping : $blast_pgm\n"; 
 		} else {
 			$blast_pgm = "ublast";
-			print "Blast program used for mapping : $blast_pgm\n"; 
+			print STDOUT "Blast program used for mapping : $blast_pgm\n"; 
 		}
 		
 	} elsif ($mflag == 4) {
-		print "Derived translation product  database will not be mapped to any canonical information.\n"
+		print STDOUT "Derived translation product  database will not be mapped to any canonical information.\n"
 	}
 
 } else {
-	print "Derived translation product database will not be mapped to any canonical information.\n";
+	print STDOUT "Derived translation product database will not be mapped to any canonical information.\n";
 }
 
 if ($blastdb) {
-	print "The blast database is : $blastdb\n";
+	print STDOUT "The blast database is : $blastdb\n";
 } else {
-	print "No blast database supplied. Ensure you have choose the no blast search option.\n"
+	print STDOUT "No blast database supplied. Ensure you have choose the no blast search option.\n"
 }
 
 if ($evalue) {
-	print "Blast e-value : $evalue\n";
+	print STDOUT "Blast e-value : $evalue\n";
 } else {
 	$evalue=1e-10;
-	print "Blast e-value : $evalue\n";
+	print STDOUT "Blast e-value : $evalue\n";
 }
 
 if ($min_blast_length) {
-	print "Minimum sequence length allowed for Blast search	: $min_blast_length\n";
+	print STDOUT "Minimum sequence length allowed for Blast search	: $min_blast_length\n";
 } else {
 	$min_blast_length = 32;
-	print "Minimum sequence length allowed for Blast search : $min_blast_length\n";	
+	print STDOUT "Minimum sequence length allowed for Blast search : $min_blast_length\n";	
 }
 
 if ($identity) {
-	print "Blast Identity value : $identity%\n";
+	print STDOUT "Blast Identity value : $identity%\n";
 } else {
 	$identity=75;
-	print "Blast Identity value : $identity%\n";
+	print STDOUT "Blast Identity value : $identity%\n";
 }
 
 if ($coverage) {
-	print "Minimum percentage of identical positions : $coverage\n";
+	print STDOUT "Minimum percentage of identical positions : $coverage\n";
 } else {
 	$coverage=30;
-	print "Minimum percentage of identical positions : $coverage\n";
+	print STDOUT "Minimum percentage of identical positions : $coverage\n";
 }
 
 if ($word_size) {
-	print "Minimum Word size: $word_size\n";
+	print STDOUT "Minimum Word size: $word_size\n";
 } else {
 	$word_size = 3;
-	print "Minimum Word size: $word_size\n";
+	print STDOUT "Minimum Word size: $word_size\n";
 }
 
 if ($gapopen) {
-	print "Cost of gap open	: $gapopen\n";
+	print STDOUT "Cost of gap open	: $gapopen\n";
 } else {
 	$gapopen = 11;
-	print "Cost of gap open	: $gapopen\n";
+	print STDOUT "Cost of gap open	: $gapopen\n";
 }
 
 if ($mslength) {
-	print "Minimum Word size: $mslength\n";
+	print STDOUT "Minimum Word size: $mslength\n";
 } else {
 	$mslength=6;
-	print "Minimum sequence length	: $mslength\n";
+	print STDOUT "Minimum sequence length	: $mslength\n";
 }
 
 if ($gapextend) {
-	print "Gap extension penalty	: $gapextend\n";
+	print STDOUT "Gap extension penalty	: $gapextend\n";
 } else {
 	$gapextend = 1;
-	print "Gap extension penalty	: $gapextend\n";
+	print STDOUT "Gap extension penalty	: $gapextend\n";
 }
 
 if ($matrix) {
-	print "Minimum Word size: $matrix\n";
+	print STDOUT "Minimum Word size: $matrix\n";
 } else {
 	$matrix="BLOSUM62";
-	print "Matrix blast search matrix : $matrix\n";
+	print STDOUT "Matrix blast search matrix : $matrix\n";
 }
 
 	# get arguments from SQLite DB
 my $dsn_results = "DBI:SQLite:dbname=$result_db";
 my $dbh_results = dbh($dsn_results,$user,$password);
 my ($run_name,$species,$mapper,$nr_of_cores)=get_input_vars($dbh_results);
-print "Number of cores used: $nr_of_cores\n";
-print "\n";
+print STDOUT "Number of cores used: $nr_of_cores\n";
+print STDOUT "\n";
 
 my %annotation = ( "aTIS"=>1,"5UTR"=>2,"CDS"=>3,"ntr"=>4,"3UTR"=>5);
 my %top_anno = ("aTIS","5UTR");
 
-print "Annotations and their rankings (with 1 the most important) \n";
+print STDOUT "Annotations and their rankings (with 1 the most important) \n";
 foreach my $key (sort {$annotation{$a} <=> $annotation{$b}} keys %annotation) {
-    print "$key\t$annotation{$key}\n";
+    print STDOUT "$key\t$annotation{$key}\n";
 }
 
 	# If Mapping to canonical database is allowed 
@@ -298,7 +299,7 @@ if ($mflag) {
 	if ($mflag == 1) {	# Id based mapping
 	
 		my $mapping_file = remote_biomart_mapping($mapping,$db_config_version,$external_ref,$extra_info);
-		print "File containing maping information :	$mapping_file\n";
+		print STDOUT "File containing maping information :	$mapping_file\n";
 		$external_mapping = biomart_mapping($mapping_file);
 
 	} elsif ($mflag == 2)  {
@@ -331,46 +332,46 @@ sub generate_trans_db {
 	
 	my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0]);
 	$total_tr = scalar(keys %$transcript);
-	print "total number of TIS identified ".$total_tr."\n";
-	print "Total number of genes with one or more identified TIS ".scalar(keys %$gene_transcript)."\n";
+	$total_gene = scalar(keys %$gene_transcript);
 
-	$transcript = remove_redundancy($transcript,$gene_transcript);
-	my $total_non_red_tr = scalar(keys %$transcript);
-	print "Total number of TIS after removing redundancy ".$total_non_red_tr."\n";
+	my $non_redundant_transcript = remove_redundancy($transcript);
+	my $total_non_red_tr = scalar(keys %$non_redundant_transcript);
 	
 	# 1 = remote download, 2 = local file, 3 = sequence based mapping, 4 = no mapping.
 	if ($mflag == 1 or $mflag == 2) {		#  ID based mapping
-		$transcript = id_based_mapping($transcript,$external_mapping);
+		$non_redundant_transcript = id_based_mapping($non_redundant_transcript,$external_mapping);
 		
 	} elsif ($mflag == 3) {		# Sequence based mapping
 		
-		my $file_to_blast = transcripts_to_blast($transcript, $tis_id);
+		my $file_to_blast = transcripts_to_blast($non_redundant_transcript, $tis_id);
 		if ($blast_pgm eq "blastp") {
-			$transcript = blastp($transcript, $file_to_blast);
+			$non_redundant_transcript = blastp($non_redundant_transcript, $file_to_blast);
 		} elsif ($blast_pgm eq "ublast")  {
-			$transcript = ublast($transcript, $file_to_blast);
+			$non_redundant_transcript = ublast($non_redundant_transcript, $file_to_blast);
 		}
 		
 	}
 	
-	my $output_dir = $work_dir."/derived_db";
+	my $output_dir = $work_dir;
 	unless (-d "$output_dir") { system ("mkdir ".$output_dir)}
 	$translation_db =  path($species."_".$table.".fasta",$output_dir);
+	$snp_file =  path($species."_".$table."_SNP.txt",$output_dir);
 	#unless ($translation_db) { $translation_db =  path($species."_".$table.".fasta",$output_dir)}
 	
-	write_output($transcript,$translation_db,$output_dir);
+	write_output($non_redundant_transcript,$translation_db,$output_dir, $snp_file);
 	
 	timer($startRun);	# Get Run time
-	print "\n";
+	print STDOUT "\n";
 }
 
 
 ##------ WRITE OUTPUT -------##
 sub write_output {
 
-	my $transcript = $_[0];
-	my $output = $_[1];
-	my $output_dir = $_[2];
+	my $transcript 	= $_[0];
+	my $output 		= $_[1];
+	my $output_dir 	= $_[2];
+	my $snp_file 	= $_[3];
 
 	my $count_mapped = 0;		
 	my %annotations_mapped = ();
@@ -394,10 +395,13 @@ sub write_output {
 				$desc = $transcript->{$tr}->{'em'}." ".$desc;				# Add the percentage of the mapping to the description field
 				$annotations_mapped{$transcript->{$tr}->{'anno'}}++;		# count mapping per annotations
 				$count_mapped++;											# count mapped transcripts			
-			}		
-
+			}
 		}
 		
+		if ($transcript->{$tr}->{'others'}) {
+			my @Others = uniq(@{$transcript->{$tr}->{'others'}});
+			$desc = $desc," [",join("#",@Others),"]";
+		}
 		my $seq_obj = Bio::Seq->new(-display_id => $id, -desc => $desc, -seq => $transcript->{$tr}->{'seq'});
 		$seq_out->write_seq($seq_obj);
 
@@ -407,23 +411,45 @@ sub write_output {
 		# write Summary of external mapping to file
 	my $percent_overall = sprintf '%.1f', 100*($count_mapped/$total_tr);
 	my $nonRedundantTrans = scalar(keys %$transcript);
-	my $percent_mapped = sprintf '%.1f', 100*($count_mapped/$nonRedundantTrans);
+	my $percent_mapped = sprintf '%.1f', 100*($count_mapped/($nonRedundantTrans+1));
 	my $percent = sprintf '%.1f', 100*($nonRedundantTrans/$total_tr);
 
-	print "Totat transcripts in database:  ", $total_tr, "\n";
-	print "Number of transcripts after cleaning out redundancy ",$nonRedundantTrans," ($percent%)\n";
-	print "Number of transcripts mapped to external refernece: $count_mapped ($percent_mapped%)\n\n";
-	
+	print STDOUT "Totat genes with at least one TIS called:  ", $total_gene, "\n";
+	print STDOUT "Totat transcripts in database:  ", $total_tr, "\n";
+	print STDOUT "Number of transcripts after cleaning out redundancy ",$nonRedundantTrans," ($percent%)\n";
+
+	if ($mflag == 1 or $mflag == 2 or $mflag == 2) {
+		print STDOUT "Number of transcripts mapped to external refernece: $count_mapped ($percent_mapped%)\n\n";
+	}
+
 	foreach my $key (sort {$annotations{$b} <=> $annotations{$a} }keys %annotations) {
 		if ($annotations_mapped{$key}) {
-			print "Number of ", $key," annotations ", $annotations{$key}." ($annotations_mapped{$key})","\n";
+			print STDOUT "Number of ", $key," annotations ", $annotations{$key}." ($annotations_mapped{$key})","\n";
 		} else {
-			print "Number of ", $key," annotations ", $annotations{$key}." (0)\n";
+			print STDOUT "Number of ", $key," annotations ", $annotations{$key}."\n";
 		}
 	}
 
-	print "Output files written to directory: $output_dir\n";
+	# Write SNP Information to file
+	open(F, ">".$snp_file) or die "Cannot create file $snp_file \n";
+	print F "transcript\tSNP_info\n";
+	foreach my $tr (sort keys %$transcript) {
+		next if ($transcript->{$tr}->{'snp'} eq "");
+		print F "$tr\t$transcript->{$tr}->{'snp'}\n";
+	}
+	close F;
+
+	print STDOUT "Output files written to directory: $output_dir\n";
+
 }
+
+
+
+sub uniq {
+    my %seen;
+    grep !$seen{$_}++, @_;
+}
+
 
 ##------ SEQUENCE MAPPING -------##
 
@@ -434,7 +460,7 @@ sub blastp {
 	my $transcript = $_[0];
 	my $trans_to_blast = $_[1];
 	
-	print "Running Local blastp search...\n";
+	print STDOUT "Running Local blastp search...\n";
 	my ($blast_rpt) = $trans_to_blast =~ /^(.*)\./;
 	$blast_rpt = $blast_rpt.".bls";
 			
@@ -449,8 +475,7 @@ sub ublast {
 	my $transcript = $_[0];
 	my $file_to_blast = $_[1];
 	
-
-	print "Running Local ublast search...\n";
+	print STDOUT "Running Local ublast search...\n";
 	if ($identity > 1) {$identity = $identity/100;}
 
 	my $file_size = (stat($file_to_blast))[7];
@@ -624,7 +649,7 @@ sub split_fasta_file {
 	my ($in_file,$tmp_fld, $f_size, $max_f_size) = @_;
 
 	my $num_files = int(($f_size/$max_f_size) + 0.5);
-	print "number of files:$num_files \n";
+	#print "number of files:$num_files \n";
 	my $seqs_per_file = int(($no_blast_tr/$num_files) + 0.5);	# number of sequences in each file
 
 	my $fcount = 1;			# Count number of files
@@ -670,26 +695,97 @@ sub id_based_mapping {
 		}
 	}
 	
-	print "Total number of transcripts mapped to a canonical ID.\n";
+	print STDOUT "Total number of transcripts mapped to a canonical ID.\n";
 	return $transcript;
 }
 
 ##------ REMOVE REDUNDANCY -------##
+
+
 sub remove_redundancy {
 
 	my $transcript = $_[0];
-	my $gene_transcript = $_[1];
+
+	my $non_red_trans;
 	
-	print "Removing redundant sequences, this might take a while. Please wait...\n";
+	print STDOUT "Removing redundant sequences, this might take a while. Please wait...\n";
+	foreach my $tr1 (keys %$transcript) {
+		my $gene1 = $transcript->{$tr1}->{'gene'};
+		my $seq1 = $transcript->{$tr1}->{'seq'};
+		my $anno_rank1 = $annotation{$transcript->{$tr1}->{'anno'}};
+
+		if ($non_red_trans) {
+			foreach my $tr2 (keys %$non_red_trans) {
+				my $gene2 = $non_red_trans->{$tr2}->{'gene'};
+				my $seq2 = $non_red_trans->{$tr2}->{'seq'};
+				my $anno_rank2 = $annotation{$non_red_trans->{$tr2}->{'anno'}};
+
+				if ($seq1 eq $seq2) {
+
+					# if sequence in non redundant hash contains snp while current sequence does not
+					if ($non_red_trans->{$tr2}->{'snp'} ne "" and $transcript->{$tr1}->{'snp'} eq "") {
+						$non_red_trans->{$tr1} = $transcript->{$tr1};	# put current sequence in noin redundant hash
+						if ($gene1 ne $gene2) {						# if the transcript are from different genes keep transcript ID
+							push @{$non_red_trans->{$tr1}->{'others'}}, $tr2;
+
+							if ($non_red_trans->{$tr2}->{'others'}) {
+								push @{$non_red_trans->{$tr1}->{'others'}}, @{$non_red_trans->{$tr2}->{'others'}};
+							}
+						}
+						delete $non_red_trans->{$tr2};
+
+					}  else {
+						if ($gene1 ne $gene2) {						# if the transcript are from different genes keep transcript ID
+							push @{$non_red_trans->{$tr2}->{'others'}}, $tr1;
+						}
+					}
+				} elsif (index($seq1, $seq2) > 0) {	# if seq1 contains seq2
+					$non_red_trans->{$tr1} = $transcript->{$tr1};
+					if ($gene1 ne $gene2) {
+						push @{$non_red_trans->{$tr1}->{'others'}}, $tr2;
+
+						if ($non_red_trans->{$tr2}->{'others'}) {
+							push @{$non_red_trans->{$tr1}->{'others'}}, @{$non_red_trans->{$tr2}->{'others'}};
+						}
+					}
+					delete $non_red_trans->{$tr2};	# delete seq2 from non redundant hash
+
+				} elsif (index($seq2,$seq1) > 0) {		# if seq2 contains seq1 keep seq1 id in others
+					if ($gene1 ne $gene2) {
+						push @{$non_red_trans->{$tr2}->{'others'}}, $tr1;
+					}
+
+				} else {	# if the 2 sequences are different add seq1 to non redundant hash
+					$non_red_trans->{$tr1} = $transcript->{$tr1};
+				}
+			}
+
+		} else {
+			#$non_red_trans = {};	# initialize the non redundant hash
+			$non_red_trans->{$tr1} = $transcript->{$tr1};
+		}
+	}
+	
+	return $non_red_trans;
+
+}
+
+
+sub remove_redundancy_old {
+
+	my $transcript = $_[0];
+	
+	print STDOUT "Removing redundant sequences, this might take a while. Please wait...\n";
 	foreach my $tr1 (keys %$transcript) {
 		
 		next if ($transcript->{$tr1}->{'red'} eq "Y");	# skip if transcript is already a subset of another
+
 		my $gene = $transcript->{$tr1}->{'gene'};
 		my $seq1 = $transcript->{$tr1}->{'seq'};
 		my $anno_rank1 = $annotation{$transcript->{$tr1}->{'anno'}};
 		
 		foreach my $tr2 (keys %$transcript) {
-		#foreach my $tr2 (@{$gene_transcript->{$gene}}) {
+
 			next if ($transcript->{$tr2}->{'red'} eq "Y");	# skip if transcript is already a subset of another
 			my $seq2 = $transcript->{$tr2}->{'seq'};
 			my $anno_rank2 = $annotation{$transcript->{$tr2}->{'anno'}};
@@ -698,7 +794,17 @@ sub remove_redundancy {
 				# check annotation
 				if ($anno_rank1 < $anno_rank2) {		# if tr1 annotation is ranked higer that tr2
 					$transcript->{$tr2}->{'red'} = "Y";
-				} elsif ($anno_rank1 > $anno_rank2) {
+
+				} elsif ($anno_rank1 == $anno_rank2)  {
+
+					# keep the sequence without snp info
+					if ($transcript->{$tr2}->{'snp'} eq "" and $transcript->{$tr1}->{'snp'} ne "") {
+						$transcript->{$tr1}->{'red'} = "Y";
+
+					} elsif ($transcript->{$tr2}->{'snp'} ne "" and $transcript->{$tr1}->{'snp'} eq "") {
+						$transcript->{$tr2}->{'red'} = "Y";
+					}
+				} else {
 					$transcript->{$tr1}->{'red'} = "Y";
 				}
 			} elsif (index($seq1,$seq2) > 0) {
@@ -710,7 +816,7 @@ sub remove_redundancy {
 	}
 
 	my $non_red_trans = {};
-	foreach my $tr (keys $transcript) {
+	foreach my $tr (keys %$transcript) {
 		next if ($transcript->{$tr}->{'red'} eq "Y");
 		$non_red_trans->{$tr} = $transcript->{$tr};
 	}
@@ -719,52 +825,100 @@ sub remove_redundancy {
 }
 
 
+
 ##------ GET TRANSCRIPTS -------##
 sub get_transcripts_from_resultdb {
 
+	# sub routine to extract Ribo-seq information from SQlite result database
+
 	my ($dbh,$tbl,$tis) = @_;
 
-	my $transcript = {}; 			# collect sequences from SQLite DB
+	my $snp_tracker = {};
+	my $transcript = {};
 	my $gene_transcript = {};
-	
-	print "Extracting transcripts form SQLite database. Please wait ....\n";
-	my $query = "SELECT DISTINCT a.tr_stable_id, a.chr, a.start, a.start_codon, a.dist_to_aTIS, a.aTIS_call, a.annotation, a.peak_shift, a.SNP, a.aa_seq, b.biotype, c.gene_stable_id
-				 FROM ".$tbl." a JOIN TIS_".$tis." b JOIN tr_translation c
-				 WHERE a.tr_stable_id = b.stable_id AND b.transcript_id = c.transcript_id";
 
+	my ($transcript2geneid,$annotated_tr) = transcript_gene_id($dbh,$tbl);
+		
+	print STDOUT "Extracting transcripts form SQLite database. Please wait ....\n";
+	my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, aa_seq FROM ".$tbl." LIMIT 3000";
+	#my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, aa_seq FROM ".$tbl;
  	my $sth = $dbh->prepare($query);
 	$sth->execute();
 	
-	while ( my ($tr_stable_id, $chr, $start, $start_codon, $dist_to_aTIS, $aTIS_call, $annotation, $peak_shift, $snp, $aa_seq, $biotype,$gene_stable_id) = $sth->fetchrow()) {
-		
-		if (uc($tis_call) eq "N") {
-			next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE');
-		}
-			# to be removed
-		if ($annotation eq "no_translation") {$annotation = "ntr"}
-		
-		$aa_seq =~ s/\*//g;
-		next if (length($aa_seq) < $mslength);		# skip if sequence is less than minimum allowed amino acid length
-		my $tr = $tr_stable_id."_".$chr."_".$start."_".$annotation;
+	while ( my ($tr_stable_id, $chr, $start, $start_codon, $dist_to_aTIS, $aTIS_call, $annotation, $peak_shift, $snp, $aa_seq) = $sth->fetchrow()) {
 
-		$transcript->{$tr}->{'chr'} = $chr;
-		$transcript->{$tr}->{'codon'} = $start_codon;
-		$transcript->{$tr}->{'aTIS_call'} = $aTIS_call;
-		$transcript->{$tr}->{'anno'} = $annotation;
-		$transcript->{$tr}->{'peak_shift'} = $peak_shift;
-		$transcript->{$tr}->{'seq'} = $aa_seq;
-		$transcript->{$tr}->{'biotype'} = $biotype;
-		$transcript->{$tr}->{'gene'} = $gene_stable_id;
-		$transcript->{$tr}->{'tr'} = $tr_stable_id;
-		$transcript->{$tr}->{'red'} = "N";			# Set all transcript to default redundant value of N
+		# if instructed to not keep aTIS with not enough coverage to call TIS
+		if (uc($tis_call) eq "N") {next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE')}
+		$aa_seq =~ s/\*//g;
+		next if (length($aa_seq) < $mslength);	# skip if sequence is less than minimum allowed amino acid length
+
+		# Skip all non aTIS with SNP information that corresponds to an annotated TIS i.e redundant non annotated TIS
+		my $red_tis = 0;
+		if ($annotation ne 'aTIS' and $snp eq "") {
+			if ($transcript2geneid->{$tr_stable_id}) {
+				my $gene = $transcript2geneid->{$tr_stable_id}->{'gene'};
+				foreach my $start1 (keys %{$annotated_tr->{$gene}}) {
+					if ($start1 == $start) {$red_tis = 1}
+				}
+			}
+		}
+		next if ($red_tis == 1);	
+
+		# create unique transcript ID
+		my $tr = $tr_stable_id."_".$chr."_".$start."_".$annotation;
+		if ($snp ne "") {		# if snp info exit for current record
+			if ($snp_tracker->{$tr}) {
+				$snp_tracker->{$tr}++;
+				$tr = $tr."_".$snp_tracker->{$tr};
+			} else {
+				$snp_tracker->{$tr} = 1;
+				$tr = $tr."_".$snp_tracker->{$tr};
+			}
+		}
+
+		$transcript->{$tr}->{'chr'} 		= $chr;
+		$transcript->{$tr}->{'snp'} 		= $snp;
+		$transcript->{$tr}->{'codon'} 		= $start_codon;
+		$transcript->{$tr}->{'aTIS_call'} 	= $aTIS_call;
+		$transcript->{$tr}->{'anno'} 		= $annotation;
+		$transcript->{$tr}->{'peak_shift'} 	= $peak_shift;
+		$transcript->{$tr}->{'seq'} 		= $aa_seq;
+		$transcript->{$tr}->{'biotype'} 	= $transcript2geneid->{$tr_stable_id}->{'biotype'};
+		$transcript->{$tr}->{'gene'} 		= $transcript2geneid->{$tr_stable_id}->{'gene'};
+		$transcript->{$tr}->{'tr'} 			= $tr_stable_id;
+		$transcript->{$tr}->{'red'} 		= "N";			# Set all transcript to default redundant value of N
 		
-		push @{$gene_transcript->{$gene_stable_id}}, $tr;
+		push @{$gene_transcript->{$transcript2geneid->{$tr_stable_id}->{'gene'}}}, $tr;
 	
 	}
 	$sth->finish();
 	
-	print "Done.\n";
 	return $transcript,$gene_transcript;
+
+}
+
+
+sub transcript_gene_id {
+
+	my $dbh = $_[0];
+	my $tbl = $_[1];
+
+	my $annotated_tr = {};
+	my $transcript2geneid = {};
+
+	my $query = "SELECT a.stable_id, a.biotype, a.gene_stable_id, b.start, b.annotation, b.aTIS_call FROM tr_translation a, $tbl b WHERE a.stable_id == b.tr_stable_id";
+ 	my $sth = $dbh->prepare($query);
+	$sth->execute();
+	while ( my ($stable_id, $biotype, $gene_stable_id, $start, $annotation, $aTIS_call) = $sth->fetchrow()) {
+		$transcript2geneid->{$stable_id}->{'gene'} = $gene_stable_id;
+		$transcript2geneid->{$stable_id}->{'biotype'} = $gene_stable_id;
+
+		if (uc($tis_call) eq "N") {next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE')}
+		if ($annotation eq 'aTIS') {$annotated_tr->{$gene_stable_id}->{$start} = 1;}
+	}
+	$sth->finish();
+
+	return $transcript2geneid, $annotated_tr;
 }
 
 
@@ -779,8 +933,7 @@ sub remote_biomart_mapping {
 	my $ref_attribute = $_[2];
 	my $other_attribute = $_[3];
 	
-	print "Retriving the list of Biomart Ensembl transcript to Swissprot ids mappings.\n";
-	print "Please wait.....\n";
+	print STDOUT "Retriving the list of Biomart Ensembl transcript to Swissprot ids mappings. Please wait...\n";
 	
 		# Construct the XML query
 	my $xml = XML::Smart->new();
@@ -965,9 +1118,9 @@ sub file_err {
 
 	my ($file, $flag) = @_;		# flag determines if the operation is open (1) or read (0)
 	if ($flag == 1) {
-		print "Error creating file ", $file, ". Ensure you have the required permission.\n";
+		print STDOUT "Error creating file ", $file, ". Ensure you have the required permission.\n";
 	} else {
-		print "Error reading file ", $file, ". Ensure the file exist.\n";
+		print STDOUT "Error reading file ", $file, ". Ensure the file exist.\n";
 	}
 	
 }
