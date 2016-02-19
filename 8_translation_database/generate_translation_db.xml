@@ -47,6 +47,7 @@
 			--mflag 4
 		#end if
 
+		--snp_file "${snp_file}"
 		--translation_db "${translation_db}"
 
 	</command>
@@ -186,6 +187,9 @@
     		<!-- <data format="text" name="blast_report" value="blast_report.txt"  label="Blast search result" /> -->
 		<data format="fasta" name="translation_db" value="translation_db.fasta" label="Database of non redundant protein sequences" >
 			<discover_datasets pattern="__designation__" ext="fasta" directory="derived_db" visible="true" />
+		</data>
+		<data format="txt" name="snp_file" value="snp_file.txt" label="SNP Information File" >
+			<discover_datasets pattern="__designation__" ext="txt" directory="derived_db" visible="true" />
 		</data>
    	</outputs>
 
