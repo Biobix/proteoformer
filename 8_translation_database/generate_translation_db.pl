@@ -759,7 +759,6 @@ sub remove_redundancy {
 					$non_red_trans->{$tr1} = $transcript->{$tr1};
 				}
 			}
-
 		} else {
 			#$non_red_trans = {};	# initialize the non redundant hash
 			$non_red_trans->{$tr1} = $transcript->{$tr1};
@@ -769,61 +768,6 @@ sub remove_redundancy {
 	return $non_red_trans;
 
 }
-
-
-sub remove_redundancy_old {
-
-	my $transcript = $_[0];
-	
-	print STDOUT "Removing redundant sequences, this might take a while. Please wait...\n";
-	foreach my $tr1 (keys %$transcript) {
-		
-		next if ($transcript->{$tr1}->{'red'} eq "Y");	# skip if transcript is already a subset of another
-
-		my $gene = $transcript->{$tr1}->{'gene'};
-		my $seq1 = $transcript->{$tr1}->{'seq'};
-		my $anno_rank1 = $annotation{$transcript->{$tr1}->{'anno'}};
-		
-		foreach my $tr2 (keys %$transcript) {
-
-			next if ($transcript->{$tr2}->{'red'} eq "Y");	# skip if transcript is already a subset of another
-			my $seq2 = $transcript->{$tr2}->{'seq'};
-			my $anno_rank2 = $annotation{$transcript->{$tr2}->{'anno'}};
-
-			if ($seq1 eq $seq2) {
-				# check annotation
-				if ($anno_rank1 < $anno_rank2) {		# if tr1 annotation is ranked higer that tr2
-					$transcript->{$tr2}->{'red'} = "Y";
-
-				} elsif ($anno_rank1 == $anno_rank2)  {
-
-					# keep the sequence without snp info
-					if ($transcript->{$tr2}->{'snp'} eq "" and $transcript->{$tr1}->{'snp'} ne "") {
-						$transcript->{$tr1}->{'red'} = "Y";
-
-					} elsif ($transcript->{$tr2}->{'snp'} ne "" and $transcript->{$tr1}->{'snp'} eq "") {
-						$transcript->{$tr2}->{'red'} = "Y";
-					}
-				} else {
-					$transcript->{$tr1}->{'red'} = "Y";
-				}
-			} elsif (index($seq1,$seq2) > 0) {
-				$transcript->{$tr2}->{'red'} = "Y";
-			} elsif (index($seq2,$seq1) > 0) {
-				$transcript->{$tr1}->{'red'} = "Y";
-			}
-		}
-	}
-
-	my $non_red_trans = {};
-	foreach my $tr (keys %$transcript) {
-		next if ($transcript->{$tr}->{'red'} eq "Y");
-		$non_red_trans->{$tr} = $transcript->{$tr};
-	}
-	
-	return $non_red_trans;
-}
-
 
 
 ##------ GET TRANSCRIPTS -------##
@@ -840,8 +784,7 @@ sub get_transcripts_from_resultdb {
 	my ($transcript2geneid,$annotated_tr) = transcript_gene_id($dbh,$tbl);
 		
 	print STDOUT "Extracting transcripts form SQLite database. Please wait ....\n";
-	my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, aa_seq FROM ".$tbl." LIMIT 3000";
-	#my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, aa_seq FROM ".$tbl;
+	my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, aa_seq FROM ".$tbl;
  	my $sth = $dbh->prepare($query);
 	$sth->execute();
 	
