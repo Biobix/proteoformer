@@ -2157,7 +2157,6 @@ sub split_SAM_per_chr {
         #Process alignment line
         @mapping_store = split(/\t/,$line);
         $chr = $mapping_store[2];
-        print "20 $mapping_store[20], 23 $mapping_store[23]\n";
 
         # Unique vs. (Unique+Multiple) alignment selection
         # NH:i:1 means that only 1 alignment is present
