@@ -290,7 +290,8 @@ my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
-: (uc($species) eq "FRUITFLY") ? "BDGP5" : "";
+: (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
 #Names for STAR/Bowtie2/Bowtie Indexes
 #rRNA
@@ -339,6 +340,7 @@ my $snRNA_fasta  =  $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Ab
 my $phix_fasta   =  $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/AbundantSequences/".$IndexPhix.".fa";
 my $cDNA_fasta   =  $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/AbundantSequences/".$IndexCDNA.".fa";
 my $tRNA_fasta   =  $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/AbundantSequences/".$IndextRNA.".fa";
+my $genome_fasta =  $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/WholeGenomeFasta/".$IndexGenome.".fa";
 
 my $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
 #print "chromosome_sizes_file=".$IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt\n";
@@ -1030,6 +1032,8 @@ sub check_Bowtie_index {
 
     # Set
     $ref_loc = get_ref_loc($mapper);
+    if (!-d $ref_loc){ system("mkdir -p ".$ref_loc); }
+
     my $bowtieIndexFile = $ref_loc.$bowtieIndex;
     my $bowtieIndexFileCheck = ($mapper eq "bowtie") ? $ref_loc.$bowtieIndex.".1.ebwt" : $ref_loc.$bowtieIndex.".1.bt2";
     my $bowtieloc = ($mapper eq "bowtie") ? $bowtie_loc : $bowtie2_loc;
@@ -1042,6 +1046,8 @@ sub check_Bowtie_index {
     } else {
         if ($bowtieIndex =~ /rRNA/) {
             print "no Bowtie ". $bowtieIndexFile ." found\ncreating bowtie index ...\n";
+
+            system("mkdir -p ".$bowtieIndexFile);
 
             #Get rRNA fasta from iGenome folder (rRNA sequence are located in /Sequence/AbundantSequences folder)
             my $PATH_TO_FASTA = $rRNA_fasta;
@@ -1089,6 +1095,17 @@ sub check_Bowtie_index {
 
             #Get phix fasta from iGenome folder (cdna sequence(s) are located in /Sequence/AbundantSequences folder)
             my $PATH_TO_FASTA = $cDNA_fasta;
+            print $bowtieloc."-build ".$PATH_TO_FASTA." ".$bowtieIndexFile."\n";
+            system($bowtieloc."-build ".$PATH_TO_FASTA." ".$bowtieIndexFile);
+            systemError("Bowtie index creation error",$?,$!);
+            print "done!\n\n";
+
+        }
+        elsif ($bowtieIndex =~ /genome/) {
+            print "no Bowtie ". $bowtieIndexFile ."found\ncreating bowtie index ...\n";
+
+            #Get genome fasta from iGenome folder (genome is located in .../WholeGenomeFasta/genome.fa)
+            my $PATH_TO_FASTA = $genome_fasta;
             print $bowtieloc."-build ".$PATH_TO_FASTA." ".$bowtieIndexFile."\n";
             system($bowtieloc."-build ".$PATH_TO_FASTA." ".$bowtieIndexFile);
             systemError("Bowtie index creation error",$?,$!);
@@ -1268,6 +1285,8 @@ sub map_topHat2 {
     $ref_loc = get_ref_loc($mapper);
     my $PATH_TO_GTF   = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/genes.gtf";
     my $PATH_TO_GENOME_INDEX = $ref_loc."".$IndexGenome;
+
+    check_Bowtie_index($IndexGenome,$prev_mapper);
 
     # alignment dependent on read type
     # Tophat parameters:
@@ -2138,6 +2157,7 @@ sub split_SAM_per_chr {
         #Process alignment line
         @mapping_store = split(/\t/,$line);
         $chr = $mapping_store[2];
+        print "20 $mapping_store[20], 23 $mapping_store[23]\n";
 
         # Unique vs. (Unique+Multiple) alignment selection
         # NH:i:1 means that only 1 alignment is present
@@ -2148,11 +2168,13 @@ sub split_SAM_per_chr {
         elsif ($uni eq "N") {
             #If multiple: best scoring or random (if equally scoring) is chosen
             if ($FirstRankMultiMap eq "Y") {
-                next unless (($mapping_store[12] eq "HI:i:1\D" && uc($mapper) eq "STAR") || (($line =~ m/HI:i:0\D/ || $line =~ m/NH:i:1\D/) && uc($mapper) eq "TOPHAT2"));
+                next unless (($mapping_store[12] eq "HI:i:1" && uc($mapper) eq "STAR") || (($line =~ m/HI:i:0/ || $line =~ m/NH:i:1\D/) && uc($mapper) eq "TOPHAT2"));
             }
             #Keep all mappings, also MultipleMapping locations are available (alternative to pseudogenes mapping) GM:07-10-2013
             #Note that we only retain the up until <16 multiple locations (to avoid including TopHat2 peak @ 16)
-            #next unless ( uc($mapper) eq "STAR" || uc($mapper) eq "TOPHAT2");
+            #For STAR the maxMultiMap is not included in the output (e.g. if maxmultimap is set to 16, up untill 15 is included)
+            #For TopHat2 the maxMultiMap is included in the output (e.g. if maxmultimap is set to 16, up untill 16 is included)
+            #In order to have the same actual limit, the maxmultimap is discarded (see record below)
             next unless ( $line !~ m/NH:i:$maxmultimap/ );
 
         }

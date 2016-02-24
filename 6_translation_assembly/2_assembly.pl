@@ -207,7 +207,8 @@ my $assembly = ($species eq "mouse" && $ensemblversion >= 70 ) ? "GRCm38"
 : ($species eq "human" && $ensemblversion >= 76) ? "GRCh38"
 : ($species eq "human" && $ensemblversion < 76) ? "GRCh37"
 : ($species eq "arabidopsis") ? "TAIR10"
-: ($species eq "fruitfly") ? "BDGP5" : "";
+: (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
 #my $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
 my $BIN_chrom_dir = ($clusterPhoenix eq "Y") ? $HOME."/igenomes_extra/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes_BIN" : $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes_BIN";
@@ -275,15 +276,15 @@ printf("runtime assembly: %02d:%02d:%02d\n\n",int($end/3600), int(($end % 3600)/
 
 ### DBH ###
 sub dbh {
-    
+
     # Catch
     my $db  = $_[0];
     my $us	= $_[1];
     my $pw	= $_[2];
-    
+
     # Init DB
     my $dbh = DBI->connect($db,$us,$pw,{ RaiseError => 1 },) || die "Cannot connect: " . $DBI::errstr;
-    
+
     return($dbh);
 }
 
@@ -293,65 +294,65 @@ sub dbh {
 sub get_input_vars {
     # Catch
     my $dbh_results = $_[0];
-    
+
     my ($query,$sth);
-    
+
     # Get input variables
     $query = "select value from arguments where variable = \'run_name\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $run_name = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'ensembl_version\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $ensemblversion = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'species\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $species = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'mapper\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $mapper = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'unique\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $unique = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'adaptor\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $adaptorSeq = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'readlength\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $readlength = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'readtype\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $readtype = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'igenomes_root\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $IGENOMES_ROOT = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'nr_of_cores\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $nr_of_cores = $sth->fetch()->[0];
-    
+
     $query = "select value from arguments where variable = \'ens_db\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $ensDB = $sth->fetch()->[0];
-    
+
     # Return input variables
     return($run_name,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$nr_of_cores,$ensDB);
 }
@@ -359,16 +360,16 @@ sub get_input_vars {
 
 ### GET CHRs ###
 sub get_chrs {
-    
+
     # Catch
     my $dbh          =  $_[0];
     my $chr_file    =   $_[1];
     my $assembly    =   $_[2];
-    
+
     # Init
     my $chrs    =   {};
     my ($line,@chr,$coord_system_id,$seq_region_id,@ids,@coord_system);
-    
+
     # Get correct coord_system_id
     my $query = "SELECT coord_system_id FROM coord_system where name = 'chromosome' and version = '".$assembly."'";
     my $sth = $dbh->prepare($query);
@@ -376,7 +377,7 @@ sub get_chrs {
     @coord_system = $sth->fetchrow_array;
     $coord_system_id = $coord_system[0];
     $sth->finish();
-   	
+
     # Get chrs with seq_region_id
     my $chr;
     #foreach (@chr){
@@ -390,7 +391,7 @@ sub get_chrs {
         }else {
             $chr = $key;
         }
-        
+
         my $query = "SELECT seq_region_id FROM seq_region where coord_system_id = ".$coord_system_id."  and name = '".$chr."' ";
         my $sth = $dbh->prepare($query);
         $sth->execute();
@@ -399,18 +400,18 @@ sub get_chrs {
         $chrs->{$chr}{'seq_region_id'} = $seq_region_id;
         $sth->finish();
     }
-    
+
     #Disconnect DBH
     $dbh->disconnect();
-    
+
     # Return
     return($chrs);
-    
+
 }
 
 ### GET CHR SIZES FROM IGENOMES ###
 sub get_chr_sizes {
-    
+
     # Catch
     my %chr_sizes;
     my $filename = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
@@ -438,51 +439,51 @@ sub get_chr_sizes {
 
 ### CREATE BIN CHROMS ###
 sub create_BIN_chromosomes {
-    
+
     # Catch
     my $BIN_chrom_dir = $_[0];
     my $cores = $_[1];
     my $chr_sizes = $_[2];
     my $TMP = $_[3];
-    
+
     # Create BIN_CHR directory
     system ("mkdir -p ".$BIN_chrom_dir);
-    
+
     # Create binary chrom files
     ## Init multi core
     my $pm = new Parallel::ForkManager($cores);
     print "   Using ".$cores." core(s)\n   ---------------\n";
-    
+
     foreach my $chr (keys %$chr_sizes){
-        
+
         ## Start parallel process
         $pm->start and next;
-        
+
         open (CHR,"<".$IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes/".$chr.".fa") || die "Cannot open chr fasta input\n";
         open (CHR_BIN, ">".$TMP."/".$chr.".fa");
-        
+
         while (<CHR>){
             #Skip first header line
             chomp($_);
             if ($_ =~ m/^>/) { next; }
             print CHR_BIN $_;
         }
-        
+
         close(CHR);
         close(CHR_BIN);
         system ("mv ".$TMP."/".$chr.".fa ".$BIN_chrom_dir."/".$chr.".fa");
         $pm->finish;
     }
-    
+
     # Finish all subprocesses
     $pm->wait_all_children;
-    
-    
+
+
 }
 
 ### ASSEMBLY OF TRANS PRODS ###
 sub construct_trans_prod {
-    
+
     # Catch
     my $annot = $_[0];
     my $fusion = $_[1];
@@ -496,58 +497,58 @@ sub construct_trans_prod {
     my $work_dir = $_[9];
     my $tmp = $_[10];
     my $analysis_id = $_[11];
-    
+
     #print "analysis_id = $analysis_id\n";
     # Get chromosomes name,seq_region_id
     my $dbh_ENS = dbh($dsn_ENS,$us_ENS,$pw_ENS);
     my $chrs = get_chrs($dbh_ENS,get_chr_sizes(),$assembly);
     my %chrs = %{$chrs};
     $dbh_ENS->disconnect();
-    
+
     # Init multi core
     my $pm = new Parallel::ForkManager($cores);
     print "   Using ".$cores." core(s)\n   ---------------\n";
-    
-    
+
+
     # Open each chromosome in seperate core
     foreach my $chr (sort keys %{$chrs}){
-        
+
         #my @chrs = (1);
         #foreach my $chr (@chrs) {
         my $SNP_chr = {};
-        
+
         ### Start parallel process
         $pm->start and next;
-        
+
         ## Analyse Peaks per Transcript
         #print "\n\n   Starting translation on chromosome ".$chr."\n";
-        
+
         ### DBH per process
         my $dbh_results = dbh($dsn_results,$us_results,$pw_results);
         my $dbh_ENS = dbh($dsn_ENS,$us_ENS,$pw_ENS);
-        
+
         ### Output  db-file per process
         open TMP_db, "+>> ".$TMP."/".$chr."_tmp.csv" or die $!;
-        
+
         ## Get SNPs per chr from SNP SQLite
         if ( $snp ne "NO" ) {
             $SNP_chr = get_SNPs_per_chromosome($dbh_results,$chr,$snp);
-            
+
         }
-        
+
         ## Get transcript_ids per chr from transcript calling
         my $transcript_starts = get_transcripts_per_chromosome($dbh_results,$chr,$analysis_id);
         #print Dumper($transcript_starts); exit;
         # Init
         my ($cnt, $transcript_start,$tr_id,$TIS,$exons,$strand,$start_codon,$dist_to_transcript_start,$dist_to_aTIS,$annotation,$aTIS_call,$peak_shift,$count,$Rltm_min_Rchx,$exon,$tr_stable_id,$e_rank,$e_start,$e_end,$e_start_phase,$e_end_phase,$e_stable_id,$seq,$tr_seq,$AA_seq,$exon_SNP,$CDS_tmp_length);
-        
+
         #my @tr = ("440589_118628041");
         #foreach $transcript_start ( @tr){
         foreach $transcript_start ( keys %{$transcript_starts}){
             my %tr_SNPs;
             $tr_seq = '';
             $cnt++;
-            
+
             # Split transcript and TIS
             $tr_id                          = $transcript_starts->{$transcript_start}{'transcript_id'};
             $TIS                            = $transcript_starts->{$transcript_start}{'start'};
@@ -560,10 +561,10 @@ sub construct_trans_prod {
             $peak_shift                     = $transcript_starts->{$transcript_start}{'peak_shift'};
             $count                          = $transcript_starts->{$transcript_start}{'count'};
             $Rltm_min_Rchx                  = $transcript_starts->{$transcript_start}{'Rltm_min_Rchx'};
-            
-            
+
+
             #print "$tr_id,$TIS,$strand,$start_codon,$dist_to_transcript_start,$dist_to_aTIS,$annotation,$peak_shift,$count,$Rltm_min_Rchx\n";
-            
+
             # Get exons of transcript and their chrom positions
             $exons = get_exons_for_tr($dbh_ENS,$tr_id);
             my $start_exon_check;
@@ -573,14 +574,14 @@ sub construct_trans_prod {
             my $orf_structure = {};
             my $orf_exon_counter = 0;
             my $stop_coord;
-            
+
             # Get sequence starting from TIS and concatenated exon seqs
             # Loop over exons ascending for sense, descending for antisense
             # Reverse complement antisense
             # Set TIS=exon_start for sense, TIS=exon_end for antisense
             #if ($strand eq '1') {
             foreach $exon (sort {$a <=> $b} keys %{$exons}){
-                
+
                 $tr_stable_id   = $exons->{$exon}{'tr_stable_id'};
                 $e_rank         = $exons->{$exon}{'rank'};
                 $chr            = $exons->{$exon}{'chr'};
@@ -589,40 +590,40 @@ sub construct_trans_prod {
                 $e_start_phase  = $exons->{$exon}{'phase'};
                 $e_end_phase    = $exons->{$exon}{'end_phase'};
                 $e_stable_id    = $exons->{$exon}{'e_stable_id'};
-                
+
                 #print "$tr_stable_id,$e_rank,$chr,$e_start,$e_end,$e_start_phase,$e_end_phase,$e_stable_id\n";
-                
+
                 # Find first exon and set start_pos to TIS site
                 if ($TIS ~~ [$e_start..$e_end]) {
                     #print "$TIS\n";
                     $start_exon_check = 1;
-                    
+
                     # Sense specific
                     if ($strand eq '1') { $e_start = $TIS; }
                     if ($strand eq '-1') { $e_end = $TIS; }
-                    
+
                 }
-                
+
                 # concatenation starts here...
                 if ($start_exon_check) {
-                    
+
                     #Slice exon SNPs from chrom SNP-hash and add transcript position to SNP_hash
                     my %exon_SNPs = fetch_SNPs_exon($e_start,$e_end,$SNP_chr);
-                    
+
                     #print Dumper ('exon_SNPs_before',\%exon_SNPs);
-                    
+
                     if (%exon_SNPs) {
                         foreach $exon_SNP (keys %exon_SNPs){
                             #print Dumper('between',$exon_SNPs{$exon_SNP});
-                            
+
                             # Sense specific
                             #print "exon_end minus snp_pos plus CDS_tmp_length : $e_end minus $exon_SNPs{$exon_SNP}{'pos'} plus $CDS_tmp_length \n";
-                            
+
                             # For the negative strand: take into account the length of the SNP entry (length($exon_SNPs{$exon_SNP}{'ref'}) -1)
                             $exon_SNPs{$exon_SNP}{'tr_pos'} =
                             ($strand eq '1') ? $exon_SNPs{$exon_SNP}{'pos'} - $e_start + 1 + $CDS_tmp_length
                             : $e_end - ($exon_SNPs{$exon_SNP}{'pos'} + (length($exon_SNPs{$exon_SNP}{'ref'}) -1)) + 1 + $CDS_tmp_length;
-                            
+
                             $tr_SNPs{$exon_SNPs{$exon_SNP}{'tr_pos'}}{'pos'} =       $exon_SNPs{$exon_SNP}{'pos'};
                             $tr_SNPs{$exon_SNPs{$exon_SNP}{'tr_pos'}}{'tr_pos'} =    $exon_SNPs{$exon_SNP}{'tr_pos'};
                             $tr_SNPs{$exon_SNPs{$exon_SNP}{'tr_pos'}}{'ref'} =       ($strand eq '1') ? $exon_SNPs{$exon_SNP}{'ref'} : revdnacomp($exon_SNPs{$exon_SNP}{'ref'});
@@ -630,16 +631,16 @@ sub construct_trans_prod {
                             $tr_SNPs{$exon_SNPs{$exon_SNP}{'tr_pos'}}{'chr'} =       $exon_SNPs{$exon_SNP}{'chr'};
                             $tr_SNPs{$exon_SNPs{$exon_SNP}{'tr_pos'}}{'af'} =        $exon_SNPs{$exon_SNP}{'af'};
                         }
-                        
-                        
+
+
                         #print Dumper ('exon_SNPs_after',\%exon_SNPs);
                     }
-                    
+
                     #Sense specific
                     $seq = ($strand eq '1') ? get_sequence($chr,$e_start,$e_end) : revdnacomp(get_sequence($chr,$e_start,$e_end));
                     #print "$seq\n";
                     $tr_seq = $tr_seq . $seq;
-                    
+
                     #Save ORF structure
                     $orf_exon_counter++;
                     $tmp_orf_structure->{$orf_exon_counter}->{'start'} = $e_start;
@@ -647,7 +648,7 @@ sub construct_trans_prod {
                     $tmp_orf_structure->{$orf_exon_counter}->{'e_stable_id'} = $e_stable_id;
                     $tmp_orf_structure->{$orf_exon_counter}->{'rank'} = $e_rank;
                     $tmp_orf_structure->{$orf_exon_counter}->{'length'} = $e_end - $e_start + 1;
-                    
+
                     # Build the temporary CDS length
                     my $l = length($seq);
                     $CDS_tmp_length = $CDS_tmp_length + ($e_end - $e_start + 1);
@@ -656,24 +657,24 @@ sub construct_trans_prod {
                 }
             }
             #print Dumper ('tr_SNPs',\%tr_SNPs);
-            
+
             #Only output transcripts where TIS is in exonic regions. The transcripts missing the exon that overspans the TIS are excluded
             if ($start_exon_check) {
                 #print "DNA  $tr_seq\n";
                 #translate
                 my $tr_seqs_all = translate($tr_seq,\%tr_SNPs);
                 #print Dumper ('seqs_all',$tr_seqs_all);
-                
+
                 #Loop over all entries in AoH_tr_seqs_all
                 my $out_cnt = 0;
                 foreach (@$tr_seqs_all) {
                     $out_cnt++;
                     $AA_seq = ($_->{'AAseq'}) ? $_->{'AAseq'} : '';
                     $tr_seq = $_->{'seq'};
-                    
+
                     #Only output transcripts that actually terminate with a STOP-codon (transcript forms with missing 3' exons resulting in missing STOP-codon are excluded)
                     if ($AA_seq =~ /\*$/ && $AA_seq ne '') {
-                        
+
                         #Adapt the orf structure in function of the length of the AA seq to find the stop codon coordinate
                         if($strand eq '1'){
                             #Determine how long the translated sequence spans over the exon structure
@@ -702,7 +703,7 @@ sub construct_trans_prod {
                             $orf_structure->{$i}->{'start'} = $stop_coord;
                             $orf_structure->{$i}->{'length'} = $orf_length;
                         }
-                        
+
                         #Make underscore seperated sequences of start and stop coordinates
                         my $starts_seq="";
                         my $ends_seq="";
@@ -727,13 +728,13 @@ sub construct_trans_prod {
                                 }
                             }
                         }
-                        
+
                         #Control if first codon is (near-)cognate and replace near-cognate start to cognate methionine.
                         if(substr($tr_seq,0,3) =~ m/[ACTG]TG|A[ACTG]G|AT[ACTG]/){
                             $AA_seq = (substr($AA_seq,0,1) ne 'M') ? 'M'.substr($AA_seq,1) : $AA_seq;
                             print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",".$tr_seq.",".$AA_seq."\n";
                         }
-                        
+
                     }
                     else {
                         #print "$tr_stable_id,$AA_seq\n";
@@ -741,9 +742,9 @@ sub construct_trans_prod {
                 }
             }
         }
-        
+
         close(TMP_db);
-        
+
         #print $chr." has ".$cnt." transcript_starts \n";
         ### Finish childs
         print "     * Finished translating chromosome ".$chr."\n";
@@ -751,19 +752,19 @@ sub construct_trans_prod {
         $dbh_results->disconnect();
         $pm->finish;
     }
-    
+
     print "Waiting for all childs to finish...\n";
     $pm->wait_all_children();
-    
+
     #Store in db
     store_in_db($dsn_results,$us_results,$pw_results,$work_dir,$chrs,$analysis_id,$snp);
-    
-    
+
+
 }
 
 ### Store in DB ##
 sub store_in_db{
-    
+
     # Catch
     my $dsn         =   $_[0];
     my $us          =   $_[1];
@@ -772,16 +773,16 @@ sub store_in_db{
     my $chrs        =   $_[4];
     my $analysis_id =   $_[5];
     my $snp         =   $_[6];
-    
+
     # Init
     my $dbh     =   dbh($dsn,$us,$pw);
-    
+
     my $snp_table_annot = ($snp eq "NO") ? "" : $snp."_";
     my $table   =   "TIS_".$analysis_id."_".$snp_table_annot."transcripts";
-    
+
     my $query_drop = "DROP TABLE IF EXISTS `".$table."`";
     $dbh->do($query_drop);
-    
+
     # Create table
     my $query = "CREATE TABLE IF NOT EXISTS `".$table."` (
     `tr_stable_id` varchar(128) NOT NULL default '',
@@ -804,16 +805,16 @@ sub store_in_db{
     `SNP` varchar(256) NOT NULL default '0',
     `tr_seq` TEXT NOT NULL default '',
     `aa_seq` TEXT NOT NULL default '' )"  ;
-    
+
     $dbh->do($query);
-    
+
     # Store
     foreach my $chr (sort keys %{$chrs}){
         system("sqlite3 -separator , ".$resultDB." \".import ".$TMP."/".$chr."_tmp.csv ".$table."\"")== 0 or die "system failed: $?";
     }
     #Disconnect dbh
     $dbh->disconnect();
-    
+
     # Unlink tmp csv files
     foreach my $chr (sort keys %{$chrs}){
         unlink $TMP."/".$chr."_tmp.csv";
@@ -822,7 +823,7 @@ sub store_in_db{
 
 ### Get the analysis_id that corresponds to the input paramaters for the TIS calling
 sub get_analysis_id {
-    
+
     # Catch
     my $dbh = $_[0];
     my $local_max = $_[1];
@@ -836,21 +837,21 @@ sub get_analysis_id {
     my $Rltm_minus_Rchx_CDS = $_[9];
     my $min_count_no_translation = $_[10];
     my $Rltm_minus_Rchx_no_translation = $_[11];
-    
+
     # Init
     my $analysis_id;
-    
+
     #ID|CHX_lane|LTM_lane|ensembl_version|intergenic|species|local_max|min_count_aTIS|R_aTis|min_count_5UTR|R_5UTR|min_count_CDS|R_CDS|min_count_3UTR|R_3UTR|min_count_no_trans|R_no_trans
     #1|lane3|lane4|72|N|Mus_musculus|1|5|0.05|10|0.05|15|0.15|10|0.05|10|0.05
-    
+
     my $query_analysis_id = "select max(ID) as ID from TIS_overview where local_max = ".$local_max. " and min_count_aTIS = ".$min_count_aTIS." and R_aTis = ".$Rltm_minus_Rchx_aTIS.
     " and min_count_5UTR = ".$min_count_5UTR." and R_5UTR = ".$Rltm_minus_Rchx_5UTR.
     " and min_count_3UTR = ".$min_count_3UTR." and R_3UTR= ".$Rltm_minus_Rchx_3UTR.
     " and min_count_CDS = ".$min_count_CDS." and R_CDS = ".$Rltm_minus_Rchx_CDS.
     " and min_count_no_trans = ".$min_count_no_translation." and R_no_trans = ".$Rltm_minus_Rchx_no_translation;
-    
+
     #print "$query_analysis_id\n";
-    
+
     my $sth = $dbh->prepare($query_analysis_id);
     $sth->execute();
     $analysis_id = $sth->fetch()->[0];
@@ -860,7 +861,7 @@ sub get_analysis_id {
 
 ### Get the analysis ids that need to be processed
 sub get_analysis_ids {
-    
+
     # Catch
     my $dbh    = $_[0];
     my $ids_in = $_[1]; #Either comma separated list of identifiers or "all"
@@ -873,24 +874,24 @@ sub get_analysis_ids {
     else {
         my @ids = split(/,/,$ids_in);
         $idsref = \@ids;
-        
+
     }
-    
+
     return $idsref;
 }
 
 ### get snp information from SQLite into hash ###
 sub get_SNPs_per_chromosome {
-    
+
     # Catch
     my $dbh = $_[0];
     my $chr_name = $_[1];
     my $snp = $_[2];
-    
+
     # Init
     my $SNPs = {};
     my $query;
-    
+
    	# Get chrs with seq_region_id
     if ($snp eq "samtools") {
         $query = "select chr,pos,ref,alt,case when new='m' then 0.5 else af end as af from snp_".$snp." where chr = '".$chr_name."' and af <> 'INDEL' and new<>'m' ";
@@ -899,30 +900,30 @@ sub get_SNPs_per_chromosome {
         my @name_split = split(/_/,$snp);
         $query = "select chr,pos,ref,alt,case when new='m' then 0.5 else af end as af from snp_".$name_split[0]." where chr = '".$chr_name."' and af <> 'INDEL' ";
     }
-    
-    
-    
+
+
+
     #print "$query\n";
     my $sth = $dbh->prepare($query);
     $sth->execute();
     $SNPs = $sth->fetchall_hashref('pos');
-    
+
     # Return
     return($SNPs);
-    
+
 }
 
 sub fetch_SNPs_exon {
-    
+
     # Catch
     my $e_start = $_[0];
     my $e_end   = $_[1];
     my %SNPs    = %{$_[2]};
-    
+
     # Init
     my (@slice_list,%exon_SNPs_all,%exon_SNPs_def,$key,$value);
-    
-    
+
+
     ####LOOK INTO THIS TO CODE BETTER, FASTER (PERFORMANCE) TODOTODOTODO
     # Take hash slice based on e_start/e_end
     @slice_list = ($e_start..$e_end);
@@ -933,22 +934,22 @@ sub fetch_SNPs_exon {
         # Only print defined keys
         if ($exon_SNPs_all{$key}) { $exon_SNPs_def{$key} =  $exon_SNPs_all{$key} }
     }
-    
-    
+
+
     return %exon_SNPs_def;
 }
 
 ### get transcripts from TIS-calling table ###
 sub get_transcripts_per_chromosome {
-    
+
     # Catch
     my $dbh = $_[0];
     my $chr_name = $_[1];
     my $analysis_id = $_[2];
-    
+
     # Init
     my $transcript_starts = {};
-    
+
     #print "chr_name = $chr_name\n";
     my $query = "SELECT transcript_id||'_'||start as transcript_start,transcript_id,biotype,chr,strand,start,dist_to_transcript_start,dist_to_aTIS,annotation,aTIS_call,start_codon,peak_shift,count,Rltm_min_Rchx FROM TIS_".$analysis_id." WHERE chr = '".$chr_name."'";
     ##Test for annotation='aTIS' and aTIS_call='True'
@@ -957,21 +958,21 @@ sub get_transcripts_per_chromosome {
     my $sth = $dbh->prepare($query);
     $sth->execute();
     $transcript_starts = $sth->fetchall_hashref('transcript_start');
-    
+
     # Return
     return($transcript_starts);
 }
 
 ### Get all exons of transcript (Ensembl) ###
 sub get_exons_for_tr {
-    
+
     # Catch
     my $dbh = $_[0];
     my $transcript_id = $_[1];
-    
+
     # Init
     my $exons = {};
-    
+
     # Get exons
     my $query = "select tr.transcript_id tr_id, tr.stable_id tr_stable_id,etr.rank, r.name chr,e.seq_region_start,e.seq_region_end,e.seq_region_strand,e.phase,e.end_phase,e.stable_id e_stable_id ".
     "from transcript tr ".
@@ -983,22 +984,22 @@ sub get_exons_for_tr {
     my $sth = $dbh->prepare($query);
     $sth->execute();
     $exons = $sth->fetchall_hashref('rank');
-    
+
     #Return
     return($exons);
-    
+
 }
 
 ### translation subroutine ###
 sub translate {
-    
-    
-    
+
+
+
     #Catch
     my $seq = $_[0];
     my %tr_SNPs = %{$_[1]};
     my (@AoH_tr_seqs,$href_tr_seq,$pos,$alt,$seq_tmp,@split_ALT,@AoH_tr_seqs_extra);
-    
+
     my %AA1 = (
     'TTT','F','TTC','F','TTA','L','TTG','L','TCT','S','TCC','S','TCA','S','TCG','S',
     'TAT','Y','TAC','Y','TAA','*','TAG','*','TGT','C','TGC','C','TGA','*','TGG','W',
@@ -1016,8 +1017,8 @@ sub translate {
     'NAT','X','NTN','X','NTA','X','NTG','X','NTC','X','NTT','X','NGN','X','NGA','X',
     'NGG','X','NGC','X','NGT','X','NCN','X','NCA','X','NCG','X','NCC','X','NCT','X',
     'NNN','X','NNA','X','NNG','X','NNC','X','NNT','X',);
-    
-    
+
+
     #Array of hashes to hold resulting tr_seqs based on indel/SNPs changes
     # @AoH = (
     #  { 'SNP'  => @(trpos_ref_alt_af),
@@ -1029,11 +1030,11 @@ sub translate {
     #    'seq' => seq
     #  }
     # )
-    
-    
+
+
     #Push input sequence in hash of possibilities
     push @AoH_tr_seqs, { 'SNP' => "", 'offset' => 0, 'seq' => $seq };
-    
+
     #print Dumper('initial AoH',\@AoH_tr_seqs);
     # Only do the SNP-looping if input parameter is set to $snp <> "NO"
     if ($snp ne "NO") {
@@ -1045,10 +1046,10 @@ sub translate {
                 #print Dumper ('tr_SNP',$tr_SNP);
                 # Allele frequence equals 1 (only alt need to be retained)
                 if ($tr_SNPs{$tr_SNP}{'af'} > 0.99) {
-                    
+
                     #Only one ALTernative
                     if ($tr_SNPs{$tr_SNP}{'alt'} !~ /,/) {
-                        
+
                         #Update info for all sequences
                         for $href_tr_seq ( @AoH_tr_seqs ) {
                             #print Dumper('AF99',$href_tr_seq);
@@ -1057,9 +1058,9 @@ sub translate {
                             #print "BEF  $seq_tmp\n";
                             #Replace SNP in sequence (take into account the created offset caused by previous INDEL)
                             #print "$tr_SNPs{$tr_SNP}{'tr_pos'} + $href_tr_seq->{'offset'}\n";
-                            
+
                             my $pos = $tr_SNPs{$tr_SNP}{'tr_pos'} + $href_tr_seq->{'offset'}  - 1;
-                            
+
                             #pos = $pos;
                             #exit;
                             #$seq_tmp =~ s/\G($tr_SNPs{$tr_SNP}{'ref'})/$tr_SNPs{$tr_SNP}{'alt'}/;
@@ -1070,34 +1071,34 @@ sub translate {
                             $href_tr_seq->{'SNP'} = $href_tr_seq->{'SNP'} . ":" . $pos_and_offset."_".$tr_SNPs{$tr_SNP}{'ref'}."_".$tr_SNPs{$tr_SNP}{'alt'}."_".$tr_SNPs{$tr_SNP}{'af'};
                             $href_tr_seq->{'offset'} = $href_tr_seq->{'offset'} + (length($tr_SNPs{$tr_SNP}{'alt'}) - length($tr_SNPs{$tr_SNP}{'ref'}));
                             $href_tr_seq->{'seq'} = $seq_tmp;
-                            
+
                         }
                     }
-                    
+
                     #Multiple ALTernative
                     elsif ($tr_SNPs{$tr_SNP}{'alt'} =~ /,/) {
-                        
+
                         #Split ALT snps
                         @split_ALT = split(/,/, $tr_SNPs{$tr_SNP}{'alt'});
-                        
+
                         #Update info for all sequences
                         for $href_tr_seq ( @AoH_tr_seqs ) {
-                            
+
                             my $ref_SNP     = $href_tr_seq->{'SNP'};
                             my $ref_offset  = $href_tr_seq->{'offset'};
                             my $ref_seq      = $href_tr_seq->{'seq'};
-                            
+
                             my $alt_cnt = 0;
                             foreach (@split_ALT) {
-                                
+
                                 $alt_cnt++;
                                 # Update first one
                                 if ($alt_cnt == 1) {
-                                    
+
                                     #Get sequence
                                     $seq_tmp = $ref_seq;
-                                    
-                                    
+
+
                                     #Replace SNP in sequence (take into account the created offset caused by previous INDEL)
                                     my $pos = ($tr_SNPs{$tr_SNP}{'tr_pos'} + $ref_offset)  -1;
                                     #$seq_tmp =~ s/\G($tr_SNPs{$tr_SNP}{'ref'})/$_/;
@@ -1112,13 +1113,13 @@ sub translate {
                                 else {
                                     #Get sequence
                                     $seq_tmp = $ref_seq;
-                                    
-                                    
+
+
                                     #Replace SNP in sequence (take into account the created offset caused by previous INDEL)
                                     my $pos = ($tr_SNPs{$tr_SNP}{'tr_pos'} + $ref_offset)  -1;
                                     $seq_tmp = substr($seq_tmp,0,$pos).$_.substr($seq_tmp,$pos+(length($tr_SNPs{$tr_SNP}{'ref'})));
                                     #$seq_tmp =~ s/\G($tr_SNPs{$tr_SNP}{'ref'})/$_/;
-                                    
+
                                     #Push new ones in extra AoH
                                     my $pos_and_offset = $tr_SNPs{$tr_SNP}{'tr_pos'} + $href_tr_seq->{'offset'};
                                     my $extra_SNP = $ref_SNP . ":" . $pos_and_offset."_".$tr_SNPs{$tr_SNP}{'ref'}."_".$_."_".$tr_SNPs{$tr_SNP}{'af'};
@@ -1129,31 +1130,31 @@ sub translate {
                             }
                         }
                     }
-                    
+
                     #Add extra to regular AoH and empty extra
                     push (@AoH_tr_seqs, @AoH_tr_seqs_extra);
                     undef @AoH_tr_seqs_extra;
-                    
+
                 }
-                
+
                 # Allele frequence equals .5 (both ref and alt need te be retained)
                 elsif ($tr_SNPs{$tr_SNP}{'af'} > 0.49 && $tr_SNPs{$tr_SNP}{'af'} < 0.51) {
-                    
+
                     #Only one ALTernative
                     if ($tr_SNPs{$tr_SNP}{'alt'} !~ /,/) {
-                        
+
                         #Keep existing one and push new in extra AoH
                         for $href_tr_seq ( @AoH_tr_seqs ) {
-                            
+
                             #Get sequence
                             $seq_tmp = $href_tr_seq->{'seq'};
-                            
+
                             #Replace SNP in sequence (take into account the created offset caused by previous INDEL)
                             my $pos = $tr_SNPs{$tr_SNP}{'tr_pos'} + $href_tr_seq->{'offset'}  - 1;
-                            
+
                             #$seq_tmp =~ s/\G($tr_SNPs{$tr_SNP}{'ref'})/$tr_SNPs{$tr_SNP}{'alt'}/;
                             $seq_tmp = substr($seq_tmp,0,$pos).$tr_SNPs{$tr_SNP}{'alt'}.substr($seq_tmp,$pos+(length($tr_SNPs{$tr_SNP}{'ref'})));
-                            
+
                             #Push new one in extra AoH
                             my $pos_and_offset = $tr_SNPs{$tr_SNP}{'tr_pos'} + $href_tr_seq->{'offset'};
                             my $extra_SNP = $href_tr_seq->{'SNP'} . ":" . $pos_and_offset."_".$tr_SNPs{$tr_SNP}{'ref'}."_".$tr_SNPs{$tr_SNP}{'alt'}."_".$tr_SNPs{$tr_SNP}{'af'};
@@ -1164,33 +1165,33 @@ sub translate {
                             #exit;
                         }
                     }
-                    
+
                     #Multiple ALTernative
                     elsif ($tr_SNPs{$tr_SNP}{'alt'} =~ /,/) {
-                        
+
                         #Split ALT snps
                         @split_ALT = split(/,/, $tr_SNPs{$tr_SNP}{'alt'});
-                        
+
                         #Update info for all sequences
                         for $href_tr_seq ( @AoH_tr_seqs ) {
-                            
+
                             my $ref_SNP     = $href_tr_seq->{'SNP'};
                             my $ref_offset  = $href_tr_seq->{'offset'};
                             my $ref_seq      = $href_tr_seq->{'seq'};
-                            
+
                             my $alt_cnt = 0;
                             foreach (@split_ALT) {
                                 #Push all in extra AoH and keep original one
-                                
+
                                 #Get sequence
                                 $seq_tmp = $ref_seq;
-                                
-                                
+
+
                                 #Replace SNP in sequence (take into account the created offset caused by previous INDEL)
                                 my $pos = ($tr_SNPs{$tr_SNP}{'tr_pos'} + $ref_offset)  -1;
                                 #$seq_tmp =~ s/\G($tr_SNPs{$tr_SNP}{'ref'})/$_/;
                                 $seq_tmp = substr($seq_tmp,0,$pos).$_.substr($seq_tmp,$pos+(length($tr_SNPs{$tr_SNP}{'ref'})));
-                                
+
                                 #Push new ones in extra AoH
                                 my $pos_and_offset = $tr_SNPs{$tr_SNP}{'tr_pos'} + $href_tr_seq->{'offset'};
                                 my $extra_SNP = $ref_SNP . ":" . $pos_and_offset."_".$tr_SNPs{$tr_SNP}{'ref'}."_".$_."_".$tr_SNPs{$tr_SNP}{'af'};
@@ -1200,19 +1201,19 @@ sub translate {
                             }
                         }
                     }
-                    
+
                     #Add extra to regular AoH and empty extra
                     push (@AoH_tr_seqs, @AoH_tr_seqs_extra);
                     undef @AoH_tr_seqs_extra;
                     #print Dumper('normal + extra',\@AoH_tr_seqs);
-                    
-                    
+
+
                 }
             }
         }
     }
     #print Dumper('final AoH',\@AoH_tr_seqs);
-    
+
     for $href_tr_seq ( @AoH_tr_seqs ) {
         my $AAseq='';
         my ($i,$triplet,$AA);
@@ -1237,7 +1238,7 @@ sub translate {
             #print "alt = @snp_alt\n";
             #print "af = @snp_af\n";
         }
-        
+
         for($i=0;$i<=length($href_tr_seq->{'seq'})-2;$i+=3){
             my $cds_start = $i+1;
             my $cds_end  = $i+3;
@@ -1247,7 +1248,7 @@ sub translate {
             $AA=$AA1{uc($triplet)};
             $AAseq = $AAseq . $AA;
             if ($AA eq '*') { last; }
-            
+
             #Check the snp-inclusive triplets
             my ($AAREF,$tripletREF);
             if ($href_tr_seq->{'SNP'} ne '' && $snp_pos[0] && $snp_pos[0]) {
@@ -1265,7 +1266,7 @@ sub translate {
                         $SNP_NS = $SNP_NS . $tmp_SNP_NS . ":";
                     }
                     shift(@snp_pos); shift(@snp_ref); shift(@snp_alt); shift(@snp_af);
-                    
+
                     #print "$i, start=$cds_start,stop=$cds_end,tripletALT=$tripletALT,AAALT=$AA,tripletREF=$tripletREF,AAREF=$AAREF\n";
                 }
             }
@@ -1275,40 +1276,40 @@ sub translate {
         $href_tr_seq->{'AAseq'} = $AAseq;
         $href_tr_seq->{'SNP_NS'} = $SNP_NS;
     }
-    
+
     #print Dumper('final AoH_with_AA',\@AoH_tr_seqs);
     return \@AoH_tr_seqs;
 }
 
 ### get sequence from binary chromosomes ###
 sub get_sequence {
-    
+
     #Catch
     my $chr     = $_[0];
     my $e_start = $_[1];
     my $e_end   = $_[2];
-    
+
     # Init
     my $seq;
-    
+
     open(IN, "< ".$BIN_chrom_dir."/".$chr.".fa");
     binmode(IN);
-    
+
     my $buffer; # Buffer to get binary data
     my $length = $e_end - $e_start + 1; # Length of string to read
     my $offset = $e_start-1; # Offset where to start reading
-    
+
     seek(IN,$offset,0);
     read(IN,$buffer,$length);
-    
+
     #print "buffer:  $buffer\n";
-    
+
     close(IN);
-    
+
     # Return
     return($buffer);
-    
-    
+
+
 }
 
 ### get reverse complement sequence ###
@@ -1328,30 +1329,30 @@ sub dnacomp {
 
 ### make combination of all members of array ###
 sub combine {
-    
+
     my ($list, $n) = @_;
     die "Insufficient list members" if $n > @$list;
-    
+
     return map [$_], @$list if $n == 1;
-    
+
     my @comb;
-    
+
     for (my $i = 0; $i+$n <= @$list; $i++) {
         my $val = $list->[$i];
         my @rest = @$list[$i+1..$#$list];
         push @comb, [$val, @$_] for combine(\@rest, $n-1);
     }
-    
+
     return @comb;
 }
 
 
 ### update TIS_OVERVIEW table: add SNP info
 sub update_TIS_overview {
-    
+
     my ($snp, $analysis_id) = @_;
     my $dbh = dbh($dsn_results,$us_results,$pw_results);
-    
+
     my $update = "update TIS_OVERVIEW set SNP = '".$snp."' where ID = ".$analysis_id;
     $dbh->do($update);
 }

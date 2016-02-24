@@ -9,7 +9,7 @@
 ##	it under the terms of the GNU General Public License as published by
 ##	the Free Software Foundation, either version 3 of the License, or
 ##	(at your option) any later version.
-##	
+##
 ##	This program is distributed in the hope that it will be useful,
 ##	but WITHOUT ANY WARRANTY; without even the implied warranty of
 ##	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -80,7 +80,7 @@ if($out_sqlite){
 }
 my $TMP             = ($ENV{'TMP'}) ? $ENV{'TMP'} : ($tmpfolder) ? $tmpfolder : "$CWD/tmp/" ; # First select the TMP environment variable, or secondly select the $tmpfolder variable, or finally select current_working_dir/tmp
 if($tmpfolder){
-	print "The following tmpfolder is used				: $tmpfolder\n";	
+	print "The following tmpfolder is used				: $tmpfolder\n";
 }else{
 	$tmpfolder = $TMP;
 	print "The following tmpfolder is used				: $TMP\n";
@@ -130,7 +130,7 @@ $dbh_create->do($transcript_idx1);
 my $name_idx2 = $table_ribo_trans."_fastq1_seq_region_id";
 my $transcript_idx2 = "CREATE INDEX IF NOT EXISTS $name_idx2 ON $table_ribo_trans (seq_region_id)";
 $dbh_create->do($transcript_idx2);
-					
+
 $dbh_create->disconnect();
 
 # Get arguments vars
@@ -151,7 +151,8 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
-: (uc($species) eq "FRUITFLY") ? "BDGP5" : "";
+: (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
 # Define ENSEMBL SQLite DB
 my $db_ensembl = ($ens_db) ? $ens_db : $work_dir."/SQLite/"."ENS_".$spec_short."_".$version.".db";
@@ -193,7 +194,7 @@ sub get_chr{
     # Catch
     my $chromosome_sizes = $_[0];
     my $species = $_[1];
-    
+
     # Work
     my @chr;
     my $count = 0;
@@ -203,7 +204,7 @@ sub get_chr{
         $chr[$count] = $a[0];
         $count++;
     }
-    
+
     foreach my $ch (@chr){
     	if ($species eq "fruitfly"){
     		if($ch eq "M"){
@@ -215,7 +216,7 @@ sub get_chr{
      		$ch = $ch;
      	}
     }
-    
+
     return(\@chr);
 } # Close sub
 
@@ -223,26 +224,26 @@ sub get_coord_system_id{
 	# Catch
 	my $db_ensembl = $_[0];
 	my $assembly = $_[1];
-	
+
 	# Connect to ensembl sqlite database
 	my $dbh  = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 						{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-	
+
 	# Get correct coord_system_id
 	my $query = "SELECT coord_system_id FROM coord_system WHERE name = 'chromosome' AND version = '$assembly'";
 	my $execute = $dbh->prepare($query);
 	$execute->execute();
-	
+
 	my $coord_system_id;
 	while(my @result = $execute->fetchrow_array()){
 		$coord_system_id = $result[0];
 	}
-	
+
 	$execute->finish();
-					
+
 	# Disconnect
 	$dbh->disconnect();
-	
+
 	# Return
 	return($coord_system_id);
 } # Close sub
@@ -252,19 +253,19 @@ sub translation_per_chr{
 	# Init multi core
 	my $processes = $cores; # Nr of processes
 	my $pm = new Parallel::ForkManager($processes); # Open fork
-	
+
 	# Loop through chromosomes
 	foreach my $chr(@ch){
 		# Start parallel process
 		$pm->start and next;
-		
+
 		###########
-		## ENSEMBL_DB 
+		## ENSEMBL_DB
 		###########
 		# Connect to ensembl sqlite database
 		my $dbh  = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 								{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-							
+
 		# Get seq_region_id for specific chromosome from table 'seq_region'
 		my $query1 = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
 		my $execute1 = $dbh->prepare($query1);
@@ -272,23 +273,23 @@ sub translation_per_chr{
 
 		my $seq_region;
 		while(my @result1 = $execute1->fetchrow_array()){
-			
+
 			$seq_region = $result1[0];
 		}
-		$execute1->finish();		
+		$execute1->finish();
 		####
 		# Get all genes and corresponding transcripts for specific chromosome from joined tables 'gene', 'transcript' and 'translation'
 		####
 		## First for PROTEIN-CODING transcripts -> UTR-info
-		my $query2 = "SELECT b.gene_id, b.stable_id, a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, c.start_exon_id, c.end_exon_id, c.seq_start, c.seq_end, a.biotype, b.canonical_transcript_id 
-		FROM transcript a 
-		INNER JOIN gene b ON a.gene_id = b.gene_id 
-		INNER JOIN translation c ON a.transcript_id = c.transcript_id 
+		my $query2 = "SELECT b.gene_id, b.stable_id, a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, c.start_exon_id, c.end_exon_id, c.seq_start, c.seq_end, a.biotype, b.canonical_transcript_id
+		FROM transcript a
+		INNER JOIN gene b ON a.gene_id = b.gene_id
+		INNER JOIN translation c ON a.transcript_id = c.transcript_id
 		WHERE b.seq_region_id = '$seq_region'";
-		
+
 		my $execute2 = $dbh->prepare($query2);
 		$execute2->execute();
-	
+
 		my %gene_count;
 		my %transcript_count;
 		my %transcript_id;
@@ -296,11 +297,11 @@ sub translation_per_chr{
 		my %gene_id;
 		my %transcript_attributes;
 		while(my @result2 = $execute2->fetchrow_array()){
-			
+
 			# Gene info
 			$gene_id{$result2[1]} = [$result2[0],$result2[5]];
 			$gene_count{$result2[1]} = 0; # Initialize count hash
-			
+
 			# Transcript info
 			$transcript_id{$result2[2]} = [$result2[6],$result2[11],$result2[3],$result2[4]];
 			$transcript_coding{$result2[2]} = [$result2[1],$result2[5],$result2[7],$result2[8],$result2[9],$result2[10]];
@@ -311,41 +312,41 @@ sub translation_per_chr{
 			$transcript_attributes{$result2[2]} = [$canonical,$ccds];
 		}
 		$execute2->finish();
-		
+
 		#### transcripts with CCDS info
-		my $queryCCDS = "SELECT a.transcript_id, e.dbprimary_acc 
-		FROM transcript a 
-		INNER JOIN gene b ON a.gene_id = b.gene_id 
-		INNER JOIN translation c ON a.transcript_id = c.transcript_id 
-		INNER JOIN object_xref d ON a.transcript_id = d.ensembl_id 
+		my $queryCCDS = "SELECT a.transcript_id, e.dbprimary_acc
+		FROM transcript a
+		INNER JOIN gene b ON a.gene_id = b.gene_id
+		INNER JOIN translation c ON a.transcript_id = c.transcript_id
+		INNER JOIN object_xref d ON a.transcript_id = d.ensembl_id
 		INNER JOIN xref e ON d.xref_id = e.xref_id WHERE b.seq_region_id = '$seq_region' AND e.external_db_id = '3800'";
-		
+
 		my $executeCCDS = $dbh->prepare($queryCCDS);
 		$executeCCDS->execute();
-	
+
 		while(my @resultCCDS = $executeCCDS->fetchrow_array()){
-			
+
 			my $ccds = $resultCCDS[1];
 			$transcript_attributes{$resultCCDS[0]}[1] = $ccds;
 		}
 		$executeCCDS->finish();
-		
-		## Next for the NON-PROTEIN-CODING transcripts -> no UTR/translation-info 
-		my $query3 = "SELECT b.gene_id, b.stable_id, a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, a.biotype, b.canonical_transcript_id 
-		FROM transcript a 
-		INNER JOIN gene b ON a.gene_id = b.gene_id 
-		LEFT OUTER JOIN translation c ON a.transcript_id = c.transcript_id 
+
+		## Next for the NON-PROTEIN-CODING transcripts -> no UTR/translation-info
+		my $query3 = "SELECT b.gene_id, b.stable_id, a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, a.biotype, b.canonical_transcript_id
+		FROM transcript a
+		INNER JOIN gene b ON a.gene_id = b.gene_id
+		LEFT OUTER JOIN translation c ON a.transcript_id = c.transcript_id
 		WHERE c.transcript_id IS NULL AND b.seq_region_id = '$seq_region'";
-		
+
 		my $execute3 = $dbh->prepare($query3);
 		$execute3->execute();
-	
+
 		my %transcript_noncoding;
 		while(my @result3 = $execute3->fetchrow_array()){
 			# Gene info
 			$gene_id{$result3[1]} = [$result3[0],$result3[5]];
 			$gene_count{$result3[1]} = 0; # Initialize count hash
-			
+
 			# Transcript info
 			$transcript_id{$result3[2]} = [$result3[6],$result3[7],$result3[3],$result3[4]];
 			$transcript_noncoding{$result3[2]} = [$result3[1],$result3[5]];
@@ -356,26 +357,26 @@ sub translation_per_chr{
 			$transcript_attributes{$result3[2]} = [$canonical,$ccds];
 		}
 		$execute3->finish();
-		
+
 		#### transcripts with CCDS info
-		my $queryCCDS2 = "SELECT a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, a.biotype, b.canonical_transcript_id, e.dbprimary_acc 
-		FROM transcript a 
-		INNER JOIN gene b ON a.gene_id = b.gene_id 
-		INNER JOIN object_xref d ON a.transcript_id = d.ensembl_id 
-		INNER JOIN xref e ON d.xref_id = e.xref_id 
-		LEFT OUTER JOIN translation c ON a.transcript_id = c.transcript_id 
+		my $queryCCDS2 = "SELECT a.transcript_id, a.seq_region_start, a.seq_region_end, a.seq_region_strand, a.stable_id, a.biotype, b.canonical_transcript_id, e.dbprimary_acc
+		FROM transcript a
+		INNER JOIN gene b ON a.gene_id = b.gene_id
+		INNER JOIN object_xref d ON a.transcript_id = d.ensembl_id
+		INNER JOIN xref e ON d.xref_id = e.xref_id
+		LEFT OUTER JOIN translation c ON a.transcript_id = c.transcript_id
 		WHERE c.transcript_id IS NULL AND b.seq_region_id = '$seq_region' AND e.external_db_id = '3800'";
-		
+
 		my $executeCCDS2 = $dbh->prepare($queryCCDS2);
 		$executeCCDS2->execute();
-	
+
 		while(my @resultCCDS2 = $executeCCDS2->fetchrow_array()){
-			
+
 			my $ccds = $resultCCDS2[1];
 			$transcript_attributes{$resultCCDS2[0]}[1] = $ccds;
 		}
 		$executeCCDS2->finish();
-		
+
 		####
 		# Get all exons(positions) per transcript
 		####
@@ -390,47 +391,47 @@ sub translation_per_chr{
 			my $query4 = "SELECT b.exon_id,a.seq_region_start,a.seq_region_end,a.seq_region_strand,a.stable_id,b.rank FROM exon a JOIN exon_transcript b ON a.exon_id = b.exon_id WHERE b.transcript_id = '$transcript'";
 			my $execute4 = $dbh->prepare($query4);
 			$execute4->execute();
-		
+
 			while(my @result4 = $execute4->fetchrow_array()){
-						
+
 				# Exonic position info
 				for(my $i=$result4[1];$i<=$result4[2];$i++){
 					$exon_gene_transcript{$i}{$transcript_noncoding{$transcript}[0]}{$transcript}{$result4[0]} = $result4[3];
 				}
-				
+
 				# Exon info
 				$exon_id{$result4[0]}{$transcript} = $result4[4];
 				$exon_length{$transcript}{$result4[0]} = $result4[2] - $result4[1] + 1;
 				$exon_count{$transcript}{$result4[0]} = 0; # Initialize count hash
-				
+
 				# Transcript info
 				$transcript_length{$transcript} += $exon_length{$transcript}{$result4[0]};
-				
+
 				# Transcript-exon info
-				$transcript_exon{$transcript}{$result4[5]} = [$result4[0],$result4[1],$result4[2],$result4[3]];				
+				$transcript_exon{$transcript}{$result4[5]} = [$result4[0],$result4[1],$result4[2],$result4[3]];
 			}
 			$execute4->finish();
 		}
-		
+
 		## Next for the PROTEIN-CODING transcripts
 		foreach my $transcript(keys %transcript_coding){
-		
+
 			my $id_first = $transcript_coding{$transcript}[2];
 			my $id_last = $transcript_coding{$transcript}[3];
 			my $seq_start = $transcript_coding{$transcript}[4];
 			my $seq_end = $transcript_coding{$transcript}[5];
-		
+
 			# Determine start codon and thus the protein-coding region of the first exon
 			my $start_codon;
 			my $query5 = "SELECT a.exon_id,a.seq_region_start,a.seq_region_end,a.seq_region_strand,a.stable_id,b.rank FROM exon a JOIN exon_transcript b ON a.exon_id = b.exon_id WHERE a.exon_id = '$id_first'";
 			my $execute5 = $dbh->prepare($query5);
 			$execute5->execute();
-		
+
 			while(my @result5 = $execute5->fetchrow_array()){
-							
+
 				# Exon info
 				$exon_id{$result5[0]}{$transcript} = $result5[4];
-				
+
 				# Transcript-exon info
 				if($result5[3] == 1){ # Forward strand
 					$start_codon = $result5[1] + $seq_start - 1;
@@ -441,18 +442,18 @@ sub translation_per_chr{
 				}
 			}
 			$execute5->finish();
-		
+
 			# Determine stop codon and thus the protein-coding region of the last exon
 			my $stop_codon;
 			my $query6 = "SELECT a.exon_id,a.seq_region_start,a.seq_region_end,a.seq_region_strand,a.stable_id,b.rank FROM exon a JOIN exon_transcript b ON a.exon_id = b.exon_id WHERE a.exon_id = '$id_last'";
 			my $execute6 = $dbh->prepare($query6);
 			$execute6->execute();
-		
+
 			while(my @result6 = $execute6->fetchrow_array()){
-					
+
 				# Exon info
 				$exon_id{$result6[0]}{$transcript} = $result6[4];
-				
+
 				# Transcript-exon info
 				if($result6[3] == 1){ # Forward strand
 					$stop_codon  = $result6[1] + $seq_end - 1;
@@ -463,35 +464,35 @@ sub translation_per_chr{
 				}
 			}
 			$execute6->finish();
-		
+
 			# Determine other protein-coding exons
 			my $query7 = "SELECT b.exon_id,a.seq_region_start,a.seq_region_end,a.seq_region_strand,a.stable_id,b.rank FROM exon a JOIN exon_transcript b ON a.exon_id = b.exon_id WHERE b.transcript_id = '$transcript' AND a.exon_id != '$id_first' AND a.exon_id != '$id_last'";
 			my $execute7 = $dbh->prepare($query7);
 			$execute7->execute();
-		
+
 			while(my @result7 = $execute7->fetchrow_array()){
 
 				# Determine if exon is a protein_coding exon in this specific transcript
 				if(($result7[1]>=$start_codon && $result7[2]<=$stop_codon) || ($result7[2]<=$start_codon && $result7[1]>=$stop_codon)){
 					# Exon info
 					$exon_id{$result7[0]}{$transcript} = $result7[4];
-					
+
 					# Transcript-exon info
 					$transcript_exon{$transcript}{$result7[5]} = [$result7[0],$result7[1],$result7[2],$result7[3]];
 				}
 			}
 			$execute7->finish();
-			
+
 			# ASSEMBLE TRANSCRIPT
 			#####################
 			my $rank1 = (sort {$a <=> $b} keys %{$transcript_exon{$transcript}})[0];
 			my $rank2 = (sort {$b <=> $a} keys %{$transcript_exon{$transcript}})[0];
-			
+
 			# Clip piece of START & STOP codon
 			my $clip_start = 15;
 			my $clip_stop = 15;
 			my ($new_start,$new_rank1); my ($new_stop,$new_rank2);
-			
+
 			# Forward strand
 			if($transcript_exon{$transcript}{$rank1}[3] == 1){
 				# Clip from START CODON
@@ -522,11 +523,11 @@ sub translation_per_chr{
 						for(my $i=$new_start;$i<=$transcript_exon{$transcript}{$rank}[2];$i++){
 							$exon_gene_transcript{$i}{$transcript_coding{$transcript}[0]}{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[3];
 						}
-						
+
 						# Exon info
 						$exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[2] - $new_start + 1;
 						$exon_count{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = 0; # Initialize count hash
-						
+
 						# Transcript info
 						$transcript_length{$transcript} += $exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]};
 					}elsif($rank == $new_rank2){ # Last exon
@@ -534,11 +535,11 @@ sub translation_per_chr{
 						for(my $i=$transcript_exon{$transcript}{$rank}[1];$i<=$new_stop;$i++){
 							$exon_gene_transcript{$i}{$transcript_coding{$transcript}[0]}{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[3];
 						}
-						
+
 						# Exon info
 						$exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $new_stop - $transcript_exon{$transcript}{$rank}[1] + 1;
 						$exon_count{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = 0; # Initialize count hash
-						
+
 						# Transcript info
 						$transcript_length{$transcript} += $exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]};
 					}elsif($rank > $new_rank1 && $rank < $new_rank2){ # Intermediate exons
@@ -546,11 +547,11 @@ sub translation_per_chr{
 						for(my $i=$transcript_exon{$transcript}{$rank}[1];$i<=$transcript_exon{$transcript}{$rank}[2];$i++){
 							$exon_gene_transcript{$i}{$transcript_coding{$transcript}[0]}{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[3];
 						}
-						
+
 						# Exon info
 						$exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[2] - $transcript_exon{$transcript}{$rank}[1] + 1;
 						$exon_count{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = 0; # Initialize count hash
-						
+
 						# Transcript info
 						$transcript_length{$transcript} += $exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]};
 					}
@@ -565,7 +566,7 @@ sub translation_per_chr{
 						$bases++;
 						$new_start = $i;
 						$new_rank1 = $rank;
-						last if $bases == $clip_start + 1;	
+						last if $bases == $clip_start + 1;
 					}
 					last if $bases == $clip_start + 1;
 				}
@@ -586,11 +587,11 @@ sub translation_per_chr{
 						for(my $i=$transcript_exon{$transcript}{$rank}[1];$i<=$new_start;$i++){
 							$exon_gene_transcript{$i}{$transcript_coding{$transcript}[0]}{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[3];
 						}
-						
+
 						# Exon info
 						$exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $new_start - $transcript_exon{$transcript}{$rank}[1] + 1;
 						$exon_count{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = 0; # Initialize count hash
-						
+
 						# Transcript info
 						$transcript_length{$transcript} += $exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]};
 					}elsif($rank == $new_rank2){ # Last exon
@@ -598,11 +599,11 @@ sub translation_per_chr{
 						for(my $i=$new_stop;$i<=$transcript_exon{$transcript}{$rank}[2];$i++){
 							$exon_gene_transcript{$i}{$transcript_coding{$transcript}[0]}{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[3];
 						}
-						
+
 						# Exon info
 						$exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[2] - $new_stop + 1;
-						$exon_count{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = 0; # Initialize count hash	
-						
+						$exon_count{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = 0; # Initialize count hash
+
 						# Transcript info
 						$transcript_length{$transcript} += $exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]};
 					}elsif($rank > $new_rank1 && $rank < $new_rank2){ # Intermediate exons
@@ -610,35 +611,35 @@ sub translation_per_chr{
 						for(my $i=$transcript_exon{$transcript}{$rank}[1];$i<=$transcript_exon{$transcript}{$rank}[2];$i++){
 							$exon_gene_transcript{$i}{$transcript_coding{$transcript}[0]}{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[3];
 						}
-						
+
 						# Exon info
 						$exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = $transcript_exon{$transcript}{$rank}[2] - $transcript_exon{$transcript}{$rank}[1] + 1;
 						$exon_count{$transcript}{$transcript_exon{$transcript}{$rank}[0]} = 0; # Initialize count hash
-						
+
 						# Transcript info
 						$transcript_length{$transcript} += $exon_length{$transcript}{$transcript_exon{$transcript}{$rank}[0]};
 					}
 				}
 			}
 		} # End transcript search
-		
+
 		# Close ensembl db_connection
 		$dbh->disconnect();
-		
+
 		###########
-		## RIBO_SEQ_DB 
+		## RIBO_SEQ_DB
 		###########
 		# Connect to ribo_seq sqlite db
 		my $dbh2 = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
 									{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-									
+
 		####
 		# For each ribo_read, look if it falls in an exon en make a read_count for each gene as well as for each transcript
 		####
 		my $query8 = "SELECT chr,strand,start,count FROM $table_ribo WHERE chr = '$chr'";
 		my $execute8 = $dbh2->prepare($query8);
 		$execute8->execute();
-	
+
 		while(my @result8 = $execute8->fetchrow_array()){
 			my $ribo = $result8[2];
 			if(defined($exon_gene_transcript{$ribo})){
@@ -651,7 +652,7 @@ sub translation_per_chr{
 						}elsif($strand == -1 && $result8[1] == -1){
 							$transcript_count{$gene}{$transcript} += $result8[3];
 						}
-						
+
 						foreach my $exon(keys %{$exon_gene_transcript{$ribo}{$gene}{$transcript}}){
 							if($strand == 1 && $result8[1] == 1){
 								$exon_count{$transcript}{$exon} += $result8[3];
@@ -661,7 +662,7 @@ sub translation_per_chr{
 						}
 					}
 				}
-			}	
+			}
 		}
 		$execute8->finish();
 		####
@@ -671,16 +672,16 @@ sub translation_per_chr{
 		### Init temporary csv-files
 		my $temp_trans_csv = $tmpfolder."fastq1_transcript_".$chr."_tmp.csv";
 		open(TMPtrans,'>>'.$temp_trans_csv);
-			
+
 		foreach my $gene(keys %transcript_count){
 			foreach my $transcript(keys %{$transcript_count{$gene}}){
 				# Transcript_info
 				my $transcount = $transcript_count{$gene}{$transcript};
 				my $length = $transcript_length{$transcript};
-		
+
 				# Now normalize for each transcript separately -> transcript_count/transcript_length
 				my $norm_transcount = $transcount/$length;
-				
+
 				# See if every exon of the transcript has a more or less similar RIBO PROFILE COVERAGE
 				my $exon_sum = 0;
 				my $exon_number = keys %{$exon_count{$transcript}};
@@ -690,12 +691,12 @@ sub translation_per_chr{
 					foreach my $exon(keys %{$exon_count{$transcript}}){
 						my $exoncount = $exon_count{$transcript}{$exon};
 						my $exonlength = $exon_length{$transcript}{$exon};
-						
+
 						# Normalize exon coverage
 						my $norm_exoncount = $exoncount/$exonlength;
-						
+
 						# Total coverage overall exons
-						$exon_sum += $norm_exoncount;					
+						$exon_sum += $norm_exoncount;
 					}
 					my $exon_mean = $exon_sum/$exon_number;
 
@@ -707,37 +708,37 @@ sub translation_per_chr{
 						my $norm_exoncount = $exoncount/$exonlength;
 						if($norm_exoncount < $exon_mean/5){
 							$noise++;
-						}	
+						}
 					}
-					
+
 					# Call transcript only if the amount of 'non-fitted exons' is lower than 15%
 					if($noise/$exon_number < 0.15){
 						$exon_premise = "Yes";
 					}
 				}
-			
+
 				# Write to csv-file
 				if($transcount > 0){
-					print TMPtrans $transcript.",".$transcript_id{$transcript}[0].",".$chr.",".$seq_region.",".$gene_id{$gene}[1].",".$transcript_id{$transcript}[2].",".$transcript_id{$transcript}[3].",".$transcount.",".$norm_transcount.",".$transcript_id{$transcript}[1].",".$exon_premise.",".$transcript_attributes{$transcript}[0].",".$transcript_attributes{$transcript}[1].",".$gene."\n";	
+					print TMPtrans $transcript.",".$transcript_id{$transcript}[0].",".$chr.",".$seq_region.",".$gene_id{$gene}[1].",".$transcript_id{$transcript}[2].",".$transcript_id{$transcript}[3].",".$transcount.",".$norm_transcount.",".$transcript_id{$transcript}[1].",".$exon_premise.",".$transcript_attributes{$transcript}[0].",".$transcript_attributes{$transcript}[1].",".$gene."\n";
 				}
 			}
 		}
-		
+
 		# Close temporary csv-files
 		close(TMPtrans);
-			
+
 		# Close ribo_seq db_connection
 		$dbh2->disconnect();
-		
+
 		# Close process
 		print "\tFinished analyzing chromosome ".$chr."\n";
 		$pm->finish;
-		
+
 	} # Close chromosome loop
-	
+
 	# Finish forking
 	$pm->wait_all_children;
-	
+
 } # Close sub
 
 sub make_sqlite_dumpfile{
@@ -746,7 +747,7 @@ sub make_sqlite_dumpfile{
 	## Transcripts
 	my $temp_trans_csv_all = $tmpfolder."fastq1_transcript_all.csv";
 	system("touch ".$temp_trans_csv_all);
-	
+
 	## Put information in dumpfile and remove temporary chr_csv-files
 	foreach my $chr(@ch){
 		# Transcripts
@@ -754,21 +755,21 @@ sub make_sqlite_dumpfile{
 		system("cat ".$temp_trans_csv." >> ".$temp_trans_csv_all);
 		system("rm -rf ".$temp_trans_csv);
 	}
-	
+
 } # Close sub
 
 sub import_sqlite_dumpfile{
-	print "Import SQLite dumpfile and remove tmp files...\n"; 
-	
+	print "Import SQLite dumpfile and remove tmp files...\n";
+
 	my $temp_trans_csv_all = $_[0];
-	
+
 	# Dump transcript import in SQLite transcript_translation_table
 	system("/usr/bin/sqlite3 -separator , ".$db_ribo." \".import ".$temp_trans_csv_all." ".$table_ribo_trans." \"");
-	
+
 	# Remove temporary SQLite dump-files
-	
+
 	system("rm -rf ".$temp_trans_csv_all);
-	
+
 	print "DONE!\n";
 } # Close sub
 
@@ -777,40 +778,40 @@ sub get_ARG_vars{
 	my $db_ribo = $_[0];
 	my $user = $_[1];
 	my $pw = $_[2];
-    
+
     my ($query,$sth);
-    
-    # Connect to db 
-    my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,	
+
+    # Connect to db
+    my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
     							{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-    							
+
     # Get ARG variables
 	$query = "select value from arguments where variable = \'species\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $species = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'ensembl_version\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $version = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'igenomes_root\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $IGENOMES_ROOT = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'nr_of_cores\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $cores = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$dbh_results -> disconnect();
-	
+
 	# Return ARG variables
 	return($species,$version,$IGENOMES_ROOT,$cores);
 } # Close sub
@@ -821,11 +822,11 @@ sub store_ENS_var{
 	my $user = $_[1];
 	my $pw = $_[2];
 	my $db_ensembl = $_[3];
-    
-    # Connect to db 
-    my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,	
+
+    # Connect to db
+    my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
     							{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-	
+
 	# Store path of ENSEMBL db in arguments table
 	my $query = "INSERT INTO arguments (variable,value) VALUES (\'ens_db\',\'".$db_ensembl."\')";
     $dbh_results->do($query);

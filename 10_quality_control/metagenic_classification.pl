@@ -102,7 +102,8 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
-: (uc($species) eq "FRUITFLY") ? "BDGP5" : "";
+: (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
 # Define ENSEMBL SQLite DB
 #my $db_ensembl = ($ens_db) ? $ens_db : $work_dir."/SQLite/"."ENS_".$spec_short."_".$version.".db";
@@ -145,7 +146,7 @@ my %biotypes = %{get_nPCbiotypes($db_ensembl,$user,$pw)};
 open OUT1,"+>>".$out_table1 or die $!;
 open OUT2,"+>>".$out_table2 or die $!;
 
-print OUT1 "chr\tribo\texon\t5utr\t3utr\tintron\tnon_protein_coding\tintergenic\n"; 
+print OUT1 "chr\tribo\texon\t5utr\t3utr\tintron\tnon_protein_coding\tintergenic\n";
 print OUT2 "chr\tnon_protein_coding";
 foreach my $biotype(sort keys %biotypes){
 	print OUT2 "\t".$biotype;
@@ -165,72 +166,72 @@ print "DONE!\n";
 ################
 
 sub get_ARG_vars{
-	
+
 	# Catch
 	my $db_ribo = $_[0];
 	my $user = $_[1];
 	my $pw = $_[2];
-    
+
     my ($query,$sth);
-    
-    # Connect to db 
-    my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,	
+
+    # Connect to db
+    my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
     							{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-    							
+
     # Get ENS variables
 	$query = "select value from arguments where variable = \'species\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $species = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'ensembl_version\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $version = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'run_name\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $run_name = $sth->fetch()->[0];
 	$sth->finish();
-    
+
     $query = "select value from arguments where variable = \'unique\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $unique = $sth->fetch()->[0];
     $sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'mapper\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $mapper = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'igenomes_root\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $IGENOMES_ROOT = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'ens_db\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $ens_db = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$dbh_results -> disconnect();
-	
+
 	# Return ENS variables
 	return($species,$version,$run_name,$mapper,$IGENOMES_ROOT,$ens_db,$unique);
-	
+
 } # Close sub
 
 sub get_chr{
     # Catch
     my $species = $_[0];
-    
+
     # Catch
     my %chr_sizes;
     my $filename = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
@@ -265,74 +266,74 @@ sub get_chr{
             $ch = $ch;
         }
     }
-    
+
     return(\@chr);
 } # Close sub
 
 
 sub get_coord_system_id{
-	
+
 	# Catch
 	my $db_ensembl = $_[0];
 	my $assembly = $_[1];
-	
+
 	# Connect to ensembl sqlite database
 	my $dbh  = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 						{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-	
+
 	# Get correct coord_system_id
 	my $query = "SELECT coord_system_id FROM coord_system WHERE name = 'chromosome' AND version = '$assembly'";
 	my $execute = $dbh->prepare($query);
 	$execute->execute();
-	
+
 	my $coord_system_id;
 	while(my @result = $execute->fetchrow_array()){
 		$coord_system_id = $result[0];
 	}
-	
+
 	$execute->finish();
-					
+
 	# Disconnect
 	$dbh->disconnect();
-	
+
 	# Return
 	return($coord_system_id);
-	
+
 } # Close sub
 
 sub get_nPCbiotypes{
-	
+
 	# Catch
 	my $db_ensembl = $_[0];
 	my $user = $_[1];
 	my $pw = $_[2];
-	
+
 	# Connect to Ensembl db
 	my $dbh = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 					{RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-	
+
 	# Query db
 	my $query = "SELECT biotype FROM transcript WHERE biotype NOT LIKE '%protein_coding%' GROUP BY biotype";
 	my $execute = $dbh->prepare($query);
 	$execute->execute();
-	
+
 	my %biotypes;
 	while(my @results = $execute->fetchrow_array()){
 		$biotypes{$results[0]} = 0;
 	}
-		
+
 	$execute->finish();
-			
+
 	# Disconnect
 	$dbh->disconnect();
-	
+
 	# Return
 	return(\%biotypes)
 }
 
 sub metagenic_analysis{
 	print "Metagenic Classification...\n";
-	
+
 	# Catch
 	my $db_ribo = $_[0];
 	my $db_ensembl = $_[1];
@@ -342,64 +343,64 @@ sub metagenic_analysis{
 	my $coord_system_id = $_[5];
 	my $user = $_[6];
 	my $pw = $_[7];
-	
-	# Init multi core	
+
+	# Init multi core
 	my $processes = $cores; # Nr of processes
 	my $pm = new Parallel::ForkManager($processes); # Open fork
-	
+
 	# Loop through chromosomes
 	foreach my $chr(@ch){
 		# Start parallel process
 		$pm->start and next;
-		
+
 		print "\tStarting analysis for chr ".$chr."...\n";
-		
+
 		###########
 		## ENSEMBL DB
 		###########
 		print "\t\tRead in Ensembl data of chr ".$chr."\n";
-		
+
 		# Connect to Ensembl db
 		my $dbh = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 						{RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-	
+
 		# Get seq_region_id for specific chromosome from table 'seq_region'
 		my $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
 		my $execute = $dbh->prepare($query);
 		$execute->execute();
-	
+
 		my $seq_region;
 		while(my @result = $execute->fetchrow_array()){
 			#$result[0]: seq_region_id
-		
+
 			$seq_region = $result[0];
 		}
 		$execute->finish();
-		
+
 		###########
 		## TRANSCRIPTs
 		###########
 		# Init
 		my $trs_c = {};
 		my $trs_nc = {};
-		
+
 		# Get all protein_coding transcripts
 		my $query1 = "SELECT transcript_id,gene_id,seq_region_start,seq_region_end,seq_region_strand,biotype,stable_id FROM transcript WHERE seq_region_id = '$seq_region' AND biotype = 'protein_coding'";
 		my $execute1 = $dbh->prepare($query1);
 		$execute1->execute();
-		
+
 		$trs_c = $execute1->fetchall_hashref('transcript_id');
 		$execute1->finish();
-		
-		
+
+
 		# Get all other transcripts
 		my $query2 = "SELECT transcript_id,gene_id,seq_region_start,seq_region_end,seq_region_strand,biotype,stable_id FROM transcript WHERE seq_region_id = '$seq_region' AND biotype NOT LIKE '%protein_coding%'";
 		my $execute2 = $dbh->prepare($query2);
 		$execute2->execute();
-		
+
 		$trs_nc = $execute2->fetchall_hashref('transcript_id');
 		$execute2->finish();
-		
+
 		# Split transcripts in forward and reverse arrays
 		my ($tr_c_for,$tr_c_rev);
 		foreach my $tr_id (sort { $trs_c->{$a}{'seq_region_start'} <=> $trs_c->{$b}{'seq_region_start'} } keys %{$trs_c}){
@@ -409,7 +410,7 @@ sub metagenic_analysis{
 				push(@$tr_c_rev,$tr_id);
 			}
 		}
-		
+
 		my ($tr_nc_for,$tr_nc_rev);
 		foreach my $tr_id (sort { $trs_nc->{$a}{'seq_region_start'} <=> $trs_nc->{$b}{'seq_region_start'} } keys %{$trs_nc}){
 			if($trs_nc->{$tr_id}{'seq_region_strand'} eq '1'){	# Forward strand
@@ -418,7 +419,7 @@ sub metagenic_analysis{
 				push(@$tr_nc_rev,$tr_id);
 			}
 		}
-		
+
 		###########
 		## EXONs & UTRs
 		###########
@@ -433,14 +434,14 @@ sub metagenic_analysis{
 			my $execute3 = $dbh->prepare($query3);
 			$execute3->execute();
 			$exon = $execute3->fetchall_hashref('exon_id');
-			
+
 			$execute3->execute();
 			while(my @result3 = $execute3->fetchrow_array()){
 				#$result3[0]: exon_id
 				#$result3[1]: seq_region_start
 				#$result3[2]: seq_region_end
 				#$result3[3]: seq_region_strand
-				
+
 				for(my $i1=$result3[1];$i1<=$result3[2];$i1++){
 					if($result3[3] == 1){	# Forward strand
 						$cds_for{$chr.':'.$i1}{'exon'}++;
@@ -450,25 +451,25 @@ sub metagenic_analysis{
 				}
 			}
 			$execute3->finish();
-			
+
 			# Get first and last exon of each transcript from table translation
 			my $query4 = "SELECT start_exon_id,end_exon_id,seq_start,seq_end FROM translation WHERE transcript_id = '$tr_id'";
 			my $execute4 = $dbh->prepare($query4);
 			$execute4->execute();
-			
+
 			while(my @result4 = $execute4->fetchrow_array()){
 				#$result4[0]: start_exon_id
 				#$result4[1]: end_exon_id
 				#$result4[2]: seq_start (offset position translation start)
 				#$result4[3]: seq_end (offset position translation stop)
-				
+
 				my ($start_id,$end_id,$seq_start,$seq_end) = ($result4[0],$result4[1],$result4[2],$result4[3]);
-				my ($start_first_exon,$stop_first_exon,$start_last_exon,$stop_last_exon); 
+				my ($start_first_exon,$stop_first_exon,$start_last_exon,$stop_last_exon);
 		 		my ($start_codon,$stop_codon);
-		 		
+
 		 		# Determine start codon and stop codon
 		 		# Determine 5' and 3' UTRs
-		 		
+
 		 		if($trs_c->{$tr_id}{'seq_region_strand'} eq '1'){ # Forward strand
 		 			$start_first_exon = $exon->{$start_id}{'seq_region_start'};
 		 			$stop_first_exon = $exon->{$start_id}{'seq_region_end'};
@@ -476,7 +477,7 @@ sub metagenic_analysis{
 		 			$stop_last_exon = $exon->{$end_id}{'seq_region_end'};
 		 			$start_codon = $start_first_exon + $seq_start - 1;
 		 			$stop_codon = $start_last_exon + $seq_end - 1;
-		 		
+
 		 			for(my $l1=$start_first_exon;$l1<$start_codon;$l1++){
 		 				$cds_for{$chr.':'.$l1}{'5UTR'}++;
 		 			}
@@ -490,7 +491,7 @@ sub metagenic_analysis{
 		 			$stop_last_exon = $exon->{$end_id}{'seq_region_start'};
 		 			$start_codon = $start_first_exon - $seq_start + 1;
 		 			$stop_codon = $start_last_exon - $seq_end + 1;
-		 		
+
 		 			for(my $l3=($start_codon+1);$l3<=$start_first_exon;$l3++){
 		 				$cds_rev{$chr.':'.$l3}{'5UTR'}++;
 		 			}for(my $l4=$stop_last_exon;$l4<$stop_codon;$l4++){
@@ -500,15 +501,15 @@ sub metagenic_analysis{
 			}
 			$execute4->finish();
 		}
-		
+
 		###########
 		## NON-CODING TRANSCRIPTS
-		###########	
+		###########
 		# Get biotypes
 		my $query5 = "SELECT biotype FROM transcript WHERE biotype NOT LIKE '%protein_coding%' GROUP BY biotype";
 		my $execute5 = $dbh->prepare($query5);
 		$execute5->execute();
-	
+
 		my %biotypes_nc;
 		while(my @results5 = $execute5->fetchrow_array()){
 			$biotypes_nc{$results5[0]} = 0;
@@ -516,7 +517,7 @@ sub metagenic_analysis{
 		$execute5->finish();
 		# Disconnect
 		$dbh->disconnect();
-		
+
 		###########
 		## RIBO-DATA
 		###########
@@ -524,15 +525,15 @@ sub metagenic_analysis{
 		## ANNOTATE RIBO-SEQ READS
 		###########
 		print "\t\tAnnotating ribo-seq reads of chr ".$chr."\n";
-		
+
 		# Get ribo-seq reads, split per strand
 		my $ribo_for = get_reads($db_ribo,$user,$pw,$table_ribo,$chr,1);
 		my $ribo_rev = get_reads($db_ribo,$user,$pw,$table_ribo,$chr,-1);
-		
+
 		# Init values
 		my ($ribo_reads,$ribo_readsnc) = (0,0);
  		my ($ribo_exon,$ribo_intron,$ribo_5utr,$ribo_3utr,$ribo_intergenic) = (0,0,0,0,0);
-		
+
 		# Loop over forward ribo-seq reads
 		my @window_c = (); # Init window with protein-coding transcripts
 		my @window_nc = (); # Init window with non protein-coding transcripts
@@ -546,13 +547,13 @@ sub metagenic_analysis{
 					push(@window_c,$tr_for_id);
 				}else{last;} # Don't unnecessarily loop over all transcripts
 			}
-			
+
 			# Get rid of tr_c_for elements already in @window_c
 			@$tr_c_for = grep {$trs_c->{$_}{'seq_region_start'} > $pos} @$tr_c_for;
-			
+
 			# Get rid of tr_ids in @window_c where tr_end < window_pos
 			@window_c = grep {$trs_c->{$_}{'seq_region_end'} >= $pos} @window_c;
-			
+
 			#####
 			## NON-CODING WINDOW
 			#####
@@ -562,13 +563,13 @@ sub metagenic_analysis{
 					push(@window_nc,$tr_for_id);
 				}else{last;} # Don't unnecessarily loop over all transcripts
 			}
-			
+
 			# Get rid of tr_nc_for elements already in @window_nc
 			@$tr_nc_for = grep {$trs_nc->{$_}{'seq_region_start'} > $pos} @$tr_nc_for;
-			
+
 			# Get rid of tr_ids in @window_nc where tr_end < window_pos
 			@window_nc = grep {$trs_nc->{$_}{'seq_region_end'} >= $pos} @window_nc;
-			
+
 			#####
 			## ANNOTATE
 			#####
@@ -577,47 +578,47 @@ sub metagenic_analysis{
 			if(@window_c){
 				# Annotate reads in PROTEIN-CODING transcripts
 				my $count = $ribo_for->{$pos}{'count'};
-				
+
 				# Check 5'UTR
 				if(defined($cds_for{$chr.':'.$pos}{'5UTR'})){
 					$count = 0;
 					$ribo_5utr++;
 				}
-				
+
 				# Check 3'UTR
 				if($count > 0 && defined($cds_for{$chr.':'.$pos}{'3UTR'})){
 					$count = 0;
 					$ribo_3utr++;
 				}
-				
+
 				# Check Exons
 				if($count > 0 && defined($cds_for{$chr.':'.$pos}{'exon'})){
 					$count = 0;
 					$ribo_exon++;
 				}
-				
+
 				# If still not defined -> intronic region
 				if($count > 0){
 					$ribo_intron++;
-				}		
+				}
 			}elsif(@window_nc){
 				# Annotate reads in NON PROTEIN-CODING transcripts
 				$ribo_readsnc++;
-				
+
 				# Define biotype (if #biotypes>0, take a random/first one)
 				my @biotypes; my $i = 0;
-				foreach my $tr_for_id (@window_nc){ 
+				foreach my $tr_for_id (@window_nc){
 						$biotypes[$i] = $trs_nc->{$tr_for_id}{'biotype'};
 						$i++;
 				}
 				my $random = int(rand(@biotypes));
 				my $biotype = $biotypes[$random];
-				$biotypes_nc{$biotype}++;	
+				$biotypes_nc{$biotype}++;
 			}else{
 				$ribo_intergenic++;
 			}
 		} # Close forward-loop
-		
+
 		# Loop over reverse ribo-seq reads
 		@window_c = (); # Empty window_c
 		@window_nc = (); # Empty window_nc
@@ -631,13 +632,13 @@ sub metagenic_analysis{
 					push(@window_c,$tr_rev_id);
 				}else{last;} # Don't unnecessarily loop over all transcripts
 			}
-			
+
 			# Get rid of tr_c_rev elements already in @window_c
 			@$tr_c_rev = grep {$trs_c->{$_}{'seq_region_start'} > $pos} @$tr_c_rev;
-			
+
 			# Get rid of tr_ids in @window_c where tr_end < window_pos
 			@window_c = grep {$trs_c->{$_}{'seq_region_end'} >= $pos} @window_c;
-			
+
 			######
 			## NON-CODING WINDOW
 			######
@@ -647,13 +648,13 @@ sub metagenic_analysis{
 					push(@window_nc,$tr_rev_id);
 				}else{last;} # Don't unnecessarily loop over all transcripts
 			}
-			
+
 			# Get rid of tr_nc_for elements already in @window_nc
 			@$tr_nc_rev = grep {$trs_nc->{$_}{'seq_region_start'} > $pos} @$tr_nc_rev;
-			
+
 			# Get rid of tr_ids in @window_nc where tr_end < window_pos
 			@window_nc = grep {$trs_nc->{$_}{'seq_region_end'} >= $pos} @window_nc;
-			
+
 			######
 			## ANNOTATE
 			######
@@ -662,68 +663,68 @@ sub metagenic_analysis{
 			if(@window_c){
 				# Annotate reads in PROTEIN-CODING transcripts
 				my $count = $ribo_rev->{$pos}{'count'};
-				
+
 				# Check 5'UTR
 				if(defined($cds_rev{$chr.':'.$pos}{'5UTR'})){
 					$count = 0;
 					$ribo_5utr++;
 				}
-				
+
 				# Check 3'UTR
 				if($count > 0 && defined($cds_rev{$chr.':'.$pos}{'3UTR'})){
 					$count = 0;
 					$ribo_3utr++;
 				}
-				
+
 				# Check Exons
 				if($count > 0 && defined($cds_rev{$chr.':'.$pos}{'exon'})){
 					$count = 0;
 					$ribo_exon++;
 				}
-				
+
 				# If still not defined -> intronic region
 				if($count > 0){
 					$ribo_intron++;
-				}		
+				}
 			}elsif(@window_nc){
 				# Annotate reads in NON PROTEIN-CODING transcripts
 				$ribo_readsnc++;
-				
+
 				# Define biotype (if #biotypes>0, take a random/first one)
 				my @biotypes; my $i = 0;
-				foreach my $tr_rev_id (@window_nc){ 
+				foreach my $tr_rev_id (@window_nc){
 						$biotypes[$i] = $trs_nc->{$tr_rev_id}{'biotype'};
 						$i++;
 				}
 				my $random = int(rand(@biotypes));
 				my $biotype = $biotypes[$random];
 				$biotypes_nc{$biotype}++;
-				
+
 			}else{
 				$ribo_intergenic++;
 			}
 		} # Close rev-loop
-		
-		# Print results 
+
+		# Print results
 		print OUT1 $chr."\t".$ribo_reads."\t".$ribo_exon."\t".$ribo_5utr."\t".$ribo_3utr."\t".$ribo_intron."\t".$ribo_readsnc."\t".$ribo_intergenic."\n";
 		print OUT2 $chr."\t".$ribo_readsnc;
 		foreach my $biotype(sort keys %biotypes_nc){
 			print OUT2 "\t".$biotypes_nc{$biotype};
 		}
 		print OUT2 "\n";
-		
+
 		# Close process
 		$pm->finish;
-		
+
 	} # Close chr-loop
-	
+
 	# Finish forking
 	$pm->wait_all_children;
-	
+
 } # Close sub
 
 sub get_reads{
-	
+
 	# Catch
 	my $db_ribo = $_[0];
 	my $user = $_[1];
@@ -731,40 +732,40 @@ sub get_reads{
 	my $table_ribo = $_[3];
 	my $chr = $_[4];
 	my $strand = $_[5];
-	
+
 	# Init
 	my $ribo_reads = {};
-	
+
 	# Connect to ribo_seq database
 	my $dbh2 = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
 						{RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-	
+
 	# Query
 	my $query = "SELECT * FROM $table_ribo WHERE chr = '$chr' and strand = '$strand'";
 	my $execute = $dbh2->prepare($query);
 	$execute->execute();
-	
+
 	$ribo_reads = $execute->fetchall_hashref('start');
-	
-	$execute->finish();		
-			
+
+	$execute->finish();
+
 	# Disconnect
 	$dbh2->disconnect();
 
 	# Return
-	return($ribo_reads);	
+	return($ribo_reads);
 }
 
 sub piecharts{
 	print "Make Pie Charts...\n";
-	
+
 	# Catch
 	my $out_table1 = $_[0];
 	my $out_table2 = $_[1];
 	my $out_pdf1 = $_[2];
 	my $out_pdf2 = $_[3];
 	my $tooldir = $_[4];
-	
+
 	# Execute Rscript
     system("Rscript ".$tooldir."/metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
     #system("Rscript metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);

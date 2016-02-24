@@ -13,9 +13,9 @@ ARGUMENTS:
 	-t | --tis_ids						 The TIS ID or a comma seperated list of IDs for which the ORF based counts need to be determined. If you set 'all' as input, the ORF based counts of all the IDs will be determined (mandatory)
 	-c | --trim							 The first and the last part of the ORF can have seperate counts because of RIBOseq artefacts. These extreme parts can have 'absolute' lengths or 'relative' in function of the ORF length. 'none' will set all pre and post counts to zero (default = relative)
 											Attention should be taken for 'absolute' as for too small orfs the will be taken relative because of extreme parts becoming bigger than the actual ORF itself!!
-	-n | --nt_trim						 If you chose 'absolute' trim, you have to insert here the length in nt of the extreme parts (<299nt, but suggestions are in the order of magnitude of 15nt). If you chose 'relative', you have to insert here a decimal number (< 0.5). (default=15 for absolute, default=0.025 for relative) 
+	-n | --nt_trim						 If you chose 'absolute' trim, you have to insert here the length in nt of the extreme parts (<299nt, but suggestions are in the order of magnitude of 15nt). If you chose 'relative', you have to insert here a decimal number (< 0.5). (default=15 for absolute, default=0.025 for relative)
 	-l | --ltm							 Whether the program should also make an ORF based counts table of the 'treated' (e.g. LTM) counts: 'y' or 'n' (default 'n')
-	
+
 EXAMPLE:
 
 python ORFbasedCounts.py --sqlitedb SQLite/results.db --tis_ids 1 --trim absolute --nt_trim 15 --ltm n --rna /data2/steven/eIF1/NTmRNA/SQLite/results.db
@@ -44,26 +44,26 @@ def main():
 	print "				| ORF BASED RPF COUNTS |"
 	print "				------------------------"
 	print "\t\tThis program fetches the read counts for each found ORF\n"
-	
-	
+
+
 	#######################
 	###  GETS and SETs  ###
 	#######################
-	
+
 	#Timer
 	startTime = timeit.default_timer()
-	
+
 	#Init
 	workdir=''
 	sqlitedb=''
-	
+
 	#Catch command line with getopt
 	try:
 		myopts, args = getopt.getopt(sys.argv[1:],"w:s:t:c:n:l:r:",["work_dir=","sqlitedb=","tis_ids=","trim=","nt_trim=","ltm=","rna="])
 	except getopt.GetoptError as err:
 		print err
 		sys.exit()
-	
+
 	# Catch arguments
 	# o == option
 	# a == argument passed to the o
@@ -83,7 +83,7 @@ def main():
 		elif o in ('r', '--rna'):
 			rna='y'
 			rnadb=a
-	
+
 	try:
 		workdir
 	except:
@@ -113,7 +113,7 @@ def main():
 	except:
 		rna='n'
 		rnadb=''
-	
+
 	# Check for correct arguments and parse
 	if(workdir == ''):
 		workdir = os.getcwd()
@@ -221,14 +221,15 @@ def main():
 		"GRCh38" if species=="human" and ens_version>75 else \
 		"GRCh37" if species=="human" and ens_version<=75 else \
 		"TAIR10" if species=="arabidopsis" else \
-		"BDGP5" if species=="fruitfly" else ""
+		"BDGP5" if species=="fruitfly" and ens_version<79 else \
+		"BDGP6" if species=="fruitfly" and ens_version>=79 else ""
 	
 	#Make tmp folder if it not exists
 	if(not os.path.isdir(workdir+"/tmp")):
 		os.system("mkdir "+workdir+"/tmp")
 	if(not os.path.isdir(workdir+"/tmp/ORFbasedCounts")):
 		os.system("mkdir "+workdir+"/tmp/ORFbasedCounts");
-	
+
 	#Get chromosomes
 	chrs={}
 	chromosomeSizesFile = igenomes_root+"/"+speciesLatin+"/Ensembl/"+assembly+"/Annotation/Genes/ChromInfo.txt"
@@ -243,21 +244,21 @@ def main():
 			sys.exit()
 	#Get coordinate system id for chromosomes
 	coordSystemId = get_coord_system_id_chr(ensDB, assembly)
-	
-	
+
+
 	######## FOR TESTING #########
 	# chrsY={}
 # 	chrsY['Y']=chrs['Y']
 # 	chrs={}
 # 	chrs=chrsY
 	##############################
-	
-	
+
+
 	##############
 	###  MAIN  ###
 	##############
 
-	for id in tis_id_list:	
+	for id in tis_id_list:
 		#Get ORF based counts per chr
 		print "Determine ORF based counts for each chromosome seperately by starting up multiple processes"
 		print
@@ -265,13 +266,13 @@ def main():
 		[pool.apply_async(ORF_based_counts_per_chr, args=(chr,sqlitedb, id, trim, nt_trim, ltm, rna, rnadb, workdir)) for chr in chrs.keys()]
 		pool.close()
 		pool.join()
-	
+
 		#Dump in SQLite
 		print
 		print "Dump data into SQLite database"
 		print
 		dumpSQLite(id, chrs, ltm, rna, workdir, sqlitedb)
-	
+
 	#Timer
 	stopTime = timeit.default_timer()
 	runtime = math.ceil(stopTime - startTime)
@@ -291,7 +292,7 @@ def ORF_based_counts_per_chr(chr, sqlitedb, tis_id, trim, nt_trim, ltm, rna, rna
 	try:
 		#Get the exon structure for each ORF
 		orfs, exonBoundaries = get_exon_structure(chr, sqlitedb, tis_id, trim, nt_trim, ltm, rna)
-		
+
 		#Get reads
 		CHXfor, CHXrev = getUntreatedReads(chr, sqlitedb)
 		if (ltm=='y'):
@@ -304,17 +305,17 @@ def ORF_based_counts_per_chr(chr, sqlitedb, tis_id, trim, nt_trim, ltm, rna, rna
 		else:
 			RNAfor=''
 			RNArev=''
-		
+
 		#Match the counts to the orfs
 		orfs = match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMrev, rna, RNAfor, RNArev)
-		
+
 		#Write to csv file for each chromosome
 		write_to_csv(chr, orfs, exonBoundaries, ltm, rna, workdir)
-		
+
 		print "*) Process for chromosome "+chr+" completed"
 	except:
 		traceback.print_exc()
-	
+
 	return
 
 ## Dump counts of all chromosomes in SQLite DB ##
@@ -326,14 +327,14 @@ def dumpSQLite(tisid, chrs, ltm, rna, workdir, sqlitedb):
 		except:
 			print "Could not connect to "+sqlitedb
 			sys.exit()
-		
+
 		with con:
 			cur = con.cursor()
 			tableName = "TIS_"+tisid+"_ORFbasedCounts"
 			#Remove possible existing table
 			dropQuery = "DROP TABLE IF EXISTS "+tableName
 			cur.execute(dropQuery)
-			
+
 			#Create new table for ORF based counts
 			if(rna=='n'):
 				createQuery = "CREATE TABLE IF NOT EXISTS '"+tableName+"' ("\
@@ -366,26 +367,26 @@ def dumpSQLite(tisid, chrs, ltm, rna, workdir, sqlitedb):
 					"'RNA_count' float default NULL,"\
 					"'RNApost_count' float default NULL)"
 				cur.execute(createQuery)
-			
-			
+
+
 			#Store info from chromosomal csv files in SQLite DB
 			for chr in chrs:
 				try:
 					os.system("sqlite3 -separator , "+sqlitedb+" \".import "+workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_tmp.csv "+tableName+"\"")
 				except:
 					print "CSV to SQLite dump failed for chromosome "+chr
-			
+
 			#Remove tmp files
 			for chr in chrs:
 				os.system("rm -rf "+workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_tmp.csv")
-			
+
 			#Same for treated counts
 			if(ltm=='y'):
 				tableName = "TIS_"+tisid+"_ORFbasedCounts_LTM"
 				#Remove possible existing table
 				dropQuery = "DROP TABLE IF EXISTS "+tableName
 				cur.execute(dropQuery)
-				
+
 				#Create new table for ORF based counts
 				if(rna=='n'):
 					createQuery = "CREATE TABLE IF NOT EXISTS '"+tableName+"' ("\
@@ -418,20 +419,20 @@ def dumpSQLite(tisid, chrs, ltm, rna, workdir, sqlitedb):
 						"'RNA_count' float default NULL,"\
 						"'RNApost_count' float default NULL)"
 					cur.execute(createQuery)
-				
+
 				#Store info from chromosomal csv files in SQLite DB
 				for chr in chrs:
 					try:
 						os.system("sqlite3 -separator , "+sqlitedb+" \".import "+workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_LTM_tmp.csv "+tableName+"\"")
 					except:
 						print "CSV to SQLite dump failed for chromosome "+chr
-				
+
 				#Remove tmp files
 				for chr in chrs:
 					os.system("rm -rf "+workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_LTM_tmp.csv")
-			
+
 			os.system("rm -rf "+workdir+"/tmp/ORFbasedCounts")
-		
+
 	except:
 		traceback.print_exc()
 	return
@@ -442,7 +443,7 @@ def write_to_csv(chr, orfs, exonBoundaries, ltm, rna, workdir):
 	try:
 		#Define a csv writer object
 		csvWriter = csv.writer(open(workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_tmp.csv","wb"))
-		
+
 		#Write all ORFs and their info to the csv file
 		if(rna=='n'):
 			for id in orfs:
@@ -450,18 +451,18 @@ def write_to_csv(chr, orfs, exonBoundaries, ltm, rna, workdir):
 		elif(rna=='y'):
 			for id in orfs:
 				csvWriter.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['pre_count'], orfs[id]['count'], orfs[id]['post_count'], orfs[id]['RNApre_count'], orfs[id]['RNAcount'], orfs[id]['RNApost_count']])
-		
+
 		if(ltm=='y'):
 			#The same for treated counts
 			csvWriterLTM = csv.writer(open(workdir+"/tmp/ORFbasedCounts/ORFbasedCounts_chr"+chr+"_LTM_tmp.csv","wb"))
-			
+
 			if(rna=='n'):
 				for id in orfs:
 					csvWriterLTM.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['LTMpre_count'], orfs[id]['LTMcount'], orfs[id]['LTMpost_count']])
 			elif(rna=='y'):
 				for id in orfs:
 					csvWriterLTM.writerow([id, orfs[id]['tr_stable_id'], orfs[id]['start'], chr, orfs[id]['strand'], orfs[id]['trim'], exonBoundaries[id]['start_main_orf'], exonBoundaries[id]['end_main_orf'], orfs[id]['LTMpre_count'], orfs[id]['LTMcount'], orfs[id]['LTMpost_count'], orfs[id]['RNApre_count'], orfs[id]['RNAcount'], orfs[id]['RNApost_count']])
-		
+
 	except:
 		traceback.print_exc()
 	return
@@ -471,7 +472,7 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 	try:
 		#Init
 		window = []
-		
+
 		#Make 2 lists of the ORF IDs, sorted by their start position (absolute, so stop for antisense). One for sense ORFs and one for antisense ORFs
 		orfs_for=[]
 		orfs_rev=[]
@@ -482,7 +483,7 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 				orfs_rev.append(id)
 		orfs_for = sorted(orfs_for, key=lambda x: orfs[x]['start'])
 		orfs_rev = sorted(orfs_rev, key=lambda x: orfs[x]['stop'])
-		
+
 		#For sense
 		#Go through all sorted read positions
 		for readPosition in sorted(CHXfor):
@@ -504,10 +505,10 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 								orfs[OrfId]['post_count'] = orfs[OrfId]['post_count'] + CHXfor[readPosition]['count']
 							else: #Else, the read is in the main part of the ORF
 								orfs[OrfId]['count'] = orfs[OrfId]['count'] + CHXfor[readPosition]['count']
-		
+
 		#Empty window
 		window=[]
-		
+
 		#Do similar for antisense
 		#For antisense ORFS: start (TIS position) and stop are relative. The starts and stops lists however are absolute and similar to the ones for sense ORFs.
 		for readPosition in sorted(CHXrev):
@@ -529,11 +530,11 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 								orfs[OrfId]['pre_count'] = orfs[OrfId]['pre_count'] + CHXrev[readPosition]['count']
 							else:
 								orfs[OrfId]['count'] = orfs[OrfId]['count'] + CHXrev[readPosition]['count']
-		
+
 		#Empty window
 		window=[]
-		
-		
+
+
 		#Then, do the same for the treated counts
 		if(ltm=='y'):
 			#Make 2 lists of the ORF IDs, sorted by their start position (absolute, so stop for antisense). One for sense ORFs and one for antisense ORFs
@@ -546,7 +547,7 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 					orfs_rev.append(id)
 			orfs_for = sorted(orfs_for, key=lambda x: orfs[x]['start'])
 			orfs_rev = sorted(orfs_rev, key=lambda x: orfs[x]['stop'])
-			
+
 			#For sense
 			#Go through all sorted read positions
 			for readPosition in sorted(LTMfor):
@@ -568,10 +569,10 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 									orfs[OrfId]['LTMpost_count'] = orfs[OrfId]['LTMpost_count'] + LTMfor[readPosition]['count']
 								else: #Else, the read is in the main part of the ORF
 									orfs[OrfId]['LTMcount'] = orfs[OrfId]['LTMcount'] + LTMfor[readPosition]['count']
-			
+
 			#Empty window
 			window=[]
-			
+
 			#Do similar for antisense
 			#For antisense ORFS: start (TIS position) and stop are relative. The starts and stops lists however are absolute and similar to the ones for sense ORFs.
 			for readPosition in sorted(LTMrev):
@@ -593,10 +594,10 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 									orfs[OrfId]['LTMpre_count'] = orfs[OrfId]['LTMpre_count'] + LTMrev[readPosition]['count']
 								else:
 									orfs[OrfId]['LTMcount'] = orfs[OrfId]['LTMcount'] + LTMrev[readPosition]['count']
-			
+
 			#Empty window
 			window=[]
-		
+
 		#The same for RNA reads but without trimming
 		if (rna=='y'):
 			#Make 2 lists of the ORF IDs, sorted by their start positon (absolute). One for sense, one for antisense.
@@ -609,7 +610,7 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 					orfs_rev.append(id)
 			orfs_for = sorted(orfs_for, key=lambda x: orfs[x]['start'])
 			orfs_rev = sorted(orfs_rev, key=lambda x: orfs[x]['stop'])
-			
+
 			#For sense
 			#Go through all sorted read positions
 			for readPosition in sorted(RNAfor):
@@ -631,11 +632,11 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 									orfs[OrfId]['RNApost_count'] = orfs[OrfId]['RNApost_count'] + RNAfor[readPosition]['count']
 								else:
 									orfs[OrfId]['RNAcount'] = orfs[OrfId]['RNAcount'] + RNAfor[readPosition]['count']
-			
+
 			#Empty window
 			window=[]
-			
-			
+
+
 			#Do similar for antisense
 			for readPosition in sorted(RNArev):
 				for OrfId in orfs_rev[:]:
@@ -656,46 +657,46 @@ def match_counts_to_orfs(orfs, exonBoundaries, CHXfor, CHXrev, ltm, LTMfor, LTMr
 									orfs[OrfId]['RNApre_count'] = orfs[OrfId]['RNApre_count'] + RNArev[readPosition]['count']
 								else:
 									orfs[OrfId]['RNAcount'] = orfs[OrfId]['RNAcount'] + RNArev[readPosition]['count']
-			
+
 			#Empty window
 			window=[]
-		
+
 	except:
 		traceback.print_exc()
-	
+
 	return orfs
 
 ## Get RNA reads ##
 def getRNAReads(chr, dbpath):
-	
+
 	#Fetch data from count tables
 	query = "SELECT start, count FROM count_fastq1 WHERE chr='"+chr+"' AND strand = '1';"
 	RNAfor = fetchDict(dbpath, query)
 	query = "SELECT start, count FROM count_fastq1 WHERE chr='"+chr+"' AND strand = '-1';"
 	RNArev = fetchDict(dbpath, query)
-	
+
 	return RNAfor, RNArev
 
 ## Get treated reads ##
 def getTreatedReads(chr, dbpath):
-	
+
 	#Fetch data from count tables
 	query = "SELECT start, count FROM count_fastq2 WHERE chr='"+chr+"' AND strand = '1';"
 	LTMfor = fetchDict(dbpath, query)
 	query = "SELECT start, count FROM count_fastq2 WHERE chr='"+chr+"' AND strand = '-1';"
 	LTMrev = fetchDict(dbpath, query)
-	
+
 	return LTMfor, LTMrev
 
 ## Get untreated reads ##
 def getUntreatedReads(chr, dbpath):
-	
+
 	#Fetch data from count tables
 	query = "SELECT start, count FROM count_fastq1 WHERE chr='"+chr+"' AND strand = '1';"
 	CHXfor = fetchDict(dbpath, query)
 	query = "SELECT start, count FROM count_fastq1 WHERE chr='"+chr+"' AND strand = '-1';"
 	CHXrev = fetchDict(dbpath, query)
-	
+
 	return CHXfor, CHXrev
 
 ## Get exon structures of all ORFs ##
@@ -718,7 +719,7 @@ def get_exon_structure(chr, dbpath, analysis_id, trim, nt_trim, ltm, rna):
 				orfs[orf]['LTMcount']=0
 				orfs[orf]['LTMpre_count']=0
 				orfs[orf]['LTMpost_count']=0
-		
+
 		#Dict structure: ID -> exon rank -> start/end : value
 		#					-> start_main_orf: value
 		#					-> end_main_orf: value
@@ -730,7 +731,7 @@ def get_exon_structure(chr, dbpath, analysis_id, trim, nt_trim, ltm, rna):
 			for i in range(1, len(starts)+1):# +1 because of defenition of the range function in Python. Rank numbers are defined strand independent here.
 				exonBoundaries[id][i]['start']=starts[i-1]
 				exonBoundaries[id][i]['end']=ends[i-1]
-			
+
 			#Define start border of the main part of the ORF. Absolute, similar to starts_list and ends_list, not relative like start (TIS) and stop. (Start and stop position are already part of the main ORF)
 			if(trim=='absolute'):
 				if(orfs[id]['length']<=300):#For absolute, starting from 300nt (sORFs border), keep the trimming relatively constant
@@ -789,7 +790,7 @@ def get_exon_structure(chr, dbpath, analysis_id, trim, nt_trim, ltm, rna):
 			elif(trim=='none'):
 				exonBoundaries[id]['start_main_orf']=exonBoundaries[id][1]['start']#Main ORF simply starts at start of the first exon (=TIS)
 				orfs[id]['trim']=0
-			
+
 			#Define end border of the main part, similar
 			if(trim=='absolute'):
 				if(orfs[id]['length']<=300):
@@ -847,10 +848,10 @@ def get_exon_structure(chr, dbpath, analysis_id, trim, nt_trim, ltm, rna):
 			elif(trim=='none'):
 				exonBoundaries[id]['end_main_orf']=exonBoundaries[id][len(starts)]['end']
 				orfs[id]['trim']=0
-	
+
 	except Exception, e:
 		traceback.print_exc()
-	
+
 	return orfs, exonBoundaries
 
 ## Get arguments ##
@@ -860,7 +861,7 @@ def get_arguments(dbpath):
 	except:
 		print "Could not connect to results DB"
 		sys.exit()
-	
+
 	#Init
 	ensDB=''
 	igro=''
@@ -870,7 +871,7 @@ def get_arguments(dbpath):
 
 	with con:
 		cur = con.cursor()
-		
+
 		if cur.execute("SELECT value FROM arguments WHERE variable='ens_db';"):
 			eDB = str(cur.fetchone()[0])
 		else:
@@ -894,7 +895,7 @@ def get_arguments(dbpath):
 		else:
 			print "ERROR: could not fetch the ensembl version from the arguments table in the SQLite DB"
 			sys.exit()
-			
+
 		if cur.execute("SELECT value FROM arguments WHERE variable='nr_of_cores';"):
 			cs = int(cur.fetchone()[0])
 		else:
@@ -907,7 +908,7 @@ def get_arguments(dbpath):
 def get_chrs(chrSizeFile, species):
 	#Init
 	chrs = {}
-	
+
 	#open file
 	try:
 		FR = open(chrSizeFile, 'r')
@@ -927,7 +928,7 @@ def get_chrs(chrSizeFile, species):
 def get_chrsXml(chrSizeFile, species):
 	#Init
 	chrs = {}
-	
+
 	#open file
 	try:
 		FR = open(chrSizeFile, 'r')
@@ -943,7 +944,7 @@ def get_chrsXml(chrSizeFile, species):
 			else:
 				chrs[m.group(1)] = m.group(2)
 
-	
+
 	return chrs
 
 ## Get coordinate system ID ##
@@ -953,19 +954,19 @@ def get_coord_system_id_chr(eDB, assem):
 	except:
 		print "Could not connect to Ensembl DB"
 		sys.exit()
-	
+
 	#Init
 	csid = 0
 
 	with con:
 		cur = con.cursor()
-		
+
 		if cur.execute("SELECT coord_system_id FROM coord_system WHERE name = 'chromosome' AND version = '"+assem+"';"):
 			csid = cur.fetchone()[0]
 		else:
 			print "Could not find coordinate system id"
 			sys.exit()
-			
+
 	return csid
 
 ## Get all TIS IDs from TIS overview table ##
@@ -979,10 +980,10 @@ def get_all_tis_ids(dbpath):
 
 	with con:
 		cur=con.cursor()
-		
+
 		if cur.execute("SELECT ID FROM TIS_overview"):
 			tis_ids_list = [ item[0] for item in cur.fetchall()]
-		
+
 	return tis_ids_list
 
 ## Data Dumper for dictionaries and defaultDicts ##
@@ -991,7 +992,7 @@ def print_dict(dictionary, ident = '', braces=0):
 
 	for key, value in dictionary.iteritems():
 		if isinstance(value, dict):
-			print '%s%s%s%s' %(ident,braces*'[',key,braces*']') 
+			print '%s%s%s%s' %(ident,braces*'[',key,braces*']')
 			print_dict(value, ident+'  ', braces)
 		else:
 			print ident+'%s = %s' %(key, value)
@@ -1001,7 +1002,7 @@ def print_dict(dictionary, ident = '', braces=0):
 def fetchDict(dbpath, query):
 	#Init
 	output = defaultdict(lambda: defaultdict())
-	
+
 	#Make connection to DB
 	try:
 		con = sqlite.connect(dbpath)
@@ -1033,6 +1034,3 @@ if __name__ == "__main__":		#
 	except Exception, e:		#
 		traceback.print_exc()	#
 #################################
-
-
-

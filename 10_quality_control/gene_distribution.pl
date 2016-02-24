@@ -15,7 +15,7 @@
 use strict;
 use warnings;
 use DBI;
-use Data::Dumper; 
+use Data::Dumper;
 use Parallel::ForkManager;
 use Getopt::Long;
 use v5.10;
@@ -104,7 +104,8 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
-: (uc($species) eq "FRUITFLY") ? "BDGP5" : "";
+: (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
 # Define ENSEMBL SQLite DB
 #my $db_ensembl = ($ens_db) ? $ens_db : $work_dir."/SQLite/"."ENS_".$spec_short."_".$version.".db";
@@ -163,64 +164,64 @@ sub get_ARG_vars{
 	my $db_ribo = $_[0];
 	my $user = $_[1];
 	my $pw = $_[2];
-    
+
     my ($query,$sth);
-    
-    # Connect to db 
-    my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,	
+
+    # Connect to db
+    my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
     							{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-    							
+
     # Get ENS variables
 	$query = "select value from arguments where variable = \'species\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $species = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'ensembl_version\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $version = $sth->fetch()->[0];
 	$sth->finish();
-    
+
     $query = "select value from arguments where variable = \'unique\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
     my $unique = $sth->fetch()->[0];
     $sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'run_name\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $run_name = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'mapper\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $mapper = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'igenomes_root\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $IGENOMES_ROOT = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'nr_of_cores\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $cores = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$query = "select value from arguments where variable = \'ens_db\'";
     $sth = $dbh_results->prepare($query);
 	$sth->execute();
 	my $ens_db = $sth->fetch()->[0];
 	$sth->finish();
-	
+
 	$dbh_results -> disconnect();
-	
+
 	# Return ENS variables
 	return($species,$version,$run_name,$mapper,$IGENOMES_ROOT,$cores,$ens_db,$unique);
 } # Close sub
@@ -228,7 +229,7 @@ sub get_ARG_vars{
 sub get_chr{
     # Catch
     my $species = $_[0];
-    
+
     # Catch
     my %chr_sizes;
     my $filename = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
@@ -262,7 +263,7 @@ sub get_chr{
      		$ch = $ch;
      	}
     }
-    
+
     return(\@chr);
 } # Close sub
 
@@ -270,26 +271,26 @@ sub get_coord_system_id{
 	# Catch
 	my $db_ensembl = $_[0];
 	my $assembly = $_[1];
-	
+
 	# Connect to ensembl sqlite database
 	my $dbh  = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 						{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-	
+
 	# Get correct coord_system_id
 	my $query = "SELECT coord_system_id FROM coord_system WHERE name = 'chromosome' AND version = '$assembly'";
 	my $execute = $dbh->prepare($query);
 	$execute->execute();
-	
+
 	my $coord_system_id;
 	while(my @result = $execute->fetchrow_array()){
 		$coord_system_id = $result[0];
 	}
-	
+
 	$execute->finish();
-					
+
 	# Disconnect
 	$dbh->disconnect();
-	
+
 	# Return
 	return($coord_system_id);
 } # Close sub
@@ -303,63 +304,63 @@ sub gene_distributionOLD{
 	my $coord_system_id = $_[4];
 	my $user = $_[5];
 	my $pw = $_[6];
-	
+
 	# Loop through chromosomes
 	foreach my $chr(@ch){
 		##############
 		## ENSEMBL -> GENES
 		##############
-		
+
 		# Connect to Ensembl db
 		my $dbh = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 							{RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-						
+
 		# Get seq_region_id for specific chromosome from table 'seq_region'
-		my $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";	
+		my $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
 		my $execute = $dbh->prepare($query);
 		$execute->execute();
-	
+
 		my $seq_region;
 		while(my @result = $execute->fetchrow_array()){
 			#$result[0]: seq_region_id
-		
+
 			$seq_region = $result[0];
 		}
 		$execute->finish();
-		
+
 		# Get all genes with start and stop position for specific chromosome from table gene
 		my $query1 = "SELECT stable_id,seq_region_start,seq_region_end,seq_region_strand FROM gene WHERE seq_region_id = '$seq_region'";
 		my $execute1 = $dbh->prepare($query1);
 		$execute1->execute();
-	
+
 		my %genes;
 		while(my @result1 = $execute1->fetchrow_array()){
 			#$result1[0]: gene stable_id
 			#$result1[1]: gene seq_region_start
 			#$result1[2]: gene seq_region_end
 			#$result1[3]: gene seq_region_strand
-		
+
 			for(my $i=$result1[1];$i<=$result1[2];$i++){
 				$genes{$chr.':'.$i}{$result1[0]} = $result1[3];
 			}
 		}
 		$execute1->finish();
-	
-		# Disconnect Ensembl db						
+
+		# Disconnect Ensembl db
 		$dbh->disconnect();
-		
+
 		##############
 		## RIBO-SEQ -> READs (~A-site position): determine gene distribution
 		##############
 		# Connect to ribo-seq db
 		my $dbh2 = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
 							{RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-			
-		# Get all reads for a specific chromosome, look if they fall in a gene and save the total read count per gene	
+
+		# Get all reads for a specific chromosome, look if they fall in a gene and save the total read count per gene
 		my $query2 = "SELECT chr,strand,start,count FROM $table_ribo WHERE chr = '$chr'";
 		my $execute2 = $dbh2->prepare($query2);
 		$execute2->execute();
-		
+
 		my %gene_count;
 		my $intergenic_count;
 		while(my @result2 = $execute2->fetchrow_array()){
@@ -367,7 +368,7 @@ sub gene_distributionOLD{
 			#$result2[1]: strand
 			#$result2[2]: start (~A-site position)
 			#$result2[3]: read_count
-		
+
 			my $pos = $result2[0].':'.$result2[2];
 			if(defined($genes{$pos})){
 				#print $pos."\n";
@@ -382,14 +383,14 @@ sub gene_distributionOLD{
 			}
 		}
 		$execute2->finish();
-						
+
 		# Disconnect ribo-seq db
 		$dbh2->disconnect();
-		
+
 		##############
 		## RESULTS: make table
 		##############
-	
+
 		foreach my $id(keys %gene_count){
 			print OUT $id."\t".$gene_count{$id}."\n";
 		}
@@ -399,7 +400,7 @@ sub gene_distributionOLD{
 
 sub gene_distribution{
 	print "Get Gene Distribution...\n";
-	
+
 	# Catch
 	my $db_ribo = $_[0];
 	my $db_ensembl = $_[1];
@@ -409,72 +410,72 @@ sub gene_distribution{
 	my $user = $_[5];
 	my $pw = $_[6];
 	my $cores = $_[7];
-	
-	# Init multi core	
+
+	# Init multi core
 	my $processes = $cores; # Nr of processes
 	my $pm = new Parallel::ForkManager($processes); # Open fork
-	
+
 	# Loop through chromosomes
 	foreach my $chr(@ch){
 		print "\tStarting analysis for chr ".$chr."...\n";
 		# Start parallel process
 		$pm->start and next;
-	
+
 		##############
 		## ENSEMBL -> GENES
 		##############
 		print "\t\tRead in Ensembl data of chr ".$chr."\n";
-		
+
 		# Connect to Ensembl db
 		my $dbh = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 							{RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-						
+
 		# Get seq_region_id for specific chromosome from table 'seq_region'
-		my $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";	
+		my $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
 		my $execute = $dbh->prepare($query);
 		$execute->execute();
-	
+
 		my $seq_region;
 		while(my @result = $execute->fetchrow_array()){
 			#$result[0]: seq_region_id
-		
+
 			$seq_region = $result[0];
 		}
 		$execute->finish();
-		
+
 		# Get all genes with start and stop position for specific chromosome from table gene
 		my $query1 = "SELECT stable_id,seq_region_start,seq_region_end,seq_region_strand FROM gene WHERE seq_region_id = '$seq_region'";
 		my $execute1 = $dbh->prepare($query1);
 		$execute1->execute();
-	
+
 		my %genes;
 		while(my @result1 = $execute1->fetchrow_array()){
 			#$result1[0]: gene stable_id
 			#$result1[1]: gene seq_region_start
 			#$result1[2]: gene seq_region_end
 			#$result1[3]: gene seq_region_strand
-		
+
 			$genes{$chr.":".$result1[3]}{$result1[0]} = [$result1[1],$result1[2]];
 		}
 		$execute1->finish();
-	
-		# Disconnect Ensembl db						
+
+		# Disconnect Ensembl db
 		$dbh->disconnect();
-		
+
 		##############
 		## RIBO-SEQ -> READs (~A-site position): determine gene distribution
 		##############
 		print "\t\tAnnotating ribo-seq reads of chr ".$chr."\n";
-		
+
 		# Connect to ribo-seq db
 		my $dbh2 = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
 							{RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
-			
-		# Get all reads for a specific chromosome, look if they fall in a gene and save the total read count per gene	
+
+		# Get all reads for a specific chromosome, look if they fall in a gene and save the total read count per gene
 		my $query2 = "SELECT chr,strand,start,count FROM $table_ribo WHERE chr = '$chr'";
 		my $execute2 = $dbh2->prepare($query2);
 		$execute2->execute();
-		
+
 		my %gene_count;
 		my $intergenic_count;
 		while(my @result2 = $execute2->fetchrow_array()){
@@ -482,61 +483,61 @@ sub gene_distribution{
 			#$result2[1]: strand
 			#$result2[2]: start (~A-site position)
 			#$result2[3]: read_count
-			
+
 			my $pos = $result2[2];
 			my $count = $result2[3];
 			my $def = 0;
-			
+
 			#print "chr".$result2[0]."\t".$result2[1]."\t".$result2[2]."\n";
-		
+
 			foreach my $id(keys %{$genes{$result2[0].":".$result2[1]}}){
 				#print $id."\n";
 				my $gene_start = $genes{$result2[0].":".$result2[1]}{$id}[0];
 				my $gene_stop = $genes{$result2[0].":".$result2[1]}{$id}[1];
-				
+
 				if($pos >= $gene_start && $pos <= $gene_stop){
 					#print $id."\n";
 					$gene_count{$id} += $count;
 					$def++; # defined in genes
 				}
 			}
-			
+
 			if($def == 0){
 				$intergenic_count +=  $count;
 			}
 		}
 		$execute2->finish();
-						
+
 		# Disconnect ribo-seq db
 		$dbh2->disconnect();
-		
+
 		##############
 		## RESULTS: make table
 		##############
-	
+
 		foreach my $id(keys %gene_count){
 			print OUT $id."\t".$gene_count{$id}."\n";
 		}
 		#print $intergenic_count."\n";
-		
+
 		# Close process
 		$pm->finish;
 	}
-	
+
 	# Finish forking
 	$pm->wait_all_children;
 }
 
 sub make_plots{
 	print "Make Gene Distribution Plots...\n";
-	
+
 	# Catch
 	my $out_table = $_[0];
 	my $out_pdf1 = $_[1];
 	my $out_pdf2 = $_[2];
 	my $out_pdf3 = $_[3];
 	my $tooldir = $_[4];
-	
+
 	# Execute Rscript
     #system("Rscript ".$galaxydir."/tools/proteoformer/quality_plots.R ".$out_table." ".$out_pdf1." ".$out_pdf2." ".$out_pdf3);
     system("Rscript ".$tooldir."/quality_plots.R ".$out_table." ".$out_pdf1." ".$out_pdf2." ".$out_pdf3);
@@ -545,9 +546,9 @@ sub make_plots{
 
 sub timer {
     my $startRun = shift;
-    
+
     my $endRun 	= time();
     my $runTime = $endRun - $startRun;
-    
+
     printf("\nTotal running time: %02d:%02d:%02d\n\n", int($runTime / 3600), int(($runTime  % 3600) / 60), int($runTime % 60));
 }
