@@ -1680,10 +1680,10 @@ sub RIBO_parse_store {
     my $sam = ($seqFileName  eq 'fastq1') ? $out_sam_untr : $out_sam_tr;
 
     #If you only want the unique reads
-    if ($unique eq 'Y') {
+    if ($unique eq 'Y' || ($unique eq 'N' && $FirstRankMultiMap eq 'Y')) {
         $seqFileName = $seqFileName;
     #For multimapping, make two sorts of count tables
-    } elsif ($unique eq 'N') {
+  } elsif ($unique eq 'N' && $FirstRankMultiMap eq 'N') {
         if ($uniq eq 'N') {
             #the count tables with unique and multimapping reads
             $seqFileName = $seqFileName;
