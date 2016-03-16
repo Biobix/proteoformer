@@ -1,18 +1,19 @@
 <tool id="mapping" name="Step 1: Mapping (can be both RIBO-seq or RNA-seq)" version="0.1">
-    
+
     <description>using fastq files as input</description>
-    
+
     <command interpreter="perl">
-    
+
         1_mapping.pl --name $experimentname --species $organism --ensembl $ensembl --cores $cores --igenomes_root $igenomes_root.fields.path --readtype $readtype.riboSinPair --readlength $readtype.readlength --splicing $splicing --clipper $clipper --unique $MultiUnique.unique --mismatch $mismatch --adaptor $readtype.adaptor --phix $readtype.phix --rRNA $readtype.rrna
-        
+
          --mapper $choose.mapper
-        --tr_coord $choose.tr_coord
-        
+         --tr_coord $choose.tr_coord
+
         #if $MultiUnique.unique == "N"
-    
+
             --maxmultimap $MultiUnique.maxmultimap
-    
+            --firstrankmultimap $MultiUnique.firstrankmultimap
+
         #end if
 
         #if $readtype.riboSinPair == "ribo"
@@ -71,7 +72,7 @@
 		#end if
 
     </command>
-    
+
     <inputs>
         <param name="experimentname" size="20" type="text"   label="enter the experiment name" />
         <param name="igenomes_root" type="select"   label="Select the corresponding igenome folder" help="If your igenome root folder is not listed - contact your administrator.">
@@ -84,7 +85,7 @@
             <option value="arabidopsis">arabidopsis</option>
         </param>
         <param name="ensembl"  size="5"   value="75"             type="integer"   label="select the ensembl annotation version"/>
-        
+
         <conditional name="choose">
             <param name="mapper" type="select" label="choose the transcriptome mapper (for RNA-seq, only STAR is supported)" multiple="false">
                 <option value="STAR" selected="true">STAR</option>
@@ -103,7 +104,7 @@
             <option value="N">No, for Prokaryotes</option>
         </param>
         <param name="mismatch" value="2" type="integer" label="report aligments with lower or equal mismatches than this value"/>
-        
+
         <conditional name="MultiUnique">
             <param name="unique" type="select" label="select unique or multi-mapper reads" multiple="false">
                 <option value="N" selected="true">all, both unique and multi-mapper reads</option>
@@ -111,13 +112,17 @@
             </param>
             <when value="N">
                 <param name="maxmultimap" value="16" type="integer" label="report alignments only if the read maps fewer sequence locations than this value"/>
+                <param name="firstrankmultimap" type="select" label="Only retain the first ranked alignment when multimapping. If multiple equally good options are available, a random one is chosen" multiple="false">
+                    <option value="N" selected="true">first ranked is retained</option>
+                    <option value="Y">all equally scoring multimap hits are retained</option>
+                </param>
             </when>
         </conditional>
         <param name="clipper" size="45" type="select" label="the tool for adaptor clipping" multiple="false">
             <option value="STAR">STAR</option>
             <option value="fastx">fastx</option>
             <option value="none" selected="true">none</option>
-        </param>       
+        </param>
         <conditional name="readtype">
             <param name="riboSinPair" type="select" label="Is this a RIBO-seq or RNA-seq library?">
                 <option value="ribo" selected="true">Ribo-seq</option>
@@ -196,7 +201,7 @@
         </conditional> <!-- riboSinPair -->
         <param name="cores" type="integer" size="5" value="8" label="enter the number of cores to run the transcriptome mapping"/>
     </inputs>
-    
+
     <outputs>
 
         <data format="sam" name="untreat_sam" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads">
@@ -288,33 +293,33 @@
         </data>
 
     </outputs>
-    
+
     <help>
-        
+
 .. class:: infomark
-        
+
 **What it does**
-        
+
 This tool uses transcriptome mappers (STAR or TopHat2) to map RIBO-seq or RNA-seq next-generation sequencing reads against the reference genome using Ensembl annotation bundles (from the corresponding IGenomes: http://support.illumina.com/sequencing/sequencing_software/igenome.ilmn).
-        
+
 *For RIBO-seq*
-        
+
 1)  The footprints are mapped
 
     both the NGS-reads of the untreated, cycloheximide (CHX), or emetine (EMT) sample
-    
+
     and the NGS-reads of the treated: puromycin (PUR), harringtonine (HAR), or lactimidomycin (LTM)
 
 2) The footprint alignments are assigned to specific A site nucleotides by using the position and total length of each alignment
-        
+
 -----
-        
+
 .. class:: infomark
-        
+
 **Output**
-        
+
 *For RIBO-seq*
-        
+
 DATA1 = Untreated, CHX, or EMT treated sample
 
 DATA2 = PUR, HARR, or LTM treated sample
@@ -327,17 +332,17 @@ DATA2 = PUR, HARR, or LTM treated sample
        A bedgraph holding the sense DATA2 ribo-seq footprint count data
        A bedgraph holding the antisense DATA2 ribo-seq footprint count data
        An sqlite database holding all experimental data
-       
+
        Optional:
        A bam alignment file holding the DATA1 alignments based on transcriptome coordinates
        A bam alignment file holding the DATA2 alignments based on transcriptome coordinates
 
 -----
-        
+
 .. class:: infomark
-        
+
 **Input**
-        
+
 A FastQ file holding the DATA1
 
 A FastQ file holding the DATA2
@@ -353,6 +358,5 @@ PROTEOFORMER is licensed under the GPL v3.
 For more information visit http://www.biobix.be/PROTEOFORMER.
 
     </help>
-    
-</tool>
 
+</tool>

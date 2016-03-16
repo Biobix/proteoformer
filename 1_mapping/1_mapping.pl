@@ -36,7 +36,7 @@ use Cwd;
 ##############
 ##Command-line
 ##############
-# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP)
+# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --firstrankmultimap N --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP)
 
 #For GALAXY
 #1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
@@ -412,7 +412,7 @@ foreach (@loopfastQ) {
         if (uc($readtype) eq "RIBO") {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
             RIBO_parse_store($_,$fastqName, 'Y'); # Only A-site parsing if RIBO-seq
-            if ($unique eq "N") {RIBO_parse_store($_,$fastqName, $unique)}
+            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique)}
         }
         if (uc($readtype) eq "SE_POLYA") {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
@@ -433,7 +433,7 @@ foreach (@loopfastQ) {
         if (uc($readtype) eq "RIBO") {
             map_STAR($_,$fastqName,$clipper,$mismatch);
             RIBO_parse_store($_,$fastqName, 'Y'); # Only A-site parsing if RIBO-seq
-			if ($unique eq "N") {RIBO_parse_store($_,$fastqName, $unique)}
+			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique)}
         }
         if (uc($readtype) eq "SE_POLYA") {
             map_STAR($_,$fastqName,$clipper,$mismatch);
@@ -650,7 +650,7 @@ sub map_STAR {
     my $seqFile  = $splitSeqFiles[0];
     my $seqFile2 = $splitSeqFiles[1];
 
-    my ($fasta,$fasta1,$fasta2,$fasta_norrna,$command,$full_command);
+    my ($fasta,$fasta1,$fasta2,$fasta_norrna,$command,$full_command,$outSAMmultNmax);
     my $ref_loc = get_ref_loc($mapper);
     # Check if main STAR index folder exists
     if (!-d $ref_loc) { system("mkdir -p ".$ref_loc); print "main STAR folder has been created\n";}
@@ -888,23 +888,26 @@ sub map_STAR {
 
     if (uc($readtype) eq "RIBO") {
 
-		if ($unique eq 'Y') {$maxmultimap = 1}	# to ensure unique mapping
+		    if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
         $ref_loc = get_ref_loc($mapper);
         $command = $STAR_loc." --outSAMattributes Standard --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outMultimapperOrder Random --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta;
-		if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Output transcriptome coordinate to bam file
+		    if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Output transcriptome coordinate to bam file
         if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
+        if ($FirstRankMultiMap eq 'Y') {$command .= " --outSAMmultNmax 1 "}   # To ensure to output only first hit to SAM (either the best scoring one or a random chosen one from a list of equally scoring hits)
     } elsif (uc($readtype) =~ m/PE/) {
 
-		if ($unique eq 'Y') {$maxmultimap = 1}	# to ensure unique mapping
+		    if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
         $command = $STAR_loc." --outSAMattributes Standard --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outMultimapperOrder Random --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta1." ".$fasta2." --chimSegmentMin 15 --chimJunctionOverhangMin 15 --outFilterIntronMotifs RemoveNoncanonicalUnannotated --outSAMunmapped Within --outReadsUnmapped Fastx --outFilterType BySJout";
-		if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
+		    if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
         if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
+        if ($FirstRankMultiMap eq 'Y') {$command .= " --outSAMmultNmax 1 "}   # To ensure to output only first hit to SAM (either the best scoring one or a random chosen one from a list of equally scoring hits)
     } elsif (uc($readtype) =~ m/SE/) {
 
-		if ($unique eq 'Y') {$maxmultimap = 1}	# to ensure unique mapping
+		    if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
         $command = $STAR_loc." --outSAMattributes Standard --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outMultimapperOrder Random --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta;
-		if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
+		    if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
         if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
+        if ($FirstRankMultiMap eq 'Y') {$command .= " --outSAMmultNmax 1 "}   # To ensure to output only first hit to SAM (either the best scoring one or a random chosen one from a list of equally scoring hits)
     }
 
 
