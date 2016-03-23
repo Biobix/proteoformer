@@ -1,0 +1,139 @@
+#!/bin/sh
+
+#  normBedgraph
+#
+#  This scripts normalizes bedgraph files based on different library sizes
+#
+#  Usage:
+#    bash normBedgraph --ntuntrs /data2/steven/eIF1/NTuniq3/output/untreat_sense.bedgraph --ntuntras /data2/steven/eIF1/NTuniq3/output/untreat_antisense.bedgraph --nttrs /data2/steven/eIF1/NTuniq3/output/treat_sense.bedgraph --nttras /data2/steven/eIF1/NTuniq3/output/treat_antisense.bedgraph --kduntrs /data2/steven/eIF1/KDuniq3/output/untreat_sense.bedgraph --kduntras /data2/steven/eIF1/KDuniq3/output/untreat_antisense.bedgraph --kdtrs /data2/steven/eIF1/KDuniq3/output/treat_sense.bedgraph --kdtras /data2/steven/eIF1/KDuniq3/output/treat_antisense.bedgraph --libntuntr 37873493 --libnttr 45427218 --libkduntr 26914126 --libkdtr 20699824
+#
+#  Created by Steven Verbruggen in 2015.
+#
+
+#Command line input
+NTUNTRS=
+NTUNTRAS=
+NTTRS=
+NTTRAS=
+KDUNTRS=
+KDUNTRAS=
+KDTRS=
+KDTRAS=
+LIBNTUNTR=
+LIBNTTR=
+LIBKDUNTR=
+LIBKDTR=
+while [ "$1" != "" ] ; do
+    case $1 in
+        --ntuntrs)              shift
+                                NTUNTRS=$1
+                                ;;
+        --ntuntras )            shift
+                                NTUNTRAS=$1
+                                ;;
+        --nttrs )               shift
+                                NTTRS=$1
+                                ;;
+        --nttras )              shift
+                                NTTRAS=$1
+                                ;;
+        --kduntrs )             shift
+                                KDUNTRS=$1
+                                ;;
+        --kduntras )            shift
+                                KDUNTRAS=$1
+                                ;;
+        --kdtrs )               shift
+                                KDTRS=$1
+                                ;;
+        --kdtras )              shift
+                                KDTRAS=$1
+                                ;;
+        --libntuntr )           shift
+                                LIBNTUNTR=$1
+                                ;;
+        --libnttr )             shift
+                                LIBNTTR=$1
+                                ;;
+        --libkduntr )           shift
+                                LIBKDUNTR=$1
+                                ;;
+        --libkdtr )             shift
+                                LIBKDTR=$1
+                                ;;
+    esac
+    shift
+done
+
+#Print command line arguments
+echo "-------------------"
+echo "Normalize bedgraphs"
+echo "-------------------"
+echo
+echo "ARGUMENTS:"
+echo " --ntuntrs = $NTUNTRS"
+echo " --ntuntras = $NTUNTRAS"
+echo " --nttrs = $NTTRS"
+echo " --nttras = $NTTRAS"
+echo " --kduntrs = $KDUNTRS"
+echo " --kduntras = $KDUNTRAS"
+echo " --kdtrs = $KDTRS"
+echo " --kdtras = $KDTRAS"
+echo " --libntuntr = $LIBNTUNTR"
+echo " --libnttr = $LIBNTTR"
+echo " --libkduntr = $LIBKDUNTR"
+echo " --libkdtr = $LIBKDTR"
+echo
+
+#Group lib sizes in one array
+LIBSIZES=($LIBNTUNTR $LIBNTTR $LIBKDUNTR $LIBKDTR)
+
+#Determine minimum lib size
+min=100000000000000
+for n in "${LIBSIZES[@]}"
+do
+    ((n < min)) && min=$n
+done
+
+#Calculate normalization factors
+normntuntr=$(bc -l <<< "$LIBNTUNTR/$min")
+normnttr=$(bc -l <<< "$LIBNTTR/$min")
+normkduntr=$(bc -l <<< "$LIBKDUNTR/$min")
+normkdtr=$(bc -l <<< "$LIBKDTR/$min")
+NORMFACTORS=($normntuntr $normntuntr $normnttr $normnttr $normkduntr $normkduntr $normkdtr $normkdtr)
+
+#Put all files in array
+FILES=()
+FILES+=($NTUNTRS)
+FILES+=($NTUNTRAS)
+FILES+=($NTTRS)
+FILES+=($NTTRAS)
+FILES+=($KDUNTRS)
+FILES+=($KDUNTRAS)
+FILES+=($KDTRS)
+FILES+=($KDTRAS)
+
+#Outputfiles
+OUTPUTFILES=("ntuntrs.bedgraph" "ntuntras.bedgraph" "nttrs.bedgraph" "nttras.bedgraph" "kduntrs.bedgraph" "kduntras.bedgraph" "kdtrs.bedgraph" "kdtras.bedgraph")
+j=-1
+
+#Do changes and write to output files
+for i in "${FILES[@]}"
+do
+    j=$((j + 1))
+    awk -v out=${OUTPUTFILES[j]} -v norm=${NORMFACTORS[j]} '{
+        if ($1 ~ /^chr/)
+        {
+            $4=$4/norm;
+            print $1, $2, $3, $4 > out;
+        }
+        else
+        {
+            print $0 > out;
+        }
+    }' $i
+done
+
+
+
+
