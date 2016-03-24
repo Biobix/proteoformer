@@ -10,8 +10,10 @@ ARGUMENTS:
     -e | --sqliteE						 The sqlite database holding the Ensembl annotation (mandatory)
     -f | --feature				         The annotation feature at what level to summarize. Can be set to 'exon','transcript','gene', 'promoter' (mandatory)
     -t | --transcripts                   The type of transcripts to process. Can be set to 'all','canonical' (default = 'all')
-    -m | --mapping                       The type of read mapping. Can be set to 'unique','multi' (default = 'unique')
-    -r | --rrbs                          The table holding the RRBS count data (mandatory if feature='promoter')
+    -d | --data                          The type of data used to generate the counts. Can be set to 'ribo', 'rna', 'rrbs' (mandatory)
+    -m | --mapping                       The type of read mapping. Can be set to 'unique','multi' (default = 'unique' for ribo or rna, not specified for rrbs)
+    -r | --rrbs                          The table holding the rrbs count data (mandatory if feature='promoter')
+
 EXAMPLE:
 
 python htseqcount_BioBix.py --sqliteC SQLite/results.db --sqliteE SQLite/ENS_hs_82.db --feature transcript --transcripts all
@@ -58,7 +60,7 @@ def main():
 
     #Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:],"w:c:e:f:t:m:r:",["work_dir=","sqliteC=","sqliteE=","feature=","transcripts=","mapping=","rrbs="])
+        myopts, args = getopt.getopt(sys.argv[1:],"w:c:e:f:t:m:r:d:",["work_dir=","sqliteC=","sqliteE=","feature=","transcripts=","mapping=","rrbs=","data="])
     except getopt.GetoptError as err:
         print err
         sys.exit()
@@ -81,6 +83,8 @@ def main():
             mapping=a
         elif o in ('-r','--rrbs'):
             rrbs=a
+        elif o in ('-d','--data'):
+            data=a
     try:
         workdir
     except:
@@ -109,6 +113,11 @@ def main():
         rrbs
     except:
         rrbs=''
+    try:
+        data
+    except:
+        data=''
+
 
     # Check for correct arguments and parse
     if workdir == '':
@@ -121,6 +130,9 @@ def main():
     if sqliteE=='':
         print "Error: do not forget to pass the SQLite Ensembl argument!"
         sys.exit()
+    if data=='':
+        print "Error: do not forget to pass the sequencing data type: 'rna', 'ribo', 'rrbs'!"
+        sys.exit()
     if feature=='':
         print "Error: do not forget to pass the feature argument: 'exon', 'transcript' or 'gene'!"
         sys.exit()
@@ -130,27 +142,33 @@ def main():
         if transcripts != '' and transcripts != 'canonical' and transcripts != 'all':
             print "Error: the following values are allowed for --transcripts : 'all', 'canonical'!"
             sys.exit()
-    if mapping == '':
+    if mapping == '' and data != 'rrbs': #Set default value
         mapping = 'unique'
-    if mapping != '' and mapping != 'unique' and mapping != 'multi':
-        print "Error: the following values are allowed for --mapping : 'unique', 'multi'!"
+    if mapping != '' and mapping != 'unique' and mapping != 'multi' and data != 'rrbs': #Check validity of mapping value for non-rrbs data
+        print "Error: the following values are allowed for --mapping : 'unique', 'multi' (for RNA- or RIBO-seq data)!"
+    if mapping != '' and data == 'rrbs':
+        print "Error: the  --mapping should not be specified for RRBS data!"
         sys.exit()
-    if feature == 'promoter':
-        if rrbs == '':
-            print "Error: the table holding the RRBS data should be given --rrbs : 'table_name'!"
+    if data == 'rrbs' and rrbs == '':
+        print "Error: the table holding the RRBS data should be given --rrbs : 'table_name'!"
+        sys.exit()
 
     #Get arguments from arguments table
-    ensDB, igenomes_root, species, ens_version, cores, readtype = get_arguments(sqliteC)
+    igenomes_root, species, ens_version, cores, readtype = get_arguments(sqliteC)
+
+
 
     # Print used arguments and parameters
     print "Arguments:"
     print "  Working directory:            "+workdir
     print "  SQLite Ensembl:               "+sqliteE
     print "  SQLite Count data:            "+sqliteC
-    print "  Feature:                      "+feature
+    print "  Sequencing data:              "+data
+    print "  RRBS data table:              "+rrbs
     print "  Transcripts:                  "+transcripts
     print "  Mapping:                      "+mapping
-    print "  RRBS data table:              "+rrbs
+    print "  Feature:                      "+feature
+
 
     directory = os.getcwd()
     print directory
@@ -200,18 +218,25 @@ def main():
         seqtype = 'rna'
     else:
         seqtype = 'ribo'
+    if data == 'rrbs':
+        seqtype = 'rrbs'
 
     if feature == 'gene':
         table_name = feature+"_"+seqtype+"_"+mapping+"_count"
-    elif feature != 'gene':
+    elif feature in ('transcript','exon') and data in ('rna','ribo'):
         table_name = feature+"_"+seqtype+"_"+mapping+"_"+transcripts+"_count"
+    elif feature in ('transcript','exon') and data in ('rrbs'):
+        table_name = feature+"_"+seqtype+"_"+transcripts+"_count"
+    elif feature == 'promoter':
+        table_name = feature+"_"+seqtype+"_"+transcripts+"_count"
+
 
     ##############
     ###  MAIN  ###
     ##############
     #chrs = ['Y']
     pool = Pool(processes=cores)
-    [pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs)) for chrom in chrs.keys()]
+    [pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,data)) for chrom in chrs.keys()]
     #[pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs)) for chrom in chrs]
     pool.close()
     pool.join()
@@ -222,8 +247,8 @@ def main():
     print
 
 
-    dumpSQLite(chrs.keys(), directory, sqliteC,table_name)
-    #dumpSQLite(['Y'], directory, sqliteC,table_name)
+    dumpSQLite(chrs.keys(), directory, sqliteC,table_name,data)
+    #dumpSQLite(['Y'], directory, sqliteC,table_name,data)
 
     #Timer
     stopTime = timeit.default_timer()
@@ -241,25 +266,25 @@ def main():
 ##############
 
 ## Get counts for features for chr ##
-def feature_count_chr(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs):
+def feature_count_chr(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,data):
     try:
 
         #print(chrom)
         #Get features per chr
-        features = get_feature_chr(chrom, sqliteE,feature,transcripts)
+        features = get_feature_chr(chrom, sqliteE, feature, transcripts)
         #print_dict(features)
 
         #Get all counts per chr (both forward and reverse)
-        countsforw, countsrev = counts_chr(chrom, sqliteC, feature, mapping,rrbs)
+        countsforw, countsrev = counts_chr(chrom, sqliteC, mapping, rrbs, data)
         #print_dict(countsforw)
 
 
         #Match counts to feature region
-        features = calculate_count_feature(features,countsforw,countsrev,feature)
+        features = calculate_count_feature(features, countsforw, countsrev, feature)
         #print_dict(features)
 
         #Write to csv file for each chromosome
-        write_to_csv(chrom,features,directory,feature,table_name)
+        write_to_csv(chrom, features, directory, feature, table_name)
         print "*) Process for chromosome "+str(chrom)+" completed"
     except:
             traceback.print_exc()
@@ -310,7 +335,7 @@ def get_feature_chr(chrom, sqliteE,feature,transcripts):
         elif feature == 'promoter':
             query = "select tr.stable_id feature_id, tr.seq_region_start feature_start,tr.seq_region_end feature_end, sr.name chrom, tr.seq_region_strand strand " \
                     ", ge.stable_id gene_id, tr.biotype " \
-                    "from transcript tr inner join gene ge on ge.gene_id = tr.gene_id"
+                    "from transcript tr inner join gene ge on ge.gene_id = tr.gene_id "
 
             if transcripts == 'canonical':
                     query = query + "and ge.canonical_transcript_id = tr.transcript_id "
@@ -333,13 +358,13 @@ def get_feature_chr(chrom, sqliteE,feature,transcripts):
     return features
 
 ## Get counts from count database ##
-def counts_chr(chrom, sqliteC,feature,mapping,rrbs):
+def counts_chr(chrom, sqliteC,mapping,rrbs,data):
 
     #Initialize
     countsfor = {}
     countsrev = {}
 
-    if feature in ('gene','transcript','exon'):
+    if data in ('rna','ribo'):
         try:
 
             #Count table based on unique/multi mapper reads
@@ -357,11 +382,13 @@ def counts_chr(chrom, sqliteC,feature,mapping,rrbs):
         except:
             traceback.print_exc()
 
-    if feature == 'promoter':
+    if data == 'rrbs':
         try:
 
-
-            query = "select CpG_forw id, meth_perc " \
+            #CpG_forw is aliased to 'start'
+            #meth_perc is aliased to 'count'
+            #This to make the generic (i.e. similar to other counts data (ribo/rna))
+            query = "select CpG_forw start, meth_perc count " \
             "from "+rrbs+" where RRBS_coverage >= 10 and chr = '"+str(chrom)+"'"
             countsfor = fetchDict(sqliteC, query)
 
@@ -404,7 +431,7 @@ def calculate_count_feature(features, countsforw,countsrev,feature):
                         features_for.remove(featId) #Remove from sorted features so it will not be scanned next time
                     else:
                         break #Because features are sorted, all the other features will be more downstream
-                for featId in window:#For all features in the window
+                for featId in window[:]:#For all features in the window
                     if features[featId]['feature_start']+200<readPosition:
                         #print" remove "+ featId+" "+ str(features[featId]['feature_start']+200)
                         window.remove(featId) #Remove features from window which are completely upstream of the read
@@ -428,7 +455,7 @@ def calculate_count_feature(features, countsforw,countsrev,feature):
                         features_rev.remove(featId) #Remove from sorted features so it will not be scanned next time
                     else:
                         break #Because features are sorted, all the other features will be more downstream
-                for featId in window:#For all features in the window
+                for featId in window[:]:#For all features in the window
                     if features[featId]['feature_end']+1000<readPosition:
                         #print" remove "+ featId+" "+ str(features[featId]['feature_end'])
                         window.remove(featId) #Remove features from window which are completely upstream of the read
@@ -468,7 +495,7 @@ def calculate_count_feature(features, countsforw,countsrev,feature):
                         features_for.remove(featId) #Remove from sorted features so it will not be scanned next time
                     else:
                         break #Because features are sorted, all the other features will be more downstream
-                for featId in window:#For all features in the window
+                for featId in window[:]:#For all features in the window
                     if features[featId]['feature_end']<readPosition:
                         #print" remove "+ featId+" "+ str(features[featId]['feature_end'])
                         window.remove(featId) #Remove features from window which are completely upstream of the read
@@ -483,9 +510,9 @@ def calculate_count_feature(features, countsforw,countsrev,feature):
                             #print(ends)
                             #print(exon_count)
                             #print featId
-                            for exonRank in range(0,exon_count-1):
+                            for exonRank in range(exon_count):
                                 if(readPosition>=starts[exonRank] and readPosition<=ends[exonRank]):#Check if read is in one of the exons
-                                    #print(exonRank)
+                                    #print "exon_"+str(exonRank)+" "
                                     features[featId]['counts_sum']  = features[featId]['counts_sum'] + countsforw[readPosition]['count']
                                     features[featId]['counts_n'] += 1
                                     #print readPosition
@@ -513,7 +540,7 @@ def calculate_count_feature(features, countsforw,countsrev,feature):
                         features_rev.remove(featId) #Remove from sorted features so it will not be scanned next time
                     else:
                         break #Because features are sorted, all the other features will be more downstream
-                for featId in window:#For all features in the window
+                for featId in window[:]:#For all features in the window
                     if features[featId]['feature_end']<readPosition:
                         #print" remove "+ featId+" "+ str(features[featId]['feature_end'])
                         window.remove(featId) #Remove features from window which are completely upstream of the read
@@ -524,8 +551,9 @@ def calculate_count_feature(features, countsforw,countsrev,feature):
                             starts = map(int,re.split(",",features[featId]['starts']))
                             ends = map(int,re.split(",",features[featId]['ends']))
                             exon_count = features[featId]['exon_count']
-                            for exonRank in range(0,exon_count-1):
+                            for exonRank in range(exon_count):
                                 if(readPosition>=starts[exonRank] and readPosition<=ends[exonRank]):#Check if read is in one of the exons
+                                    #print "exon_"+str(exonRank)+" "
                                     features[featId]['counts_sum']  = features[featId]['counts_sum'] + countsrev[readPosition]['count']
                                     features[featId]['counts_n'] += 1
                                     #print readPosition
@@ -567,7 +595,7 @@ def write_to_csv(chrom, features, directory, feature, table_name):
     return
 
 ## Dump counts of all chromosomes in SQLite DB ##
-def dumpSQLite(chrs, directory, sqliteC,table_name):
+def dumpSQLite(chrs, directory, sqliteC,table_name,data):
     try:
         #Make DB connection
         try:
@@ -580,8 +608,14 @@ def dumpSQLite(chrs, directory, sqliteC,table_name):
             cur = con.cursor()
             #Remove possible existing table
             cur.execute("DROP TABLE if exists "+table_name)
-            cur.execute("CREATE TABLE "+table_name+ \
-                        "(feature_stable_id varchar(128), counts_sum float, counts_n float)")
+
+            if data in ('rna','ribo'):
+                cur.execute("CREATE TABLE "+table_name+ \
+                            "(feature_stable_id varchar(128), counts_sum float, counts_n float)")
+            if data == 'rrbs':
+                cur.execute("CREATE TABLE "+table_name+ \
+                            "(feature_stable_id varchar(128), meth_perc_sum float, meth_perc_n float)")
+
 
             for chrom in chrs:
                 #Convert integer to string (chromosome ids)
@@ -680,7 +714,6 @@ def get_arguments(dbpath):
         sys.exit()
 
     #Init
-    ensDB=''
     igro=''
     sp=''
     vs=0
@@ -690,11 +723,6 @@ def get_arguments(dbpath):
     with con:
         cur = con.cursor()
 
-        if cur.execute("SELECT value FROM arguments WHERE variable='ens_db';"):
-            eDB = str(cur.fetchone()[0])
-        else:
-            print "ERROR: could not fetch Ensembl DB from arguments table in the SQLite DB"
-            sys.exit()
 
         if cur.execute("SELECT value FROM arguments WHERE variable='igenomes_root';"):
             igro = str(cur.fetchone()[0])
@@ -726,7 +754,7 @@ def get_arguments(dbpath):
             print "ERROR: could not fetch the number of cores from the arguments table in the SQLite DB"
             sys.exit()
 
-    return eDB, igro, sp, vs, cs, rt
+    return igro, sp, vs, cs, rt
 
 ## Get chromosomes ##
 def get_chrs(chrSizeFile, species):
