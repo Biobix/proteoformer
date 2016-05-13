@@ -33,7 +33,7 @@ __author__ = 'SV'
     
     python get_igenomes.py -v 82 -s human -d /path/to/dir -r -c 15
     
-    python get_igenomes.py -v 29 -s arabidopsis -d /path/to/dir -r -c 15
+    python get_igenomes.py -v 31 -s arabidopsis -d /path/to/dir -r -c 15
     
     DEPENDENCIES:
     
@@ -107,7 +107,7 @@ elif(int(cores)>15):
     print("Error: the amount of cores cannot be larger than 15!")
     sys.exit()
 if(species == 'arabidopsis'):
-    if(ens_v>29):
+    if(ens_v>31):
         print("Error: latest Ensembl Plants version is 29!")
         sys.exit()
 else:
@@ -166,7 +166,8 @@ else:
     sys.exit()
 
 print("Assembly                                    : " + assembly)
-print("UCSC code                                   : " + ucscCode)
+if(species!='arabidopsis'):
+	print("UCSC code                                   : " + ucscCode)
 print("")
 
 os.chdir(instalDir)
@@ -209,14 +210,19 @@ os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Annotation/Ge
 
 #Fetch data from UCSC except for arabidopsis (not included in UCSC)
 if(species=='arabidopsis'):
-    #Manual from custom arabidopsis UCSC site: http://epigenomics.mcdb.ucla.edu/cgi-bin/hgTracks?hgsid=25975&chromInfoPage= (no txt file available)
-    chromList['1']='30432563'
-    chromList['2']='19705359'
-    chromList['3']='23470805'
-    chromList['4']='18585042'
-    chromList['5']='26992728'
-    chromList['Pt']='154478'
-    chromList['MT']='366923'
+	#For arabidopsis, chromosome sizes can be fetched out of the files where the Ensembl DB is build from
+	canEns_v=str(ens_v+53) #Arabidopsis Ensembl releases are 53 less than the other species.
+	os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/plants/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_10/seq_region.txt.gz")
+	os.system("gzip -d seq_region.txt.gz")
+	input = open('seq_region.txt', 'r')
+	for line in input:
+		pattern = re.compile('^\d+\t(\w+)\t4\t(\d+)')
+		m = pattern.search(line)
+		if m:
+			if(m.group(1)=='Mt'):
+				chromList['MT']=m.group(2)
+			else:
+				chromList[m.group(1)]=m.group(2)
 else:
     #Other species: download from UCSC
     os.system("wget -q ftp://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz")
@@ -240,8 +246,10 @@ outFile = open('ChromInfo.txt','w')
 for key in chromList:
     outFile.write(key+"\t"+chromList[key]+"\n")
 outFile.close()
-os.system("rm -rf tmpChromInfo.txt")
-
+if(species=='arabidopsis'):
+	os.system("rm -rf seq_region.txt")
+else:
+	os.system("rm -rf tmpChromInfo.txt")
 
 
 
@@ -353,12 +361,12 @@ os.system("rm -rf genesTmp.gtf")
 
 ##Download supplemental abundant sequences
 print("\n")
-print("PhiX fasta file downloading in "+instalDir+"igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/AbundantSequences. Other abundant sequences (e.g. rRNA) can be added in this folder too.")
+print("PhiX fasta file downloading in "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/AbundantSequences. Other abundant sequences (e.g. rRNA) can be added in this folder too.")
 os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence")
 os.system("mkdir AbundantSequences")
 os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/AbundantSequences")
-os.system("wget -q http://bcb.dfci.harvard.edu/~vwang/phix.fasta")
-os.system("mv phix.fasta phix.fa")
+os.system("wget -q ftp://ftp.ncbi.nih.gov//genomes/Viruses/Enterobacteria_phage_phiX174_sensu_lato_uid14015/NC_001422.fna")
+os.system("mv NC_001422.fna phix.fa")
 
 
 
