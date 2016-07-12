@@ -13,10 +13,11 @@ ARGUMENTS:
     -d | --data                          The type of data used to generate the counts. Can be set to 'ribo', 'rna', 'rrbs' (mandatory)
     -m | --mapping                       The type of read mapping. Can be set to 'unique','multi' (default = 'unique' for ribo or rna, not specified for rrbs)
     -r | --rrbs                          The table holding the rrbs count data (mandatory if feature='promoter')
+	-o | --five_prime_offset			 The five_prime_offset for feature boundaries, used for gene features (default = 0)
 
 EXAMPLE:
 
-python htseqcount_BioBix.py --sqliteC SQLite/results.db --sqliteE SQLite/ENS_hs_82.db --feature transcript --transcripts all
+python summarize_feature.py --sqliteC SQLite/results.db --sqliteE SQLite/ENS_hs_82.db --feature transcript --transcripts all
 
 DEPENDENCIES:
 sqlite3
@@ -60,7 +61,7 @@ def main():
 
     #Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:],"w:c:e:f:t:m:r:d:",["work_dir=","sqliteC=","sqliteE=","feature=","transcripts=","mapping=","rrbs=","data="])
+        myopts, args = getopt.getopt(sys.argv[1:],"w:c:e:f:t:m:r:d:o:",["work_dir=","sqliteC=","sqliteE=","feature=","transcripts=","mapping=","rrbs=","data=","five_prime_offset="])
     except getopt.GetoptError as err:
         print err
         sys.exit()
@@ -85,6 +86,8 @@ def main():
             rrbs=a
         elif o in ('-d','--data'):
             data=a
+        elif o in ('-o','--five_prime_offset'):
+            five_prime_offset=a
     try:
         workdir
     except:
@@ -117,6 +120,10 @@ def main():
         data
     except:
         data=''
+    try:
+        five_prime_offset
+    except:
+        five_prime_offset=0
 
 
     # Check for correct arguments and parse
@@ -168,6 +175,7 @@ def main():
     print "  Transcripts:                  "+transcripts
     print "  Mapping:                      "+mapping
     print "  Feature:                      "+feature
+    print "  5-prime offset:			   "+str(five_prime_offset)
 
 
     directory = os.getcwd()
@@ -236,17 +244,18 @@ def main():
     ##############
     #chrs = ['Y']
     pool = Pool(processes=cores)
-    [pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,data)) for chrom in chrs.keys()]
-    #[pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs)) for chrom in chrs]
+    [pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,data,five_prime_offset)) for chrom in chrs.keys()]
+    #[pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,five_prime_offset)) for chrom in chrs]
     pool.close()
     pool.join()
-
+    
+    #sys.exit()
     #Dump in SQLite
     print
     print "Dump data into SQLite database"
     print
-
-
+    
+	
     dumpSQLite(chrs.keys(), directory, sqliteC,table_name,data)
     #dumpSQLite(['Y'], directory, sqliteC,table_name,data)
 
@@ -266,7 +275,7 @@ def main():
 ##############
 
 ## Get counts for features for chr ##
-def feature_count_chr(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,data):
+def feature_count_chr(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,data,five_prime_offset):
     try:
 
         #print(chrom)
@@ -280,7 +289,7 @@ def feature_count_chr(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_
 
 
         #Match counts to feature region
-        features = calculate_count_feature(features, countsforw, countsrev, feature)
+        features = calculate_count_feature(features, countsforw, countsrev, feature,five_prime_offset)
         #print_dict(features)
 
         #Write to csv file for each chromosome
@@ -399,7 +408,7 @@ def counts_chr(chrom, sqliteC,mapping,rrbs,data):
 
 
 #Get the counts for the features ##
-def calculate_count_feature(features, countsforw,countsrev,feature):
+def calculate_count_feature(features, countsforw,countsrev,feature,five_prime_offset):
 
     try:
 
@@ -489,7 +498,7 @@ def calculate_count_feature(features, countsforw,countsrev,feature):
                 #print(readPosition)
                 for featId in features_for[:]: #Go through sorted features list. [:] means working on a copy of the features_sorted list, because if you would not, features will move forward in the list if you remove the first feature and in the next iteration, you examine the third feature (which moved to the second place in the list) and you will have skipped the second feature (no being on the first place). Therefore, work on a copy of the original list but remove in the original list. For each new read position however, the copy will be replaced as you start a new iteration over features_sorted
                     #print(featId)
-                    if features[featId]['feature_start']<=readPosition:
+                    if features[featId]['feature_start']-int(five_prime_offset)<=readPosition:
                         #print " append "+ featId+" "+ str(features[featId]['feature_start'])
                         window.append(featId) #Bring the feature ID over to the window if the read >= feature_start
                         features_for.remove(featId) #Remove from sorted features so it will not be scanned next time
@@ -541,7 +550,7 @@ def calculate_count_feature(features, countsforw,countsrev,feature):
                     else:
                         break #Because features are sorted, all the other features will be more downstream
                 for featId in window[:]:#For all features in the window
-                    if features[featId]['feature_end']<readPosition:
+                    if features[featId]['feature_end']+int(five_prime_offset)<readPosition:
                         #print" remove "+ featId+" "+ str(features[featId]['feature_end'])
                         window.remove(featId) #Remove features from window which are completely upstream of the read
                     else: #Only features with the read in between start and stop remain in the window
