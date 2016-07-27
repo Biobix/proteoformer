@@ -129,7 +129,7 @@ def main():
 	if(tis_id=='all'):
 		tis_id_list = get_all_tis_ids(sqlitedb)
 	elif(tis_id.isdigit()):
-		tis_id_list.extend(tis_id)
+		tis_id_list.append(tis_id)
 	elif(bool(re.search(',',tis_id))):
 		tis_id_list = re.split(',', tis_id)
 	else:

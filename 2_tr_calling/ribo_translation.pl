@@ -164,6 +164,7 @@ my $chromosome_sizes; my $coord_system_id; my @ch;
 
 $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
 @ch = @{get_chr($chromosome_sizes,$species)};
+print Dumper (@ch);
 #@ch = ("Y","MT");
 $coord_system_id = get_coord_system_id($db_ensembl,$assembly);
 
