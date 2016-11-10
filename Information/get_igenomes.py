@@ -355,6 +355,7 @@ with open('genesTmp.gtf') as genesTmp:
         if(m==None):
             genesFile.write(line)
 genesFile.close()
+os.system("mv genes.gtf genes_"+stringEns_v+".gtf")
 os.system("rm -rf genesTmp.gtf")
 
 
