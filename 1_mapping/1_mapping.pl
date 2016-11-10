@@ -42,7 +42,7 @@ use Cwd;
 #1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split);
 
 GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
@@ -78,7 +78,8 @@ GetOptions(
 "mismatch=i" =>\$mismatch,	              # Alignment will be output only if it has fewer mismatches than this value		optional argument (default = 2)
 "maxmultimap=i" =>\$maxmultimap,		      # Alignments will be output only if the read maps fewer than this value		    optional argument (default = 16)
 "splicing=s" =>\$splicing,                # Allow splicing for genome alignment for eukaryotic species (Y or N)         optional argument (default = Y)
-"firstrankmultimap=s" =>\$FirstRankMultiMap  # Only retain the first ranked alignment of multimapper (Y or N)           optional argument (default = N)
+"firstrankmultimap=s" =>\$FirstRankMultiMap,  # Only retain the first ranked alignment of multimapper (Y or N)           optional argument (default = N)
+"rpf_split=s" =>\$rpf_split                 #If the program needs to construct RPF specific bedgraph files (Y or N)     optional argument (default = N)
 );
 
 
@@ -219,7 +220,12 @@ if ($truseq){
     $truseq = 'Y';
     print "TruSeq strand assignment                                 : $truseq\n";
 }
-
+if ($rpf_split){
+    print "RPF specific bedgraphs                                   : $rpf_split\n";
+} else {
+    $rpf_split = 'N';
+    print "RPF specific bedgraphs                                   : $rpf_split\n";
+}
 if ($phix){
     print "Phix mapping prior to genomic                            : $phix\n";
 } else {
@@ -259,6 +265,9 @@ if ($tr_coord){
 # Create output directory
 system "mkdir -p ".$work_dir."/output/";
 system "mkdir -p ".$work_dir."/fastq/";
+if ($rpf_split eq 'Y'){
+    system "mkdir -p ".$work_dir."/output/rpf_specific_bedgraph/";
+}
 
 if (!defined($out_bg_s_untr))  		{$out_bg_s_untr     = $work_dir."/output/untreat_sense.bedgraph";}
 if (!defined($out_bg_as_untr)) 		{$out_bg_as_untr    = $work_dir."/output/untreat_antisense.bedgraph";}
@@ -411,8 +420,8 @@ foreach (@loopfastQ) {
         my $start = time;
         if (uc($readtype) eq "RIBO") {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
-            RIBO_parse_store($_,$fastqName, 'Y'); # Only A-site parsing if RIBO-seq
-            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique)}
+            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split); # Only A-site parsing if RIBO-seq
+            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split)}
         }
         if (uc($readtype) eq "SE_POLYA") {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
@@ -432,8 +441,8 @@ foreach (@loopfastQ) {
         my $start = time;
         if (uc($readtype) eq "RIBO") {
             map_STAR($_,$fastqName,$clipper,$mismatch);
-            RIBO_parse_store($_,$fastqName, 'Y'); # Only A-site parsing if RIBO-seq
-			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique)}
+            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split); # Only A-site parsing if RIBO-seq
+			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split)}
         }
         if (uc($readtype) eq "SE_POLYA") {
             map_STAR($_,$fastqName,$clipper,$mismatch);
@@ -1677,6 +1686,8 @@ sub RIBO_parse_store {
     my $seqFile = $_[0];
     my $seqFileName = $_[1];
 	my $uniq = $_[2];
+    my $rpf_split = $_[3];
+    
 
     my $bedgr_s = ($seqFileName  eq 'fastq1') ? $out_bg_s_untr : $out_bg_s_tr;
     my $bedgr_as = ($seqFileName  eq 'fastq1') ? $out_bg_as_untr : $out_bg_as_tr;
@@ -1865,7 +1876,61 @@ sub RIBO_parse_store {
         system ("cat ".$temp_bedgr_s." >>". $bed_allgr_sense);
         system ("cat ".$temp_bedgr_as." >>". $bed_allgr_antisense);
     }
-
+    
+    ####RPF LENGTH SPECIFIC BEDGRAPH OUTPUT RIBOseq
+    if($rpf_split eq "Y"){
+        for (my $rpf_length=26; $rpf_length<=34; $rpf_length++){
+            my $bedgr_rpf_s = $work_dir."/output/rpf_specific_bedgraph/".$run_name."_".$seqFileName."_rpf".$rpf_length."_s.bedgraph";
+            my $bedgr_rpf_as = $work_dir."/output/rpf_specific_bedgraph/".$run_name."_".$seqFileName."_rpf".$rpf_length."_as.bedgraph";
+            open (BEDRPFGRS,">".$bedgr_rpf_s) || die "Cannot open the RPF specific BEDGRAPH sense output file for RPF length ".$rpf_length;
+            open (BEDRPFGRAS,">".$bedgr_rpf_as) || die "Cannot open the RPF specific BEDGRAPH antisense output file for RPF length ".$rpf_length;
+            #Write headers
+            print BEDRPFGRS "track type=bedGraph name=\"".$run_name."_".$seqFileName."_".$rpf_length."_s\" description=\"".$run_name."_".$seqFileName."_".$rpf_length."_s\" visibility=full color=3,189,0 priority=20\n";
+            print BEDRPFGRAS "track type=bedGraph name=\"".$run_name."_".$seqFileName."_".$rpf_length."_as\" description=\"".$run_name."_".$seqFileName."_".$rpf_length."_as\" visibility=full color=239,61,14 priority=20\n";
+            
+            #Fetch all counts for that specific rpf length (strand specific)
+            my $dbh_sqlite_results = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
+            #Sense
+            my $query_fetch_rpf_s = "SELECT chr||'_'||start, chr, start, count FROM ".$table_name_RPF." WHERE strand='1' AND RPF='".$rpf_length."';";
+            my $sth_fetch_rpf_s= $dbh_sqlite_results->prepare($query_fetch_rpf_s);
+            $sth_fetch_rpf_s->execute();
+            my $RPF_counts_s = $sth_fetch_rpf_s->fetchall_hashref("chr||'_'||start");
+            my @keys_RPF_counts_s = keys %{$RPF_counts_s};
+            @keys_RPF_counts_s = sort {lc($a) cmp lc($b)} @keys_RPF_counts_s;
+            foreach my $chr_start (@keys_RPF_counts_s){
+                my $RPF_start_pos = $RPF_counts_s->{$chr_start}->{"start"};
+                my $RPF_start_pos_0based = $RPF_start_pos - 1;
+                if($RPF_counts_s->{$chr_start}->{"chr"} eq "MT"){
+                    print BEDRPFGRS "chrM\t".$RPF_start_pos_0based."\t".$RPF_start_pos."\t".$RPF_counts_s->{$chr_start}->{"count"}."\n";
+                } else {
+                    print BEDRPFGRS "chr".$RPF_counts_s->{$chr_start}->{"chr"}."\t".$RPF_start_pos_0based."\t".$RPF_start_pos."\t".$RPF_counts_s->{$chr_start}->{"count"}."\n";
+                }
+            }
+            #Antisense
+            my $query_fetch_rpf_as = "SELECT chr||'_'||start, chr, start, count FROM ".$table_name_RPF." WHERE strand='-1' AND RPF='".$rpf_length."';";
+            my $sth_fetch_rpf_as= $dbh_sqlite_results->prepare($query_fetch_rpf_as);
+            $sth_fetch_rpf_as->execute();
+            my $RPF_counts_as = $sth_fetch_rpf_as->fetchall_hashref("chr||'_'||start");
+            my @keys_RPF_counts_as = keys %{$RPF_counts_as};
+            @keys_RPF_counts_as = sort {lc($a) cmp lc($b)} @keys_RPF_counts_as;
+            foreach my $chr_start (@keys_RPF_counts_as){
+                my $RPF_start_pos = $RPF_counts_as->{$chr_start}->{"start"};
+                my $RPF_start_pos_0based = $RPF_start_pos - 1;
+                if($RPF_counts_as->{$chr_start}->{"chr"} eq "MT"){
+                    print BEDRPFGRAS "chrM\t".$RPF_start_pos_0based."\t".$RPF_start_pos."\t-".$RPF_counts_as->{$chr_start}->{"count"}."\n";
+                } else {
+                    print BEDRPFGRAS "chr".$RPF_counts_as->{$chr_start}->{"chr"}."\t".$RPF_start_pos_0based."\t".$RPF_start_pos."\t-".$RPF_counts_as->{$chr_start}->{"count"}."\n";
+                }
+            }
+            
+            #Disconnect
+            $dbh_sqlite_results->disconnect();
+            
+            close(BEDALLGRS);
+            close(BEDALLGRAS);
+        }
+    }
+    
     #Remove _tmp.bed/_tmp.bedgraph and sorted sam files and move bundled files into output folder
     #    system("mv ". $bed_allgr_sense." ".$work_dir."/output/".$run_name."_".$seqFileName."_s.bedgraph");
     #    system("mv ". $bed_allgr_antisense." ".$work_dir."/output/".$run_name."_".$seqFileName."_as.bedgraph");
@@ -1878,7 +1943,6 @@ sub RIBO_parse_store {
     system("rm -rf ".$TMP."/genomic/".$seqFileName."_*");
     system("rm -rf ".$TMP."/genomic/");
 }
-
 
 ### Generate bedgraph and bam for SE RNA-seq ###
 ### Also works for PE RNA-seq (see: http://cancan.cshl.edu/labmembers/gordon/files/bedtools_genome_cov1.png ) ###
@@ -2014,7 +2078,7 @@ sub RNA_parse_store {
     open(OLDBEDGRS,"<".$TMP."/genomic/bedgraph_old_sense.bedgraph");
     while(<OLDBEDGRS>){
         if($_ =~ m/^MT/){
-            next;
+            print BEDALLGRS "chrM";
         } else {
             print BEDALLGRS "chr".$_;
         }
@@ -2025,7 +2089,7 @@ sub RNA_parse_store {
     open(OLDBEDGRAS,"<".$TMP."/genomic/bedgraph_old_antisense.bedgraph");
     while(<OLDBEDGRAS>){
         if($_ =~ m/^MT/){
-            next;
+            print BEDALLGRAS "chrM";;
         } else {
             print BEDALLGRAS "chr".$_;
         }
