@@ -1028,7 +1028,7 @@ sub check_STAR_index {
 
             #Get Genome fasta and GTF file from iGenome folder (genome sequence is located in /Sequence/WholeGenomeFasta folder)
             my $PATH_TO_FASTA = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/WholeGenomeFasta/genome.fa";
-            my $PATH_TO_GTF   = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/genes_".$ensemblversion".gtf";
+            my $PATH_TO_GTF   = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/genes.gtf";
             system($STAR_loc." --runMode genomeGenerate --sjdbOverhang ".$readlengthMinus." --genomeDir ".$starIndexDirComplete." --genomeFastaFiles ".$PATH_TO_FASTA." --sjdbGTFfile ".$PATH_TO_GTF." --runThreadN ".$cores);
             systemError("STAR genome",$?,$!);
         }
@@ -1295,7 +1295,7 @@ sub map_topHat2 {
 
     # Run TopHat2
     $ref_loc = get_ref_loc($mapper);
-    my $PATH_TO_GTF   = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/genes_".$ensemblversion".gtf";
+    my $PATH_TO_GTF   = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/genes.gtf";
     my $PATH_TO_GENOME_INDEX = $ref_loc."".$IndexGenome;
 
     check_Bowtie_index($IndexGenome,$prev_mapper);
