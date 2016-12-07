@@ -2097,6 +2097,8 @@ sub RNA_parse_store {
     close(OLDBEDGRAS);
     system("rm -rf ".$TMP."/genomic/bedgraph_old_antisense.bedgraph");
     close(BEDALLGRAS);
+    
+    system("rm -rf ".$TMP."/genomic/");
 }
 
 
