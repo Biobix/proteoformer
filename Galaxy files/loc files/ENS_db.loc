@@ -6,7 +6,6 @@
 
 #<value>	<dbkey>	<name>	<path>
 
-ENS_hsa_70	hg19	Human Ensembl version 70 	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/ENS_hsa_70.db
-ENS_mmu_72	mm10	Mouse Ensembl version 72	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/ENS_mmu_72.db
-ENS_dme_74	dme3	Fruitfly Ensembl version 74	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/ENS_dme_74.db
-ENS_ath_16	ath	Arabidopsis Ensembl version 16	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/ENS_ath_16.db	 
+ENS_hsa_86	hg19	Human Ensembl version 86 	/srv/galaxy/server/tool-data/proteoformer/ENS_hsa_86.db
+ENS_mmu_86	mm10	Mouse Ensembl version 86	/srv/galaxy/server/tool-data/proteoformer/ENS_mmu_86.db
+ 

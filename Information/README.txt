@@ -72,30 +72,16 @@ location files need to be added to specific folders of your galaxy system. These
 	- Add the datatype definition file from lib/galaxy/datatypes/proteoformer.py to your galaxy installation
 	
 	- Add the following import line to:  lib/galaxy/datatypes/registry.py
-			import proteoformer # added for PROTEOFORMER pipeline
+			from . import proteoformer # added for PROTEOFORMER pipeline
 					
-    - Copy the proteoformer_tool_conf.xml file to your galaxy installation and add it to the universe_wsgi.ini file:
+    - Copy the proteoformer_tool_conf.xml file to your galaxy installation and add it to the galaxy.ini file:
     		
     		# Tool config files, defines what tools are available in Galaxy.
 		# Tools can be locally developed or installed from Galaxy tool sheds.
 		tool_config_file = proteoformer_tool_conf.xml,tool_conf.xml
 		
-	  or add the <section name="PROTEOFORMER pipeline" id=“proteof”ormer>…</section> from the proteoformer_tool_conf to your tool_conf.xml
+	  or add the <section name="PROTEOFORMER pipeline" id=“proteoformer”>…</section> from the proteoformer_tool_conf to your tool_conf.xml
 	  
-	- Reorganize the integrated_tool_panel.xml and add the following lines where you want them to appear in the galaxy tool column.
-		
-    		<section id=“proteoformer” name="PROTEOFORMER pipeline" version="">
-        		<tool id="mapping" />
-        		<tool id="transcript_calling" />
-        		<tool id="tis_calling" />
-        		<tool id="tis_overview" />
-        		<tool id="snp_calling1" />
-        		<tool id="2_assembly" />
-        		<tool id="Ensembl2Swissprot Mapping" />
-        		<tool id="FlossProteoformer" />
-        		<tool id="metagenic_classification" />
-        		<tool id="gene_distribution" />
-    		</section>
 
 2 Installing prerequisites: Perl packages and tool binaries
 -----------------------------------------------------------
@@ -129,7 +115,7 @@ It is also dependant on a set of tool binaries which should all be installed on 
 		- SQLITE3 (http://www.sqlite.org/download.html)
 		- FASTX toolkit, v.0.0.13 or higher (http://hannonlab.cshl.edu/fastx_toolkit/)
 		
-		[**] The usearchX.Y.Z executatble should be renamed to "usearch"
+		[**] The usearchX.Y.Z executable should be renamed to "usearch"
 		
 The tool binary paths should be included in the $PATH variable. 
 The path to the picard tool JAR files should be added to the $CLASSPATH variable. 
@@ -140,7 +126,10 @@ This can be done globally by altering/adding these variables to the /etc/profile
 
 	Igenomes:
 	---------
+	We provide a script to create the Igenomes folder structure (https://github.com/Biobix/proteoformer/blob/master/Information/get_igenomes.py) 
 	Install the igenomes in a specific igenomes_root folder and make sure it is accessible to the galaxy user.
+
+	Full Igenomes can also be downloaded here:
 	(http://support.illumina.com/sequencing/sequencing_software/igenome.ilmn)
 	
 		- gtf file: 					IGENOMES_ROOT/Mus_musculus/Ensembl/GRCm38/Annotation/Genes/genes.gtf
@@ -163,7 +152,7 @@ This can be done globally by altering/adding these variables to the /etc/profile
 	-------------------------
 	SQLite Ensembl DB with tables gene, coord_system, exon, exon_transcript, transcript, translation and seq_region. 
  		
- 		- You can create these custom sqlite3 databases by using the mysqldump2sqlite3 perl script (mysql2sqlite3/mysqldump2sqlite3.pl).
+ 		- You can create these custom sqlite3 databases by using the ENS_db.py python script (https://github.com/Biobix/proteoformer/blob/master/Information/ENS_db.py).
  		  See script for a detailed how-to. Make sure your sqlite3 database follows the correct naming convention.
  		  		
  		  		Database naming convention:		ENS_[species short name]_[Ensembl annotation version].db
@@ -176,8 +165,6 @@ This can be done globally by altering/adding these variables to the /etc/profile
  		  							ENS_mmu_75.db
  		 							ENS_dme_75.db
  		  							ENS_ath_16.db
- 		  					
- 		- You can also download pre-formatted sqlite databases from the website (www.biobix.be/PROTEOFORMER)
 														
 	Blast search databases:
 	-------------------------
@@ -226,6 +213,6 @@ Add the paths to the Igenome root folder, blast DBs, SNP DBs and Ensembl SQLite 
 	
 	- Igenomes: 			See tools/proteoformer/igenomes.loc for how to configure
 	- Ensembl sqlite dbs:		See tools/proteoformer/ENS_db.loc for how to configure
-	- BlastP dbs:			See tools/proteoformer/blastp_db.loc for how to configurep
+	- BlastP dbs:			See tools/proteoformer/blastp_db.loc for how to configure
 	- UBlast dbs:			See tools/proteoformer/ublast_db.loc for how to configure
 	- SNP  dbs:			See tools/proteoformer/snpdb.loc for how to configure	 

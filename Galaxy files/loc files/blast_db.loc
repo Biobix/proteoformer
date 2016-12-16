@@ -2,11 +2,9 @@
 # list of Blast search databases, using three columns tab separated
 # (longer whitespace are TAB characters):
 
-# !!! TODO  Download tool specific Ensembl sqlite databases from ………
-
 #<value>	<dbkey>	<name>	<path>
 
-blastp_mm	db2	Mouse Database	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/Mus_Musculus/Mus_Musculus
-blastp_arath	db3	Arabidopsis Thaliana	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/ARATH/ARATH
-blastp_hs	db4	Homo Sapiens	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/Homo_sapiens/Homo_sapiens
+blastp_mm	db2	Mouse Database	/srv/galaxy/server/tool-data/proteoformer/blastdb/Mus_Musculus/Mus_Musculus
+blastp_arath	db3	Arabidopsis Thaliana	/srv/galaxy/server/tool-data/proteoformer/blastdb/ARATH/ARATH
+blastp_hs	db4	Homo Sapiens	/srv/galaxy/server/tool-data/proteoformer/blastdb/Homo_sapiens/Homo_sapiens
 

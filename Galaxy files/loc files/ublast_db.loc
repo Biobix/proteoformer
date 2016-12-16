@@ -6,7 +6,7 @@
 
 #<value>	<dbkey>	<name>	<path>
 
-ublast_mm	db2	Mus Musculus	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/Mus_Musculus/Mus_Musculus.udb
-ublast_arath	db3	Arabidopsis Thaliana	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/ARATH/ARATH.udb
-ublast_dme	db4	Drosophila Melanogaster	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/drosophilia/drosophilia.udb
-ublast_hs	db5	Homo Sapiens	/data/galaxyp/tools/ribo_prof_pipeline/tool-data/blastdb/Homo_sapiens/Homo_sapiens.udb
+ublast_mm	db2	Mus Musculus	/srv/galaxy/server/tool-data/proteoformer/blastdb/Mus_Musculus/Mus_Musculus.udb
+ublast_arath	db3	Arabidopsis Thaliana	/srv/galaxy/server/tool-data/proteoformer/blastdb/ARATH/ARATH.udb
+ublast_dme	db4	Drosophila Melanogaster	/srv/galaxy/server/tool-data/proteoformer/blastdb/drosophilia/drosophilia.udb
+ublast_hs	db5	Homo Sapiens	/srv/galaxy/server/tool-data/proteoformer/blastdb/Homo_sapiens/Homo_sapiens.udb

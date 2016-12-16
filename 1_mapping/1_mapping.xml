@@ -84,7 +84,7 @@
             <option value="fruitfly">fruitfly</option>
             <option value="arabidopsis">arabidopsis</option>
         </param>
-        <param name="ensembl"  size="5"   value="75"             type="integer"   label="select the ensembl annotation version"/>
+        <param name="ensembl"  size="5"   value="86"             type="integer"   label="select the ensembl annotation version"/>
 
         <conditional name="choose">
             <param name="mapper" type="select" label="choose the transcriptome mapper (for RNA-seq, only STAR is supported)" multiple="false">

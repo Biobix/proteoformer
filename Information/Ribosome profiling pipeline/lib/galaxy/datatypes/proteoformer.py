@@ -1,7 +1,7 @@
 """
-    Ribo profiling tool datatypes
+    PROTEOFORMER tool datatypes
     Biobix - Ghent University
-    for Ribo_prof_pipeline
+    for PROTEOFORMER Pipeline
     """
 
 from galaxy import eggs
@@ -19,15 +19,15 @@ from galaxy.datatypes.binary import Binary
 
 log = logging.getLogger(__name__)
 
-## Ribo prof pipeline Classes
+## PROTEOFORMER pipeline Classes
 
 class TisOverview(Tabular):
     file_ext = 'tis'
     MetadataElement( name="args", default=[], desc="Tis Args", readonly=True, visible=True, no_value=[] )
     def __init__(self, **kwd):
         Tabular.__init__( self, **kwd )
-        self.column_names = ['ID','local_max','min_count_aTIS','R_aTis','min_count_5UTR','R_5UTR','min_count_CDS','R_CDS','min_count_3UTR','R_3UTR','min_count_no_trans','R_no_trans']
-        self.columns = 12
+        self.column_names = ['ID','local_max','min_count_aTIS','R_aTis','min_count_5UTR','R_5UTR','min_count_CDS','R_CDS','min_count_3UTR','R_3UTR','min_count_no_trans','R_no_trans','SNP']
+        self.columns = 13
     
     def set_meta( self, dataset, overwrite = True, skip = None, max_data_lines = None, **kwd ):
         Tabular.set_meta(self, dataset, overwrite, skip, max_data_lines)
@@ -48,10 +48,6 @@ class TisOverview(Tabular):
         finally:
             fh.close()
 
-class SqliteDb( Binary ):
-    file_ext = 'sqlitedb'
-    is_binary = True
-#allow_datatype_change = False
 
 
 

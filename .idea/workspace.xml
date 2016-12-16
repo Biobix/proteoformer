@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="fe08b478-21a0-4389-b6d0-d1e7bd7b659a" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/1_mapping/1_mapping.pl" afterPath="$PROJECT_DIR$/1_mapping/1_mapping.pl" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Information/get_igenomes.py" afterPath="$PROJECT_DIR$/Information/get_igenomes.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="Proteoformer.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -25,44 +24,12 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="1_mapping.pl" pinned="false" current-in-tab="false">
+      <file leaf-file-name="1_mapping.pl" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/1_mapping/1_mapping.pl">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="15.962963">
-              <caret line="1287" column="36" selection-start-line="1287" selection-start-column="36" selection-end-line="1287" selection-end-column="36" />
+            <state vertical-scroll-proportion="0.9378981">
+              <caret line="1735" column="0" selection-start-line="1735" selection-start-column="0" selection-end-line="1735" selection-end-column="0" />
               <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="get_igenomes.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Information/get_igenomes.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-11.259259">
-              <caret line="337" column="21" selection-start-line="337" selection-start-column="12" selection-end-line="337" selection-end-column="21" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ENS_db.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/Information/ENS_db.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.5756579">
-              <caret line="68" column="18" selection-start-line="68" selection-start-column="18" selection-end-line="68" selection-end-column="18" />
-              <folding>
-                <marker date="1454601944000" expanded="true" signature="9757:9788" placeholder="INSERT INTO coord_system... " />
-                <marker date="1454601944000" expanded="true" signature="10228:10251" placeholder="INSERT INTO exon... " />
-                <marker date="1454601944000" expanded="true" signature="10694:10728" placeholder="INSERT INTO exon_transcript... " />
-                <marker date="1454601944000" expanded="true" signature="11171:11194" placeholder="INSERT INTO gene... " />
-                <marker date="1454601944000" expanded="true" signature="11632:11661" placeholder="INSERT INTO seq_region... " />
-                <marker date="1454601944000" expanded="true" signature="12105:12134" placeholder="INSERT INTO transcript... " />
-                <marker date="1454601944000" expanded="true" signature="12579:12609" placeholder="INSERT INTO translation... " />
-                <marker date="1454601944000" expanded="true" signature="13081:13111" placeholder="INSERT INTO object_xref... " />
-                <marker date="1454601944000" expanded="true" signature="13726:13749" placeholder="INSERT INTO xref... " />
-                <marker date="1454601944000" expanded="true" signature="13818:13841" placeholder="INSERT INTO xref... " />
-                <marker date="1454601944000" expanded="true" signature="13902:13925" placeholder="INSERT INTO xref... " />
-              </folding>
             </state>
           </provider>
         </entry>
@@ -86,10 +53,9 @@
     <detection-done>true</detection-done>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-1791" />
-    <option name="y" value="-257" />
-    <option name="width" value="1791" />
-    <option name="height" value="1057" />
+    <option name="y" value="23" />
+    <option name="width" value="1280" />
+    <option name="height" value="773" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
@@ -116,6 +82,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -164,8 +132,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scratches" />
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -185,26 +151,26 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1791" y="-257" width="1791" height="1057" extended-state="0" />
+    <frame x="0" y="23" width="1280" height="773" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info id="Remote Host" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25271583" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Remote Host" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.36106622" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
-      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
     </layout>
@@ -217,26 +183,17 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/1_mapping/1_mapping.pl">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="15.962963">
-          <caret line="1287" column="36" selection-start-line="1287" selection-start-column="36" selection-end-line="1287" selection-end-column="36" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/Information/get_igenomes.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="-11.259259">
           <caret line="337" column="21" selection-start-line="337" selection-start-column="12" selection-end-line="337" selection-end-column="21" />
-          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Information/ENS_db.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5756579">
-          <caret line="68" column="18" selection-start-line="68" selection-start-column="18" selection-end-line="68" selection-end-column="18" />
+        <state vertical-scroll-proportion="-7.7777777">
+          <caret line="74" column="39" selection-start-line="74" selection-start-column="34" selection-end-line="74" selection-end-column="39" />
           <folding>
             <marker date="1454601944000" expanded="true" signature="9757:9788" placeholder="INSERT INTO coord_system... " />
             <marker date="1454601944000" expanded="true" signature="10228:10251" placeholder="INSERT INTO exon... " />
@@ -250,6 +207,14 @@
             <marker date="1454601944000" expanded="true" signature="13818:13841" placeholder="INSERT INTO xref... " />
             <marker date="1454601944000" expanded="true" signature="13902:13925" placeholder="INSERT INTO xref... " />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/1_mapping/1_mapping.pl">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.9378981">
+          <caret line="1735" column="0" selection-start-line="1735" selection-start-column="0" selection-end-line="1735" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
