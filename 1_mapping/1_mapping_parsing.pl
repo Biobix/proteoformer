@@ -42,7 +42,7 @@ use Cwd;
 #1_mapping.pl --out_sqlite SQLite/results.db
 
 # get the command line arguments
-my ($work_dir,$tmpfolder,$out_sqlite,$offset_option,$offset_file);
+my ($work_dir,$tmpfolder,$out_sqlite,$offset_option,$offset_file,$min_l_count,$max_l_count);
 
 GetOptions(
 "tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
@@ -52,7 +52,9 @@ GetOptions(
 #                                                       Standard: if you use the standard offset lengths used by Ingolia et al. (2009)
 #                                                       From_file: from txt file with rpf_length, offset format as in plastid
 #                                                       Plastid: if you have run the mapping module with plastid before
-"offset_file:s" =>\$offset_file             # offset input file                                                             mandatory argument if offset argument is 'from_file'
+"offset_file:s" =>\$offset_file,             # offset input file                                                             mandatory argument if offset argument is 'from_file'
+"min_l_count:s" =>\$min_l_count,             # Minimum length of RPF to be included in count table (RPF_split count table includes all RPF lengths)     optional  argument (default: 25 for fruitfly, 26 for ohter species)
+"max_l_count:s" =>\$max_l_count              # Maxuimum length of RPF to be included in count table (RPF_split count table includes all RPF lengths)    optional  argument (default: 34)
 );
 
 
@@ -118,6 +120,26 @@ print "The following Ensembl version is used            : $ensemblversion\n";
 print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
 print "Number of cores to use for analysis			: $cores\n";
 
+#comment on input, part 2
+if ($min_l_count){
+    print "Minimum length count table:                              : $min_l_count\n";
+} else {
+    #Set default
+    if(uc($species) eq "FRUITFLY"){
+        $min_l_count = 25;
+    } else {
+        $min_l_count = 26;
+    }
+    print "Minimum length count table:                              : $min_l_count\n";
+}
+if ($max_l_count){
+    print "Maximum length count table:                              : $max_l_count\n";
+} else {
+    #Set default
+    $max_l_count = 34;
+    print "Maximum length count table:                              : $max_l_count\n";
+}
+
 #Conversion for species terminology
 my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" : (uc($species) eq "HUMAN") ? "Homo_sapiens" : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" : "";
 my $spec_short = (uc($species) eq "MOUSE") ? "mmu" : (uc($species) eq "HUMAN") ? "hsa" : (uc($species) eq "ARABIDOPSIS") ? "ath" : (uc($species) eq "FRUITFLY") ? "dme" : "";
@@ -174,8 +196,8 @@ foreach (@loopfastQ) {
         print "Mapping parsing of TopHat2\n";
         my $start = time;
         if (uc($readtype) eq "RIBO") {
-            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap); # Only A-site parsing if RIBO-seq
-            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap)}
+            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count); # Only A-site parsing if RIBO-seq
+            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count)}
         }
         if (uc($readtype) eq "SE_POLYA") {
             RNA_parse_store($_,$fastqName, $unique, $truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap);
@@ -192,8 +214,8 @@ foreach (@loopfastQ) {
 		print "Mapping parsing of STAR\n";
         my $start = time;
         if (uc($readtype) eq "RIBO") {
-            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap); # Only A-site parsing if RIBO-seq
-			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap)}
+            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count); # Only A-site parsing if RIBO-seq
+			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count)}
         }
         if (uc($readtype) eq "SE_POLYA") {
 			RNA_parse_store($_,$fastqName, $unique, $truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap);
@@ -256,6 +278,8 @@ sub RIBO_parse_store {
     my $out_sam_tr = $_[11];
     my $run_name = $_[12];
     my $maxmultimap = $_[13];
+    my $min_l_count = $_[14];
+    my $max_l_count = $_[15];
     
 
     my $bedgr_s = ($seqFileName  eq 'fastq1') ? $out_bg_s_untr : $out_bg_s_tr;
@@ -384,7 +408,7 @@ sub RIBO_parse_store {
         my $dbh = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
 
         ### RIBO parsing
-        my ($hits,$hits_splitRPF) = RIBO_parsing_genomic_per_chr($work_dir,$seqFileName,$run_name,$sam,$chr,$offset_hash);
+        my ($hits,$hits_splitRPF) = RIBO_parsing_genomic_per_chr($work_dir,$seqFileName,$run_name,$sam,$chr,$offset_hash,$min_l_count,$max_l_count);
 
         ### To File
         store_in_file_per_chr($hits,$hits_splitRPF,$dbh,$seqFileName,$chr,$run_name);
@@ -859,6 +883,8 @@ sub RIBO_parsing_genomic_per_chr {
     my $sam = $_[3];
     my $chr = $_[4];
     my $offset_hash = $_[5];
+    my $min_l_count = $_[6];
+    my $max_l_count = $_[7];
 
     my @splitsam = split(/\//, $sam );
     my $samFileName = $splitsam[$#splitsam];
@@ -901,7 +927,7 @@ sub RIBO_parsing_genomic_per_chr {
                 if ($strand eq "+") { $plus_count++;} elsif ($strand eq "-") { $min_count++; }
                 foreach my $n (keys %{$prunedalignment}){
                     $start = ($strand eq "+") ? $mapping_store[3] + $prunedalignment->{$n}{'intron_total'} + $n -1: ($strand eq "-") ? $mapping_store[3] -$n - $prunedalignment->{$n}{'intron_total'} + $extra_for_min_strand : "";
-                    if ( $genmatchL >= 25 && $genmatchL <= 34) {
+                    if ( $genmatchL >= $min_l_count && $genmatchL <= $max_l_count) {
                         if ( exists $hits_genomic->{$chr}->{$start}->{$strand} ){
                             $hits_genomic->{$chr}->{$start}->{$strand} = $hits_genomic->{$chr}->{$start}->{$strand} + (1/$pruned_alignmentL);
                         }else {
@@ -919,7 +945,7 @@ sub RIBO_parsing_genomic_per_chr {
 
             $hits_genomic_splitRPF->{$chr}->{$start}->{$genmatchL}->{$strand}++;
 
-            if ( $genmatchL >= 26 && $genmatchL <= 34) {
+            if ( $genmatchL >= $min_l_count && $genmatchL <= $max_l_count) {
                 $hits_genomic->{$chr}->{$start}->{$strand}++;
                 if ($strand eq "+") { $plus_count++;} elsif ($strand eq "-") { $min_count++; }
             }

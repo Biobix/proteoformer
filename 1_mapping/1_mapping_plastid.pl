@@ -57,7 +57,7 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Get arguments vars
-my ($species,$ensemblversion,$IGENOMES_ROOT,$run_name,$bam_untr) = get_ARG_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
+my ($species,$ensemblversion,$IGENOMES_ROOT,$run_name,$bam_untr,$min_length,$max_length) = get_ARG_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
 # Get executables
 my $sqlite_loc = "sqlite3";
 
@@ -92,7 +92,7 @@ generate_metagene($genes_gtf,$run_name);
 
 index_bam($bam_untr);
 
-calculate_offset($bam_untr,$run_name);
+calculate_offset($bam_untr,$run_name,$min_length,$max_length);
 
 dump_offsets_in_sqlite($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name);
 
@@ -150,9 +150,11 @@ sub calculate_offset{
     #catch
     my $bam = $_[0];
     my $run_name = $_[1];
+    my $min_l = $_[2];
+    my $max_l =$_[3];
     
     #Build command
-    my $command = "psite ".$run_name."_rois.txt ".$run_name." --min_length 22 --max_length 34 --require_upstream --count_files ".$bam;
+    my $command = "psite ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam;
     
     #Execute command
     print "Calculate psite\n".$command."\n\n";
@@ -260,10 +262,22 @@ sub get_ARG_vars{
     my $out_bam_untr = $sth->fetch()->[0];
     $sth->finish();
     
+    $query = "select value from arguments where variable = \'min_l_plastid\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $min_l_plastid = $sth->fetch()->[0];
+    $sth->finish();
+    
+    $query = "select value from arguments where variable = \'max_l_plastid\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $max_l_plastid = $sth->fetch()->[0];
+    $sth->finish();
+    
     $dbh_results -> disconnect();
     
     # Return ARG variables
-    return($species,$version,$IGENOMES_ROOT,$run_name,$out_bam_untr);
+    return($species,$version,$IGENOMES_ROOT,$run_name,$out_bam_untr,$min_l_plastid,$max_l_plastid);
 }
 
 ### DBH ###
