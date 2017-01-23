@@ -14,7 +14,7 @@ README SNP calling (alexander, adaptations 2015 steven)
 - Ensembl SQLite database (ENS_db.py to download the right database)
 - SNPdb data in VCF file format
 	• mouse: ftp://ftp.ncbi.nih.gov/snp/organisms/mouse_10090/VCF/genotype/SC_MOUSE_GENOMES.genotype.vcf.gz --> /home/galaxy/app/tools/ribo_prof_pipeline/tool-data/snpdb_mouse_GRCm38.vcf
-	• human: ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/common_all.vcf.gz --> /home/galaxy/app/tools/ribo_prof_pipeline/tool-data/snpdb_human_GRCm37.vcf
+	• human: ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/common_all.vcf.gz --> /home/galaxy/app/tools/ribo_prof_pipeline/tool-data/snpdb_human_GRCh38.vcf
 	• fruitfly: --> /home/galaxy/app/tools/ribo_prof_pipeline/tool-data/snpdb_fruitfly_BDGPr5.vcf
 		the SNP data for drosophila is not available in one file, the following lines of code show you how to download the separate files and how to merge them in a single vcf file
 		wget ftp://ftp.ncbi.nih.gov/snp/organisms/fruitfly_7227/VCF/vcf_chr_2L.vcf.gz
