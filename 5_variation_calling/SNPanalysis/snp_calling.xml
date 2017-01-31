@@ -19,17 +19,17 @@
         <param name="mapped_reads" type="data" format="sam" label="Select the sam file with the mapped untreated reads" />
         <conditional name="remove_duplicates">
             <param name="remove_duplicates_check" type="select" label="remove duplicate reads with picard">
-                <option value="y" selected="true">yes</option>
-                <option value="n">no</option>
+                <option value="y">yes</option>
+                <option value="n" selected="true">no</option>
             </param>
             <when value="y">
-                <param name="picard_path" type="hidden" value="/lib/picard-tools-1.119"/>
+                <param name="picard_path" type="hidden" value="">
             </when>
         </conditional>
         <conditional name="snpdb">
             <param name="snpdb_selected" type="select" label="Compare the SNP calling results to SNPdb data">
-                <option value="y" selected="true">yes</option>
-                <option value="n">no</option>
+                <option value="y">yes</option>
+                <option value="n" selected="true">no</option>
             </param>
             <when value="y">
                 <param name="snpdb_file" type="select" label="Select the corresponding SNPdb" help="The variant databases are species and annotation version specific. If your genome of interest is not listed - contact your administrator.">

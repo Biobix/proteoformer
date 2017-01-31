@@ -8,6 +8,7 @@ use Parallel::ForkManager;
 use Getopt::Long;
 use Storable 'dclone';
 use Cwd;
+use experimental 'smartmatch'; #Temporary fix for experimental smartMatch (in future replace with match::smart module
 
 #################
 # Perl commands #
