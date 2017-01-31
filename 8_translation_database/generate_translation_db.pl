@@ -400,7 +400,7 @@ sub write_output {
 		
 		if ($transcript->{$tr}->{'others'}) {
 			my @Others = uniq(@{$transcript->{$tr}->{'others'}});
-			$desc = $desc," [",join("#",@Others),"]";
+			$desc = $desc." [".join("#",@Others)."]";
 		}
 		my $seq_obj = Bio::Seq->new(-display_id => $id, -desc => $desc, -seq => $transcript->{$tr}->{'seq'});
 		$seq_out->write_seq($seq_obj);
