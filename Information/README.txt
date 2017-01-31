@@ -102,6 +102,7 @@ It is also dependant on a set of tool binaries which should all be installed on 
 		- LWP::UserAgent
 		- XML::Smart
 		- Statistics::R
+		- Clone::PP
 
 	Tool binaries:
 	------

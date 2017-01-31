@@ -12,6 +12,7 @@ use Parallel::ForkManager;
 use Cwd;
 use IO::Handle;
 use Clone::PP qw(clone);
+no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 
 ##############
 ##Command-line
