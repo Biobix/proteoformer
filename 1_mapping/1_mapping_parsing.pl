@@ -608,7 +608,6 @@ sub RIBO_parse_store {
     system("rm -rf ".$TMP."/genomic/".$run_name."_".$seqFileName."_*_s_tmp.bedgraph");
     system("rm -rf ".$TMP."/genomic/".$run_name."_".$seqFileName."_*_as_tmp.bedgraph");
     system("rm -rf ".$TMP."/genomic/".$seqFileName."_*");
-    system("rm -rf ".$TMP."/genomic/");
 }
 
 ### Generate bedgraph and bam for SE RNA-seq ###
