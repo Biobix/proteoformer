@@ -196,8 +196,8 @@ foreach (@loopfastQ) {
         print "Mapping parsing of TopHat2\n";
         my $start = time;
         if (uc($readtype) eq "RIBO") {
-            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count); # Only A-site parsing if RIBO-seq
-            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count)}
+            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species); # Only A-site parsing if RIBO-seq
+            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species)}
         }
         if (uc($readtype) eq "SE_POLYA") {
             RNA_parse_store($_,$fastqName, $unique, $truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap);
@@ -214,8 +214,8 @@ foreach (@loopfastQ) {
 		print "Mapping parsing of STAR\n";
         my $start = time;
         if (uc($readtype) eq "RIBO") {
-            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count); # Only A-site parsing if RIBO-seq
-			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count)}
+            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species); # Only A-site parsing if RIBO-seq
+			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species)}
         }
         if (uc($readtype) eq "SE_POLYA") {
 			RNA_parse_store($_,$fastqName, $unique, $truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap);
@@ -280,6 +280,7 @@ sub RIBO_parse_store {
     my $maxmultimap = $_[13];
     my $min_l_count = $_[14];
     my $max_l_count = $_[15];
+    my $species = $_[16];
     
 
     my $bedgr_s = ($seqFileName  eq 'fastq1') ? $out_bg_s_untr : $out_bg_s_tr;
@@ -382,6 +383,13 @@ sub RIBO_parse_store {
         }
     } else {
         #Standard offset options from Ingolia paper
+        if(uc($species) eq 'FRUITFLY'){
+            $offset_hash->{25} = 12;
+        }
+        $offset_hash->{26} = 12;
+        $offset_hash->{27} = 12;
+        $offset_hash->{28} = 12;
+        $offset_hash->{29} = 12;
         $offset_hash->{30} = 12;
         $offset_hash->{31} = 13;
         $offset_hash->{32} = 13;
@@ -389,7 +397,11 @@ sub RIBO_parse_store {
         $offset_hash->{34} = 14;
         
         #Boundaries
-        $offset_hash->{"min"} = 30;
+        if(uc($species) eq 'FRUITFLY'){
+            $offset_hash->{"min"} = 25;
+        } else {
+            $offset_hash->{"min"} = 26;
+        }
         $offset_hash->{"max"} = 34;
     }
     
