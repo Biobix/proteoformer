@@ -195,7 +195,7 @@ foreach (@loopfastQ) {
 
         print "Mapping parsing of TopHat2\n";
         my $start = time;
-        if (uc($readtype) eq "RIBO") {
+        if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr") {
             RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species); # Only A-site parsing if RIBO-seq
             if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species)}
         }
@@ -213,7 +213,7 @@ foreach (@loopfastQ) {
         
 		print "Mapping parsing of STAR\n";
         my $start = time;
-        if (uc($readtype) eq "RIBO") {
+        if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr") {
             RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species); # Only A-site parsing if RIBO-seq
 			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species)}
         }

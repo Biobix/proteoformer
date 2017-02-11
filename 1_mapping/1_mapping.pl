@@ -51,7 +51,7 @@ GetOptions(
 "species=s"=>\$species,                 	# Species, eg mouse/human/fruitfly/arabidopsis                            mandatory argument
 "ensembl=i"=>\$ensemblversion,          	# Ensembl annotation version, eg 66 (Feb2012),                      			mandatory argument
 "cores=i"=>\$cores,                     	# Number of cores to use for Bowtie Mapping,                        			mandatory argument
-"readtype=s"=>\$readtype,              		# The readtype (ribo, PE_polyA, SE_polyA, PE_total, SE_total)       			mandatory argument (default = ribo)
+"readtype=s"=>\$readtype,              		# The readtype (ribo, ribo_untr, PE_polyA, SE_polyA, PE_total, SE_total)       	mandatory argument (default = ribo)
 "mapper:s"=>\$mapper,                   	# The mapper used for alignment (STAR,TopHat2)       			                optional  argument (default = STAR)
 "readlength:i"=>\$readlength,           	# The readlength (if RiboSeq take 50 bases),                        			optional  argument (default = 50)
 "adaptor:s"=>\$adaptorSeq,              	# The adaptor sequence that needs to be clipped with fastx_clipper, 			optional  argument (default = CTGTAGGCACCATCAAT) => Ingolia paper (for ArtSeq = AGATCGGAAGAGCACAC)
@@ -125,7 +125,11 @@ if ($seqFileName2){
 } elsif (!defined($seqFileName2) && (uc($readtype) eq 'RIBO' || uc($readtype) eq 'PE_polyA' || uc($readtype) eq 'PE_total')) {
     die "\nDon't forget to pass the FastQ file for treated RIBO-seq (PUR,LTM,HARR) or 2nd fastq for paired-end RNA-seq using the --file or -f argument!\n\n";
 } else {
-    $seqFileName2 = "Single End RNA sequencing";
+    if ($readtype eq 'ribo_untr'){
+        $seqFileName2 = "Ribo-seq only untreated";
+    } else {
+        $seqFileName2 = "Single End RNA sequencing";
+    }
 }
 if ($IGENOMES_ROOT){
     print "the igenomes_root folder used is                         : $IGENOMES_ROOT\n";
@@ -285,7 +289,7 @@ if ($tr_coord){
     $tr_coord = 'N';
     print "generate alignment file based on transcriptome coord     : $tr_coord\n";
 }
-if($readtype eq "ribo"){
+if($readtype eq "ribo" || $readtype eq "ribo_untr"){
     if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid"){
         print "Mapping suite                                               : $suite\n";
         if($suite eq "standard"){
@@ -471,6 +475,9 @@ foreach (@loopfastQ) {
         if (uc($readtype) eq "RIBO") {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
         }
+        if ($readtype eq "ribo_untr"){
+            map_topHat2($_,$fastqName,$clipper,$mismatch);
+        }
         if (uc($readtype) eq "SE_POLYA") {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
         }
@@ -486,6 +493,9 @@ foreach (@loopfastQ) {
 		print "Mapping with STAR\n";
         my $start = time;
         if (uc($readtype) eq "RIBO") {
+            map_STAR($_,$fastqName,$clipper,$mismatch);
+        }
+        if ($readtype eq "ribo_untr"){
             map_STAR($_,$fastqName,$clipper,$mismatch);
         }
         if (uc($readtype) eq "SE_POLYA") {
@@ -724,7 +734,7 @@ sub map_STAR {
     print "   Mapping $seqFileName"."\n";
 
     # Get input fastq file
-    if (uc($readtype) eq "RIBO" || uc($readtype) =~ m/SE/) {
+    if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr" || uc($readtype) =~ m/SE/) {
         $fasta = $seqFile;
     } elsif (uc($readtype) =~ m/PE/) {
         $fasta1 = $seqFile;
@@ -950,7 +960,7 @@ sub map_STAR {
     # Map vs genomic
     print "     Mapping against genomic $seqFileName"."\n";
 
-    if (uc($readtype) eq "RIBO") {
+    if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr") {
 
 		    if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
         $ref_loc = get_ref_loc($mapper);
@@ -1207,7 +1217,7 @@ sub map_topHat2 {
     my ($fasta,$fasta1,$fasta2,$command,$full_command);
 
     # Get input fastq file
-    if (uc($readtype) eq "RIBO" || uc($readtype) =~ m/SE/) {
+    if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr" || uc($readtype) =~ m/SE/) {
         $fasta = $seqFile;
     } elsif (uc($readtype) =~ m/PE/) {
         $fasta1 = $seqFile;
@@ -1363,7 +1373,7 @@ sub map_topHat2 {
     # Tophat parameters:
     #   --max-multihits: only ouput that many hits if read maps to multiple locations, if more equally scoring options are available than set with this value, a limited number is randomly selected)
     #   --report-secondary-alignments: this parameter shouldn't be set, suboptimal (i.e. with lower score) are not retained
-    if (uc($readtype) eq "RIBO") {
+    if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr") {
 
         if ($unique eq 'Y' || $FirstRankMultiMap eq 'Y') {$maxmultimap = 1}  # to ensure unique mapping
         $command = $tophat2_loc." -N ". $mismatch." --max-multihits ".$maxmultimap." --no-coverage-search --segment-length 15 --output-dir ".$directory." -p ".$cores." --GTF ".$PATH_TO_GTF." ". $PATH_TO_GENOME_INDEX ." ". $fasta. " 2>&1";
@@ -1489,7 +1499,7 @@ sub store_statistics {
         foreach my $ref (keys %{$stat->{$sample}}) {
             #The previous ma
             if (uc($mapper) eq 'STAR' || uc($mapper) eq 'TOPHAT2' || uc($mapper) eq 'BOWTIE' || uc($mapper) eq 'BOWTIE2') {
-                if (uc($readtype) eq 'RIBO') {
+                if (uc($readtype) eq 'RIBO' || $readtype eq "ribo_untr") {
                     $prev_ref = ($ref eq "genomic") ? "rRNA" : "";
                     $total = ($ref eq "rRNA" || $ref eq "phix" || $ref eq "snRNA" || $ref eq "tRNA") ? $stat->{$sample}->{$ref}->{"fastq"} : $stat->{$sample}->{$prev_ref}->{"unhit"};
 
