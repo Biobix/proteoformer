@@ -92,7 +92,7 @@ os.system('mkdir tmp/ENS')
 
 speciesdict = {'human': 'hsa', 'mouse': 'mmu', 'fruitfly': 'dme', 'yeast': 'sce', 'c.elegans': 'cel','homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'drosophila_melanogaster': 'dme', 'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel'};
 
-#print speciesdict[species]
+print speciesdict[species]
 
 #
 # Check whether database already exists
