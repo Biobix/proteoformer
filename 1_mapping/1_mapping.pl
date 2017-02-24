@@ -438,7 +438,7 @@ my $stat_file;
 # Dependent on RIBO-seq or RNA-seq run one has to iterate 2 times (RIBO-seq, both untreated and treated, or just once (RNA-seq).
 # For paired-end reads the read files are passed as comma-separated list.
 my @loopfastQ;
-if (uc($readtype) eq 'RIBO') {
+if (uc($readtype) eq 'RIBO' || uc($readtype) =~ m/SE/) {
     @loopfastQ = ($seqFileName1,$seqFileName2);
 }
 else {
@@ -478,7 +478,7 @@ foreach (@loopfastQ) {
         if ($readtype eq "ribo_untr"){
             map_topHat2($_,$fastqName,$clipper,$mismatch);
         }
-        if (uc($readtype) eq "SE_POLYA") {
+        if (uc($readtype) =~ m/SE/) {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
         }
         if (uc($readtype) =~ m/PE/) {
@@ -498,7 +498,7 @@ foreach (@loopfastQ) {
         if ($readtype eq "ribo_untr"){
             map_STAR($_,$fastqName,$clipper,$mismatch);
         }
-        if (uc($readtype) eq "SE_POLYA") {
+        if (uc($readtype) =~ m/SE/) {
             map_STAR($_,$fastqName,$clipper,$mismatch);
         }
         if (uc($readtype) =~ m/PE/) {
