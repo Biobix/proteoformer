@@ -349,16 +349,20 @@ sub generate_trans_db {
 		} elsif ($blast_pgm eq "ublast")  {
 			$non_redundant_transcript = ublast($non_redundant_transcript, $file_to_blast);
 		}
-		
-	}
-	
+	}	
+
 	my $output_dir = $work_dir;
-	unless (-d "$output_dir") { system ("mkdir ".$output_dir)}
-	$translation_db =  path($species."_".$table.".fasta",$output_dir);
-	$snp_file =  path($species."_".$table."_SNP.txt",$output_dir);
-	#unless ($translation_db) { $translation_db =  path($species."_".$table.".fasta",$output_dir)}
-	
-	write_output($non_redundant_transcript,$translation_db,$output_dir, $snp_file);
+	unless ($translation_db) {
+		unless (-d "$output_dir") { system ("mkdir ".$output_dir)}
+		$translation_db =  path($species."_".$table.".fasta",$output_dir);
+	} 
+
+	unless ($snp_file) {
+		unless (-d "$output_dir") { system ("mkdir ".$output_dir)}
+		$snp_file =  path($species."_".$table."_SNP.txt",$output_dir);
+	}
+
+	write_output($non_redundant_transcript,$translation_db,$snp_file);
 	
 	timer($startRun);	# Get Run time
 	print STDOUT "\n";
@@ -370,8 +374,7 @@ sub write_output {
 
 	my $transcript 	= $_[0];
 	my $output 		= $_[1];
-	my $output_dir 	= $_[2];
-	my $snp_file 	= $_[3];
+	my $snp_file 	= $_[2];
 
 	my $count_mapped = 0;		
 	my %annotations_mapped = ();
@@ -439,7 +442,7 @@ sub write_output {
 	}
 	close F;
 
-	print STDOUT "Output files written to directory: $output_dir\n";
+	print STDOUT "Generated database written to file $output\n";
 
 }
 
