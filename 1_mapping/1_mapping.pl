@@ -36,13 +36,13 @@ use Cwd;
 ##############
 ##Command-line
 ##############
-# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --firstrankmultimap N --min_l_plastid 22 --max_l_plastid 34 --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_bam_untr bam_untr --out_bam_tr bam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP --suite custom)
+# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --firstrankmultimap N --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_bam_untr bam_untr --out_bam_tr bam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP --suite custom)
 
 #For GALAXY
 #1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite,$suite_tools_loc);
 
 GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
@@ -90,6 +90,7 @@ GetOptions(
                                                         #Custom: only mapping, other modules manually afterwards
                                                         #Standard: mapping + parsing with standard offset
                                                         #Plastid: mapping + default p offset calculation with plastid + parsing based on these offsets
+"suite_tools_loc=s" =>\$suite_tools_loc     #The folder with script of subsequent tools when using a suite                  optional argument (default = workdir)
 );
 
 
@@ -310,14 +311,20 @@ if ($tr_coord){
 if($readtype eq "ribo" || $readtype eq "ribo_untr"){
     if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid"){
         print "Mapping suite                                               : $suite\n";
+        if ($suite_tools_loc){
+            print "Mapping suite tools folder                                       : $suite_tools_loc\n";
+        } else {
+            $suite_tools_loc = $work_dir;
+            print "Mapping suite tools folder                                       : $suite_tools_loc\n";
+        }
         if($suite eq "standard"){
-            if(!-e "1_mapping_parsing.pl"){
+            if(!-e $suite_tools_loc."/1_mapping_parsing.pl"){
                 die "Parsing script not found!!!";
             }
         } elsif ($suite eq "plastid"){
-            if(!-e "1_mapping_parsing.pl"){
+            if(!-e $suite_tools_loc."/1_mapping_parsing.pl"){
                 die "Parsing script not found!!!";
-            } elsif(!-e "1_mapping_plastid.pl"){
+            } elsif(!-e $suite_tools_loc."1_mapping_plastid.pl"){
                 die "Plastid script not found!!!";
             }
         }
