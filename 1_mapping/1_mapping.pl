@@ -42,7 +42,7 @@ use Cwd;
 #1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite);
 
 GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
@@ -60,6 +60,8 @@ GetOptions(
 "work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
 "min_l_plastid:s" =>\$min_l_plastid,        # Minimum length for plastid                                                    optional  argument (default = 22)
 "max_l_plastid:s" =>\$max_l_plastid,        # Maximum length for plastid                                                    optional  argument (default = 34)
+"min_l_parsing:s" =>\$min_l_parsing,        # Minimum length for count table parsing                                        optional  argument (default = 26, 25 for fruitfly)
+"max_l_parsing:s" =>\$max_l_parsing,        # Maximum length for count table parsing                                        optional  argument (default = 34)
 "out_bg_s_untr:s" =>\$out_bg_s_untr,    	# Output file for sense untreated count data (bedgraph)             			optional  argument (default = untreat_sense.bedgraph)
 "out_bg_as_untr:s" =>\$out_bg_as_untr,  	# Output file for antisense untreated count data (bedgraph)         			optional  argument (default = untreat_antisense.bedgraph)
 "out_bg_s_tr:s" =>\$out_bg_s_tr,        	# Output file for sense treated count data (bedgraph)               			optional  argument (default = treat_sense.bedgraph)
@@ -181,6 +183,22 @@ if ($max_l_plastid){
     #Choose default value
     $max_l_plastid = 34;
     print "The maximum length for plastid:                          : $max_l_plastid\n";
+}
+if ($min_l_parsing){
+    print "The minimum length for count table parsing               : $min_l_parsing\n";
+} else {
+    if(uc($species) eq "FRUITFLY"){
+        $min_l_parsing = 25;
+    } else {
+        $min_l_parsing = 26;
+    }
+    print "The minimum length for count table parsing               : $min_l_parsing\n";
+}
+if ($max_l_parsing){
+    print "The maximum length for count table parsing               : $max_l_parsing\n";
+} else {
+    $max_l_parsing = 34;
+    print "The maximum length for count table parsing               : $max_l_parsing\n";
 }
 if ($mismatch){
     print "The number of allowed mismatches during mapping          : $mismatch\n";
@@ -310,7 +328,10 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
 } else {
     if($suite eq "standard" || $suite eq "plastid"){
         die "Standard and plastid suite only for RIBO data!";
+    } elsif (!defined($suite)){
+        $suite = "custom";
     }
+    print "Mapping suite                                               : $suite\n";
 }
 
 # Create output directory
@@ -425,7 +446,7 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Store input arguments
-store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid);
+store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing);
 
 
 ############
@@ -438,7 +459,7 @@ my $stat_file;
 # Dependent on RIBO-seq or RNA-seq run one has to iterate 2 times (RIBO-seq, both untreated and treated, or just once (RNA-seq).
 # For paired-end reads the read files are passed as comma-separated list.
 my @loopfastQ;
-if (uc($readtype) eq 'RIBO' || uc($readtype) =~ m/SE/) {
+if (uc($readtype) eq 'RIBO') {
     @loopfastQ = ($seqFileName1,$seqFileName2);
 }
 else {
@@ -478,7 +499,7 @@ foreach (@loopfastQ) {
         if ($readtype eq "ribo_untr"){
             map_topHat2($_,$fastqName,$clipper,$mismatch);
         }
-        if (uc($readtype) =~ m/SE/) {
+        if (uc($readtype) eq "SE_POLYA") {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
         }
         if (uc($readtype) =~ m/PE/) {
@@ -498,7 +519,7 @@ foreach (@loopfastQ) {
         if ($readtype eq "ribo_untr"){
             map_STAR($_,$fastqName,$clipper,$mismatch);
         }
-        if (uc($readtype) =~ m/SE/) {
+        if (uc($readtype) eq "SE_POLYA") {
             map_STAR($_,$fastqName,$clipper,$mismatch);
         }
         if (uc($readtype) =~ m/PE/) {
@@ -520,8 +541,14 @@ if($suite eq "standard"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
     system("perl 1_mapping_parsing.pl --out_sqlite SQLite/results.db --offset standard");
 } elsif ($suite eq "plastid"){
-    print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID\n\n\n";
-    system("perl 1_mapping_plastid.pl --out_sqlite SQLite/results.db");
+    print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (UNTREATED)\n\n\n";
+    system("perl 1_mapping_plastid.pl --out_sqlite SQLite/results.db --treated untreated");
+    
+    if ($readtype eq "ribo"){#Treated sample only for ribo experiment with two sample treatment types
+        print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (TREATED)\n\n\n";
+        system("perl 1_mapping_plastid.pl --out_sqlite SQLite/results.db --treated treated");
+    }
+    
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
     system("perl 1_mapping_parsing.pl --out_sqlite SQLite/results.db --offset plastid");
 }
@@ -1573,6 +1600,8 @@ sub store_input_vars {
     my $out_bam_tr = $_[26];
     my $min_l_plastid = $_[27];
     my $max_l_plastid = $_[28];
+    my $min_l_parsing = $_[29];
+    my $max_l_parsing = $_[30];
 
     my $dbh_sqlite_results = dbh($dsn,$us,$pw);
 
@@ -1661,6 +1690,12 @@ sub store_input_vars {
     $dbh_sqlite_results->do($query);
     
     $query = "INSERT INTO arguments (variable,value) VALUES (\'max_l_plastid\',\'".$max_l_plastid."\')";
+    $dbh_sqlite_results->do($query);
+    
+    $query = "INSERT INTO arguments (variable,value) VALUES (\'min_l_parsing\',\'".$min_l_parsing."\')";
+    $dbh_sqlite_results->do($query);
+    
+    $query = "INSERT INTO arguments (variable,value) VALUES (\'max_l_parsing\',\'".$max_l_parsing."\')";
     $dbh_sqlite_results->do($query);
 }
 
