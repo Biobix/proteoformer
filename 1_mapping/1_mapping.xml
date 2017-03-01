@@ -1,4 +1,4 @@
-<tool id="mapping" name="Step 1: Mapping (can be both RIBO-seq or RNA-seq)" version="0.1">
+<tool id="mapping" name="Step 1: Mapping (can be both RIBO-seq or RNA-seq)" version="2.0">
 
     <description>using fastq files as input</description>
 
@@ -8,6 +8,7 @@
 
          --mapper $choose.mapper
          --tr_coord $choose.tr_coord
+         --truseq $truseq
 
         #if $MultiUnique.unique == "N"
 
@@ -22,18 +23,52 @@
             --tRNA $readtype.trna
             --inputfile1 $readtype.input_file1
             --inputfile2 $readtype.input_file2
+            --min_l_parsing $readtype.min_l_parsing
+            --max_l_parsing $readtype.max_l_parsing
             --out_bg_s_untr "${untreat_s_bg}"
             --out_bg_as_untr "${untreat_as_bg}"
             --out_bg_s_tr "${treat_s_bg}"
             --out_bg_as_tr "${treat_as_bg}"
             --out_sam_untr "${untreat_sam}"
             --out_sam_tr "${treat_sam}"
+            --out_bam_untr "${untreat_bam}"
+            --out_bam_tr "${treat_bam}"
             --out_sqlite "${out_sqlite}"
+            --suite $readtype.plastidStandard.suite
+            --suite_tools_loc $readtype.plastidStandard.loc_suite_tools.fields.path
 
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${untreat_bam_tr}"
             	--out_bam_tr_tr "${treat_bam_tr}"
 			#end if
+            
+            #if $readtype.plastidStandard.suite == "plastid"
+                --min_l_plastid $readtype.plastidStandard.min_l_plastid
+                --max_l_plastid $readtype.plastidStandard.max_l_plastid
+            #end if
+        #else if $readtype.riboSinPair == "ribo_untr"
+        
+            --snRNA $readtype.snrna
+            --tRNA $readtype.trna
+            --inputfile1 $readtype.input_file1
+            --min_l_parsing $readtype.min_l_parsing
+            --max_l_parsing $readtype.max_l_parsing
+            --out_bg_s_untr "${ribo_untr_s_bg}"
+            --out_bg_as_untr "${ribo_untr_as_bg}"
+            --out_sam_untr "${ribo_untr_sam}"
+            --out_bam_untr "${ribo_untr_bam}"
+            --out_sqlite "${ribo_untr_out_sqlite}"
+            --suite $readtype.plastidStandard.suite
+            --suite_tools_loc $readtype.plastidStandard.loc_suite_tools.fields.path
+            
+            #if $choose.tr_coord == "Y"
+                --out_bam_tr_untr "${ribo_untr_bam_tr}"
+            #end if
+            
+            #if $readtype.plastidStandard.suite == "plastid"
+                --min_l_plastid $readtype.plastidStandard.min_l_plastid
+                --max_l_plastid $readtype.plastidStandard.max_l_plastid
+            #end if
         #else if $readtype.riboSinPair == "PE_polyA"
 
             --inputfile1 $readtype.input_file1
@@ -75,7 +110,7 @@
 
     <inputs>
         <param name="experimentname" size="20" type="text"   label="enter the experiment name" />
-        <param name="igenomes_root" type="select"   label="Select the corresponding igenome folder" help="If your igenome root folder is not listed - contact your administrator.">
+        <param name="igenomes_root" type="select"   label="Select the corresponding igenomes folder" help="If your igenome root folder is not listed - contact your administrator.">
             <options from_data_table="PROTEOFORMER_igenomes" />
         </param>
         <param name="organism" type="select" label="select the organism" multiple="false">
@@ -93,8 +128,8 @@
             </param>
             <when value="STAR">
                 <param name="tr_coord" type="select" label="generate alignment file based on transcript coordinates" multiple="false">
-                    <option value="N" selected="true">No BAM file using transcript coordinates</option>
-                    <option value="Y">Yes BAM file using transcript coordinates</option>
+                    <option value="N" selected="true">No, BAM file using transcript coordinates</option>
+                    <option value="Y">Yes, BAM file using transcript coordinates</option>
                 </param>
             </when>
         </conditional>
@@ -126,6 +161,7 @@
         <conditional name="readtype">
             <param name="riboSinPair" type="select" label="Is this a RIBO-seq or RNA-seq library?">
                 <option value="ribo" selected="true">Ribo-seq</option>
+                <option value="ribo_untr">Ribo-seq (only untreated sample)</option>
                 <option value="PE_polyA">Paired-end polyA pulled RNA-seq</option>
                 <option value="PE_total">Paired-end RNA-seq</option>
                 <option value="SE_polyA">Single-end RNA-seq</option>
@@ -154,7 +190,73 @@
                     <option value="Y">Yes</option>
                     <option value="N" selected="true">No</option>
                 </param>
+                <conditional name="plastidStandard">
+                    <param name="suite" type="select" label="Select if standard offsets should be used or plastid should be used to calculate offsets">
+                        <option value="plastid" selected="true">Plastid offset calculation</option>
+                        <option value="standard">Standard offsets (from Ingolia paper 2012)</option>
+                    </param>
+                    <when value="plastid">
+                        <param name="loc_suite_tools" type="select" label="Select the suite tools folder">
+                            <options from_data_table="PROTEOFORMER_suite_tools" />
+                        </param>
+                        <param name="min_l_plastid" value="22" type="integer" label="Choose the minimum length for Plastid offset calculation"/>
+                        <param name="max_l_plastid" value="34" type="integer" label="Choose the maximum length for Plastid offset calculation"/>
+                    </when>
+                    <when value="standard">
+                        <param name="loc_suite_tools" type="select" label="Select the suite tools folder">
+                            <options from_data_table="PROTEOFORMER_suite_tools" />
+                        </param>
+                    </when>
+                </conditional>
+                <param name="min_l_parsing" value="26" type="integer" label="Choose the minimum length for parsing into the count tables"/>
+                <param name="max_l_parsing" value="34" type="integer" label="Choose the maximum length for parsing into the count tables"/>
             </when> <!-- ribo -->
+            
+            <when value="ribo_untr">
+                <param name="input_file1" type="data" format="fastq" label="Choose the FASTQ file (untreated RIBO-seq: no drug or CHX)" help="Must have ASCII encoded quality scores"/>
+                <param name="adaptor" size="45" type="select" label="enter the adaptor sequence that needs to be clipped" multiple="false">
+                    <option value="CTGTAGGCACCATCAAT" selected="true">CTGTAGGCACCATCAAT</option>
+                    <option value="AGATCGGAAGAGCACAC">AGATCGGAAGAGCACAC</option>
+                </param>
+                <param name="readlength" value="36" type="integer" label="choose the read length"/>
+                <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true">No</option>
+                </param>
+                <param name="rrna" type="select" label="Premapping on ribosomal RNA sequences" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
+                <param name="snrna" type="select" label="Premapping on small nuclear/nucleolar RNA sequences" multiple="false">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true">No</option>
+                </param>
+                <param name="trna" type="select" label="Premapping on transfer RNA sequences" multiple="false">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true">No</option>
+                </param>
+                <conditional name="plastidStandard">
+                    <param name="suite" type="select" label="Select if standard offsets should be used or plastid should be used to calculate offsets">
+                        <option value="plastid" selected="true">Plastid offset calculation</option>
+                        <option value="standard">Standard offsets (from Ingolia paper 2012)</option>
+                    </param>
+                    <when value="plastid">
+                        <param name="loc_suite_tools" type="select" label="Select the suite tools folder">
+                            <options from_data_table="PROTEOFORMER_suite_tools" />
+                        </param>
+                        <param name="min_l_plastid" value="22" type="integer" label="Choose the minimum length for Plastid offset calculation"/>
+                        <param name="max_l_plastid" value="34" type="integer" label="Choose the maximum length for Plastid offset calculation"/>
+                    </when>
+                    <when value="standard">
+                        <param name="loc_suite_tools" type="select" label="Select the suite tools folder">
+                            <options from_data_table="PROTEOFORMER_suite_tools" />
+                        </param>
+                    </when>
+                </conditional>
+                <param name="min_l_parsing" value="26" type="integer" label="Choose the minimum length for parsing into the count tables"/>
+                <param name="max_l_parsing" value="34" type="integer" label="Choose the maximum length for parsing into the count tables"/>
+            </when> <!-- ribo_untr -->
+            
             <when value="PE_polyA">
                 <param name="input_file1" type="data" format="fastq" label="Forward FASTQ file" help="Must have ASCII encoded quality scores"/>
                 <param name="input_file2" type="data" format="fastq" label="Reverse FASTQ file" help="File format must match the Forward FASTQ file"/>
@@ -199,7 +301,11 @@
                 </param>
             </when> <!-- SE_polyA -->
         </conditional> <!-- riboSinPair -->
-        <param name="cores" type="integer" size="5" value="8" label="enter the number of cores to run the transcriptome mapping"/>
+        <param name="truseq" type="select" label="If strands (+ and -) are assigned as in TruSeq or not" multiple="false">
+            <option value="Y" selected="true">Yes</option>
+            <option value="N">No</option>
+        </param>
+        <param name="cores" type="integer" size="5" value="5" label="enter the number of cores to run the transcriptome mapping"/>
     </inputs>
 
     <outputs>
@@ -208,6 +314,12 @@
         <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
         <data format="sam" name="treat_sam"   label="$choose.mapper on ${on_string}: alignment PUR_HAR_LTM RIBOseq reads">
+            <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+        <data format="bam" name="untreat_bam" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads">
+            <filter>readtype['riboSinPair'] == 'ribo'</filter>
+        </data>
+        <data format="bam" name="treat_bam"   label="$choose.mapper on ${on_string}: alignment PUR_HAR_LTM RIBOseq reads">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
         <data format="bedGraph" name="untreat_s_bg" label="RIBOseq footprint count data un_CHX_EMT (s)">
@@ -235,7 +347,27 @@
         	<filter>readtype['riboSinPair'] == 'ribo'</filter>
 			<filter>choose['tr_coord'] == 'Y'</filter>
         </data>
-
+        
+        <data format="sam" name="ribo_untr_sam" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads">
+            <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
+        </data>
+        <data format="bam" name="ribo_untr_bam" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads">
+            <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
+        </data>
+        <data format="bedGraph" name="ribo_untr_s_bg" label="RIBOseq footprint count data un_CHX_EMT (s)">
+            <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
+        </data>
+        <data format="bedGraph" name="ribo_untr_as_bg" label="RIBOseq footprint count data un_CHX_EMT (as)">
+            <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
+        </data>
+        <data format="sqlite" name="ribo_untr_out_sqlite"  label="SQLite DB with mapping results (step1)">
+            <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
+        </data>
+        <data format="bam" name="ribo_untr_bam_tr" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads based on transcript coord">
+            <filter>choose['mapper'] == 'STAR'</filter>
+            <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
+            <filter>choose['tr_coord'] == 'Y'</filter>
+        </data>
 
         <data format="sam" name="SE_polyA_sam" label="$choose.mapper on ${on_string}: alignment SE_polyA RNAseq reads">
         	 <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
@@ -310,7 +442,7 @@ This tool uses transcriptome mappers (STAR or TopHat2) to map RIBO-seq or RNA-se
 
     and the NGS-reads of the treated: puromycin (PUR), harringtonine (HAR), or lactimidomycin (LTM)
 
-2) The footprint alignments are assigned to specific A site nucleotides by using the position and total length of each alignment
+2) The footprint alignments are assigned to specific A site nucleotides by using standard or calculated (with the help of Plastid) offsets
 
 -----
 
@@ -327,6 +459,8 @@ DATA2 = PUR, HARR, or LTM treated sample
 
        A sam alignment file holding the DATA1 alignments
        A sam alignment file holding the DATA2 alignments
+       A bam alignment file holding the DATA1 alignments
+       A bam alignment file holding the DATA2 alignments
        A bedgraph holding the sense DATA1 ribo-seq footprint count data
        A bedgraph holding the antisense DATA1 ribo-seq footprint count data
        A bedgraph holding the sense DATA2 ribo-seq footprint count data

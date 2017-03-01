@@ -1,0 +1,7 @@
+# This is a sample file distributed with Galaxy that is used to define a
+# list of Ensembl sqlite databases, using three columns tab separated
+# (longer whitespace are TAB characters):
+
+#<value>        <dbkey> <name>  <path>
+
+suite_tools	suitetools	suite tools	/srv/galaxy/server/tool-data/proteoformer/suite_tools

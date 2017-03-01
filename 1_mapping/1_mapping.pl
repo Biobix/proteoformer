@@ -36,13 +36,13 @@ use Cwd;
 ##############
 ##Command-line
 ##############
-# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --firstrankmultimap N --min_l_plastid 22 --max_l_plastid 34 --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_bam_untr bam_untr --out_bam_tr bam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP --suite custom)
+# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --firstrankmultimap N --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_bam_untr bam_untr --out_bam_tr bam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP --suite custom)
 
 #For GALAXY
 #1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite,$suite_tools_loc);
 
 GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
@@ -60,6 +60,8 @@ GetOptions(
 "work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
 "min_l_plastid:s" =>\$min_l_plastid,        # Minimum length for plastid                                                    optional  argument (default = 22)
 "max_l_plastid:s" =>\$max_l_plastid,        # Maximum length for plastid                                                    optional  argument (default = 34)
+"min_l_parsing:s" =>\$min_l_parsing,        # Minimum length for count table parsing                                        optional  argument (default = 26, 25 for fruitfly)
+"max_l_parsing:s" =>\$max_l_parsing,        # Maximum length for count table parsing                                        optional  argument (default = 34)
 "out_bg_s_untr:s" =>\$out_bg_s_untr,    	# Output file for sense untreated count data (bedgraph)             			optional  argument (default = untreat_sense.bedgraph)
 "out_bg_as_untr:s" =>\$out_bg_as_untr,  	# Output file for antisense untreated count data (bedgraph)         			optional  argument (default = untreat_antisense.bedgraph)
 "out_bg_s_tr:s" =>\$out_bg_s_tr,        	# Output file for sense treated count data (bedgraph)               			optional  argument (default = treat_sense.bedgraph)
@@ -84,10 +86,11 @@ GetOptions(
 "splicing=s" =>\$splicing,                # Allow splicing for genome alignment for eukaryotic species (Y or N)         optional argument (default = Y)
 "firstrankmultimap=s" =>\$FirstRankMultiMap,  # Only retain the first ranked alignment of multimapper (Y or N)           optional argument (default = N)
 "rpf_split=s" =>\$rpf_split,                 #If the program needs to construct RPF specific bedgraph files (Y or N)     optional argument (default = N)
-"suite=s" =>\$suite                         #Option to execute different mapping modules all together for ribo data ('custom', 'standard', 'plastid')     optional argument (default = custom)
+"suite=s" =>\$suite,                       #Option to execute different mapping modules all together for ribo data ('custom', 'standard', 'plastid')     optional argument (default = custom)
                                                         #Custom: only mapping, other modules manually afterwards
                                                         #Standard: mapping + parsing with standard offset
                                                         #Plastid: mapping + default p offset calculation with plastid + parsing based on these offsets
+"suite_tools_loc=s" =>\$suite_tools_loc     #The folder with script of subsequent tools when using a suite                  optional argument (default = workdir)
 );
 
 
@@ -181,6 +184,22 @@ if ($max_l_plastid){
     #Choose default value
     $max_l_plastid = 34;
     print "The maximum length for plastid:                          : $max_l_plastid\n";
+}
+if ($min_l_parsing){
+    print "The minimum length for count table parsing               : $min_l_parsing\n";
+} else {
+    if(uc($species) eq "FRUITFLY"){
+        $min_l_parsing = 25;
+    } else {
+        $min_l_parsing = 26;
+    }
+    print "The minimum length for count table parsing               : $min_l_parsing\n";
+}
+if ($max_l_parsing){
+    print "The maximum length for count table parsing               : $max_l_parsing\n";
+} else {
+    $max_l_parsing = 34;
+    print "The maximum length for count table parsing               : $max_l_parsing\n";
 }
 if ($mismatch){
     print "The number of allowed mismatches during mapping          : $mismatch\n";
@@ -292,14 +311,20 @@ if ($tr_coord){
 if($readtype eq "ribo" || $readtype eq "ribo_untr"){
     if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid"){
         print "Mapping suite                                               : $suite\n";
+        if ($suite_tools_loc){
+            print "Mapping suite tools folder                                       : $suite_tools_loc\n";
+        } else {
+            $suite_tools_loc = $work_dir;
+            print "Mapping suite tools folder                                       : $suite_tools_loc\n";
+        }
         if($suite eq "standard"){
-            if(!-e "1_mapping_parsing.pl"){
+            if(!-e $suite_tools_loc."/1_mapping_parsing.pl"){
                 die "Parsing script not found!!!";
             }
         } elsif ($suite eq "plastid"){
-            if(!-e "1_mapping_parsing.pl"){
+            if(!-e $suite_tools_loc."/1_mapping_parsing.pl"){
                 die "Parsing script not found!!!";
-            } elsif(!-e "1_mapping_plastid.pl"){
+            } elsif(!-e $suite_tools_loc."/1_mapping_plastid.pl"){
                 die "Plastid script not found!!!";
             }
         }
@@ -310,7 +335,10 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
 } else {
     if($suite eq "standard" || $suite eq "plastid"){
         die "Standard and plastid suite only for RIBO data!";
+    } elsif (!defined($suite)){
+        $suite = "custom";
     }
+    print "Mapping suite                                               : $suite\n";
 }
 
 # Create output directory
@@ -425,7 +453,7 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Store input arguments
-store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid);
+store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing);
 
 
 ############
@@ -518,12 +546,18 @@ foreach (@loopfastQ) {
 ### Suite options ###
 if($suite eq "standard"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
-    system("perl 1_mapping_parsing.pl --out_sqlite SQLite/results.db --offset standard");
+    system("perl ".$suite_tools_loc."/1_mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
 } elsif ($suite eq "plastid"){
-    print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID\n\n\n";
-    system("perl 1_mapping_plastid.pl --out_sqlite SQLite/results.db");
+    print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (UNTREATED)\n\n\n";
+    system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated untreated");
+    
+    if ($readtype eq "ribo"){#Treated sample only for ribo experiment with two sample treatment types
+        print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (TREATED)\n\n\n";
+        system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated treated");
+    }
+    
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
-    system("perl 1_mapping_parsing.pl --out_sqlite SQLite/results.db --offset plastid");
+    system("perl ".$suite_tools_loc."/1_mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
 }
 
 
@@ -1573,6 +1607,8 @@ sub store_input_vars {
     my $out_bam_tr = $_[26];
     my $min_l_plastid = $_[27];
     my $max_l_plastid = $_[28];
+    my $min_l_parsing = $_[29];
+    my $max_l_parsing = $_[30];
 
     my $dbh_sqlite_results = dbh($dsn,$us,$pw);
 
@@ -1661,6 +1697,12 @@ sub store_input_vars {
     $dbh_sqlite_results->do($query);
     
     $query = "INSERT INTO arguments (variable,value) VALUES (\'max_l_plastid\',\'".$max_l_plastid."\')";
+    $dbh_sqlite_results->do($query);
+    
+    $query = "INSERT INTO arguments (variable,value) VALUES (\'min_l_parsing\',\'".$min_l_parsing."\')";
+    $dbh_sqlite_results->do($query);
+    
+    $query = "INSERT INTO arguments (variable,value) VALUES (\'max_l_parsing\',\'".$max_l_parsing."\')";
     $dbh_sqlite_results->do($query);
 }
 

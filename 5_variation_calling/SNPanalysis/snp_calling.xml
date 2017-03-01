@@ -23,7 +23,7 @@
                 <option value="n" selected="true">no</option>
             </param>
             <when value="y">
-                <param name="picard_path" type="hidden" value="">
+                <param name="picard_path" type="hidden" value=""></param>
             </when>
         </conditional>
         <conditional name="snpdb">

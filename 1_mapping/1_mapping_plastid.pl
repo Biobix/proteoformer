@@ -13,15 +13,16 @@ use Cwd;
 ##############
 ##Command-line
 ##############
-# ./1_mapping_plastid.pl --out_sqlite SQLite/results.db
+# ./1_mapping_plastid.pl --out_sqlite SQLite/results.db --treated untreated
 
 # get the command line arguments
-my ($work_dir,$tmpfolder,$out_sqlite);
+my ($work_dir,$tmpfolder,$out_sqlite,$treated);
 
 GetOptions(
 "tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
 "work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
 "out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file,                                             			optional  argument (default = results.db)
+"treated:s" =>\$treated                     # Untreated (no treat, CHX,...) or treated (LTM, HARR,...)                      optional  argument (default = 'untreated')
 );
 
 ###########################################################################
@@ -48,6 +49,14 @@ if ($work_dir){
 if (!defined($out_sqlite))     		{$out_sqlite        = $work_dir."/SQLite/results.db";}
 print "SQLite database                                          : $out_sqlite\n";
 
+if (!defined($treated)){
+    $treated = "untreated";
+} elsif ($treated ne "untreated" && $treated ne "treated"){
+    print "ERROR: treated parameter should be 'untreated' or 'treated'!";
+    die;
+}
+print "Sample treatment                                              : $treated\n";
+
 
 #Get all other necessary arguments out of SQLite DB
 my $db_sqlite_results  = $out_sqlite;
@@ -57,15 +66,23 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Get arguments vars
-my ($species,$ensemblversion,$IGENOMES_ROOT,$run_name,$bam_untr,$min_length,$max_length) = get_ARG_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
+my ($species,$ensemblversion,$IGENOMES_ROOT,$run_name,$bam_untr,$bam_tr,$min_length,$max_length) = get_ARG_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
 # Get executables
 my $sqlite_loc = "sqlite3";
 
+#Select right bam file based on treated or untreated
+my $bam;
+if ($treated eq "untreated"){
+    $bam = $bam_untr;
+} elsif ($treated eq "treated"){
+    $bam = $bam_tr;
+}
 
 #Comment on input variables from argument table
-print "The following species is used                  : $species\n";
+print "The following species is used                    : $species\n";
 print "The following Ensembl version is used            : $ensemblversion\n";
 print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
+print "The following bam file is used                   : $bam\n";
 
 #Conversion for species terminology
 my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" : (uc($species) eq "HUMAN") ? "Homo_sapiens" : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" : "";
@@ -90,21 +107,24 @@ my $start = time;
 
 generate_metagene($genes_gtf,$run_name);
 
-index_bam($bam_untr);
+index_bam($bam);
 
-calculate_offset($bam_untr,$run_name,$min_length,$max_length);
+calculate_offset($bam,$run_name,$min_length,$max_length);
 
-dump_offsets_in_sqlite($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name);
+dump_offsets_in_sqlite($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name, $treated);
 
 #Resturcture plastid output files
 if (!-d "plastid"){
     system("mkdir plastid");
 }
-system("mv ".$run_name."_rois.bed plastid");
-system("mv ".$run_name."_rois.txt plastid");
-system("mv ".$run_name."_metagene_profiles.txt plastid");
-system("mv ".$run_name."_p_offsets.txt plastid");
-system("mv ".$run_name."_p_offsets.png plastid");
+if (!-d "plastid/".$treated){
+    system("mkdir plastid/".$treated);
+}
+system("mv ".$run_name."_rois.bed plastid/".$treated."/".$run_name."_".$treated."_rois.bed");
+system("mv ".$run_name."_rois.txt plastid/".$treated."/".$run_name."_".$treated."_rois.txt");
+system("mv ".$run_name."_metagene_profiles.txt plastid/".$treated."/".$run_name."_".$treated."_metagene_profiles.txt");
+system("mv ".$run_name."_p_offsets.txt plastid/".$treated."/".$run_name."_".$treated."_p_offsets.txt");
+system("mv ".$run_name."_p_offsets.png plastid/".$treated."/".$run_name."_".$treated."_p_offsets.png");
 
 my $end = time - $start;
 printf("runtime plastid: %02d:%02d:%02d\n\n",int($end/3600), int(($end % 3600)/60), int($end % 60));
@@ -120,7 +140,7 @@ sub generate_metagene{
     my $run_name = $_[1];
     
     #Build command
-    my $command = "metagene generate ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf;
+    my $command = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf." 2> /dev/null";
     
     #Execute command
     print "Generate metagene\n".$command."\n\n";
@@ -154,7 +174,7 @@ sub calculate_offset{
     my $max_l =$_[3];
     
     #Build command
-    my $command = "psite ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam;
+    my $command = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam." 2> /dev/null";
     
     #Execute command
     print "Calculate psite\n".$command."\n\n";
@@ -170,6 +190,7 @@ sub dump_offsets_in_sqlite{
     my $user = $_[1];
     my $pw = $_[2];
     my $run_name = $_[3];
+    my $treated = $_[4];
     
     #Init
     my %offset_hash;
@@ -178,7 +199,7 @@ sub dump_offsets_in_sqlite{
     my $dbh_results = dbh($dsn, $user, $pw);
     
     #Create table
-    my $create_query = "CREATE TABLE IF NOT EXISTS `p_offsets` (
+    my $create_query = "CREATE TABLE IF NOT EXISTS `p_offsets_".$treated."` (
     `length` int(11) default NULL,
     `offset` int(11) default NULL
     );";
@@ -210,7 +231,7 @@ sub dump_offsets_in_sqlite{
         #print $length."\t".$offset."\n";
         
         #Insert into SQLite table
-        my $insert_query = "INSERT INTO p_offsets (length, offset) VALUES (".$length.", ".$offset.");";
+        my $insert_query = "INSERT INTO p_offsets_".$treated." (length, offset) VALUES (".$length.", ".$offset.");";
         $dbh_results->do($insert_query);
     }
     
@@ -262,6 +283,12 @@ sub get_ARG_vars{
     my $out_bam_untr = $sth->fetch()->[0];
     $sth->finish();
     
+    $query = "select value from arguments where variable = \'out_bam_tr\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $out_bam_tr = $sth->fetch()->[0];
+    $sth->finish();
+    
     $query = "select value from arguments where variable = \'min_l_plastid\'";
     $sth = $dbh_results->prepare($query);
     $sth->execute();
@@ -277,7 +304,7 @@ sub get_ARG_vars{
     $dbh_results -> disconnect();
     
     # Return ARG variables
-    return($species,$version,$IGENOMES_ROOT,$run_name,$out_bam_untr,$min_l_plastid,$max_l_plastid);
+    return($species,$version,$IGENOMES_ROOT,$run_name,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid);
 }
 
 ### DBH ###
