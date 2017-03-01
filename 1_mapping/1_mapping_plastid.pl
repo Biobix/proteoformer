@@ -140,7 +140,7 @@ sub generate_metagene{
     my $run_name = $_[1];
     
     #Build command
-    my $command = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf;
+    my $command = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf." 2> /dev/null";
     
     #Execute command
     print "Generate metagene\n".$command."\n\n";
@@ -174,7 +174,7 @@ sub calculate_offset{
     my $max_l =$_[3];
     
     #Build command
-    my $command = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam;
+    my $command = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam." 2> /dev/null";
     
     #Execute command
     print "Calculate psite\n".$command."\n\n";

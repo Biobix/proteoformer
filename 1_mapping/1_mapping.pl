@@ -86,7 +86,7 @@ GetOptions(
 "splicing=s" =>\$splicing,                # Allow splicing for genome alignment for eukaryotic species (Y or N)         optional argument (default = Y)
 "firstrankmultimap=s" =>\$FirstRankMultiMap,  # Only retain the first ranked alignment of multimapper (Y or N)           optional argument (default = N)
 "rpf_split=s" =>\$rpf_split,                 #If the program needs to construct RPF specific bedgraph files (Y or N)     optional argument (default = N)
-"suite=s" =>\$suite                         #Option to execute different mapping modules all together for ribo data ('custom', 'standard', 'plastid')     optional argument (default = custom)
+"suite=s" =>\$suite,                       #Option to execute different mapping modules all together for ribo data ('custom', 'standard', 'plastid')     optional argument (default = custom)
                                                         #Custom: only mapping, other modules manually afterwards
                                                         #Standard: mapping + parsing with standard offset
                                                         #Plastid: mapping + default p offset calculation with plastid + parsing based on these offsets
@@ -324,7 +324,7 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
         } elsif ($suite eq "plastid"){
             if(!-e $suite_tools_loc."/1_mapping_parsing.pl"){
                 die "Parsing script not found!!!";
-            } elsif(!-e $suite_tools_loc."1_mapping_plastid.pl"){
+            } elsif(!-e $suite_tools_loc."/1_mapping_plastid.pl"){
                 die "Plastid script not found!!!";
             }
         }
@@ -546,18 +546,18 @@ foreach (@loopfastQ) {
 ### Suite options ###
 if($suite eq "standard"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
-    system("perl 1_mapping_parsing.pl --out_sqlite SQLite/results.db --offset standard");
+    system("perl ".$suite_tools_loc."/1_mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
 } elsif ($suite eq "plastid"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (UNTREATED)\n\n\n";
-    system("perl 1_mapping_plastid.pl --out_sqlite SQLite/results.db --treated untreated");
+    system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated untreated");
     
     if ($readtype eq "ribo"){#Treated sample only for ribo experiment with two sample treatment types
         print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (TREATED)\n\n\n";
-        system("perl 1_mapping_plastid.pl --out_sqlite SQLite/results.db --treated treated");
+        system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated treated");
     }
     
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
-    system("perl 1_mapping_parsing.pl --out_sqlite SQLite/results.db --offset plastid");
+    system("perl ".$suite_tools_loc."/1_mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
 }
 
 
