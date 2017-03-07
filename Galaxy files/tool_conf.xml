@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <toolbox monitor="true">
+<label text="Biobix Tools" id="biobixtools" />
 
-
-<label text="Biobix Tools" id="biobix_tools" />
 <section name="PROTEOFORMER pipeline" id="proteoformer">
       <tool file="proteoformer/1_mapping.xml" />
+      <tool file="proteoformer/mappingQC.xml" />
       <tool file="proteoformer/ribo_translation.xml" />
       <tool file="proteoformer/tis_calling.xml" />
       <tool file="proteoformer/tis_calling_intergenic.xml" />
