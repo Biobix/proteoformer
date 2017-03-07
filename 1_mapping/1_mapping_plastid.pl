@@ -16,13 +16,14 @@ use Cwd;
 # ./1_mapping_plastid.pl --out_sqlite SQLite/results.db --treated untreated
 
 # get the command line arguments
-my ($work_dir,$tmpfolder,$out_sqlite,$treated);
+my ($work_dir,$tmpfolder,$out_sqlite,$treated,$offset_img);
 
 GetOptions(
 "tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
 "work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
 "out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file,                                             			optional  argument (default = results.db)
-"treated:s" =>\$treated                     # Untreated (no treat, CHX,...) or treated (LTM, HARR,...)                      optional  argument (default = 'untreated')
+"treated:s" =>\$treated,                    # Untreated (no treat, CHX,...) or treated (LTM, HARR,...)                      optional  argument (default = 'untreated')
+"offset_img=s" =>\$offset_img               # P site offset image                                                           optional  argument (default = CWD/plastid/run_name_(un)treated_p_offsets.png)
 );
 
 ###########################################################################
@@ -78,6 +79,13 @@ if ($treated eq "untreated"){
     $bam = $bam_tr;
 }
 
+if ($offset_img){
+    print "Path to save the offset image in                           : $offset_img\n";
+} else {
+    $offset_img = $work_dir."/plastid/".$run_name."_".$treated."_p_offsets.png";
+    print "Path to save the offset image in                           : $offset_img\n";
+}
+
 #Comment on input variables from argument table
 print "The following species is used                    : $species\n";
 print "The following Ensembl version is used            : $ensemblversion\n";
@@ -124,7 +132,7 @@ system("mv ".$run_name."_rois.bed plastid/".$treated."/".$run_name."_".$treated.
 system("mv ".$run_name."_rois.txt plastid/".$treated."/".$run_name."_".$treated."_rois.txt");
 system("mv ".$run_name."_metagene_profiles.txt plastid/".$treated."/".$run_name."_".$treated."_metagene_profiles.txt");
 system("mv ".$run_name."_p_offsets.txt plastid/".$treated."/".$run_name."_".$treated."_p_offsets.txt");
-system("mv ".$run_name."_p_offsets.png plastid/".$treated."/".$run_name."_".$treated."_p_offsets.png");
+system("mv ".$run_name."_p_offsets.png ".$offset_img);
 
 my $end = time - $start;
 printf("runtime plastid: %02d:%02d:%02d\n\n",int($end/3600), int(($end % 3600)/60), int($end % 60));

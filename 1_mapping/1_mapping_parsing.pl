@@ -334,7 +334,7 @@ sub RIBO_parse_store {
         $offset_hash->{"min"} = 1000;
         $offset_hash->{"max"} = 0;
         my $offset_table;
-        if ($seqFileName eq 'fastq1'){
+        if ($seqFileName eq 'fastq1' || $seqFileName eq "fastq1_unique"){
             $offset_table = "p_offsets_untreated";
         } else {
             $offset_table = "p_offsets_treated";

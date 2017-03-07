@@ -42,7 +42,7 @@ use Cwd;
 #1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite,$suite_tools_loc);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite,$suite_tools_loc);
 
 GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
@@ -60,6 +60,8 @@ GetOptions(
 "work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
 "min_l_plastid:s" =>\$min_l_plastid,        # Minimum length for plastid                                                    optional  argument (default = 22)
 "max_l_plastid:s" =>\$max_l_plastid,        # Maximum length for plastid                                                    optional  argument (default = 34)
+"offset_img_untr:s" =>\$offset_img_untr,    # Path to save the offset image of plastid in (untreated)                       optional  argument (default = CWD/plastid/run_name_untreated_p_offsets.png)
+"offset_img_tr:s" =>\$offset_img_tr,        # Path to save the offset image of plastid in (treated)                         optional  argument (default = CWD/plastid/run_name_treated_p_offsets.png)
 "min_l_parsing:s" =>\$min_l_parsing,        # Minimum length for count table parsing                                        optional  argument (default = 26, 25 for fruitfly)
 "max_l_parsing:s" =>\$max_l_parsing,        # Maximum length for count table parsing                                        optional  argument (default = 34)
 "out_bg_s_untr:s" =>\$out_bg_s_untr,    	# Output file for sense untreated count data (bedgraph)             			optional  argument (default = untreat_sense.bedgraph)
@@ -172,18 +174,30 @@ if ($readlength){
     print "The readLength (for RiboSeq it should be set to 36)      : $readlength\n";
 }
 if ($min_l_plastid){
-    print "The minimum length for plastid:                          : $min_l_plastid\n";
+    print "The minimum length for plastid                           : $min_l_plastid\n";
 } else {
     #Choose default value
     $min_l_plastid = 22;
-    print "The minimum length for plastid:                          : $min_l_plastid\n";
+    print "The minimum length for plastid                           : $min_l_plastid\n";
 }
 if ($max_l_plastid){
-    print "The maximum length for plastid:                          : $max_l_plastid\n";
+    print "The maximum length for plastid                           : $max_l_plastid\n";
 } else {
     #Choose default value
     $max_l_plastid = 34;
-    print "The maximum length for plastid:                          : $max_l_plastid\n";
+    print "The maximum length for plastid                           : $max_l_plastid\n";
+}
+if ($offset_img_untr){
+    print "The path for the untreated offset image                   : $offset_img_untr\n";
+} else {
+    $offset_img_untr = $work_dir."/plastid/".$run_name."_untreated_p_offsets.png";
+    print "The path for the untreated offset image                    : $offset_img_untr\n";
+}
+if ($offset_img_tr){
+    print "The path for the treated offset image                     : $offset_img_tr\n";
+} else {
+    $offset_img_tr = $work_dir."/plastid/".$run_name."_treated_p_offsets.png";
+    print "The path for the treated offset image                      : $offset_img_tr\n";
 }
 if ($min_l_parsing){
     print "The minimum length for count table parsing               : $min_l_parsing\n";
@@ -549,11 +563,11 @@ if($suite eq "standard"){
     system("perl ".$suite_tools_loc."/1_mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
 } elsif ($suite eq "plastid"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (UNTREATED)\n\n\n";
-    system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated untreated");
+    system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated untreated  --offset_img ".$offset_img_untr);
     
     if ($readtype eq "ribo"){#Treated sample only for ribo experiment with two sample treatment types
         print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (TREATED)\n\n\n";
-        system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated treated");
+        system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated treated --offset_img ".$offset_img_tr);
     }
     
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
@@ -1058,7 +1072,7 @@ sub map_STAR {
 	if (uc($tr_coord) eq "Y" ) {
 
 		print "sorting STAR for transcripts coordinates hits...\n";
-		system($samtools_loc." sort -@ ". $cores. " -m 1000M ".$directory."Aligned.toTranscriptome.out.bam ".$directory."Aligned.toTranscriptome.out.sorted 2>&1" );
+		system($samtools_loc." sort -@ ". $cores. " -m 1000M ".$directory."Aligned.toTranscriptome.out.bam -o ".$directory."Aligned.toTranscriptome.out.sorted.bam 2>&1" );
 		systemError("Samtools sort",$?,$!);
 
 		#  convert BAM back to SAM file
