@@ -126,12 +126,12 @@ if(!-d "$out_dir"){
 my $output_file = $run_name."_ens".$version."_".$mapper."_".$treated;
 my $out_table1 = $out_dir."/".$output_file."_annotation_coding.txt";
 my $out_table2 = $out_dir."/".$output_file."_annotation_noncoding.txt";
-my $out_pdf1 = $out_dir."/".$output_file."_annotation_coding.pdf";
-my $out_pdf2 = $out_dir."/".$output_file."_annotation_noncoding.pdf";
+my $out_png1 = $out_dir."/".$output_file."_annotation_coding.png";
+my $out_png2 = $out_dir."/".$output_file."_annotation_noncoding.png";
 print "Output Table coding transcripts			    	: $out_table1\n";
-print "Pie Chart for coding transcripts			: $out_pdf1\n";
+print "Pie Chart for coding transcripts			: $out_png1\n";
 print "Output Table non-coding transcripts	    		: $out_table2\n";
-print "Pie Chart for non-coding transcripts			: $out_pdf2\n";
+print "Pie Chart for non-coding transcripts			: $out_png2\n";
 
 # Get chromosomes and correct coord_system_id
 print "Get chromosomes and coord_system_id...\n";
@@ -164,7 +164,7 @@ print OUT2 "\n";
 metagenic_analysis($db_ribo,$db_ensembl,$table_ribo,\@ch,$cores,$coord_system_id,$user,$pw);
 
 # Make Pie Charts
-piecharts($out_table1,$out_table2,$out_pdf1,$out_pdf2,$tooldir);
+piecharts($out_table1,$out_table2,$out_png1,$out_png2,$tooldir);
 
 print "DONE!\n";
 
@@ -763,11 +763,11 @@ sub piecharts{
 	# Catch
 	my $out_table1 = $_[0];
 	my $out_table2 = $_[1];
-	my $out_pdf1 = $_[2];
-	my $out_pdf2 = $_[3];
+	my $out_png1 = $_[2];
+	my $out_png2 = $_[3];
 	my $tooldir = $_[4];
 
 	# Execute Rscript
-    system("Rscript ".$tooldir."/metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
+    system("Rscript ".$tooldir."/metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_png1." ".$out_png2);
     #system("Rscript metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_pdf1." ".$out_pdf2);
 }
