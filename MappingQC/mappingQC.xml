@@ -1,7 +1,7 @@
 <tool id="mappingQC" name="MappingQC" version="1.0">
     <description>quality control of mapping results</description>
     <command interpreter="perl">
-        mappingQC.pl --samfile $samfile --treated $treated --cores $cores --result_db $sqlite_db --maxmultimap $maxmultimap --ens_db $ensembl_db.fields.path --offset $offsetSelect.offset --tool_dir $tool_dir.fields.path --html $fig_overview --zip $output_folder
+        mappingQC.pl --samfile $samfile --treated $treated --cores $cores --result_db $sqlite_db --maxmultimap $maxmultimap --ens_db $ensembl_db.fields.path --offset $offsetSelect.offset --tool_dir "/srv/galaxy/server/tool-data/proteoformer/mqc_tools/" --html $fig_overview --zip $output_folder
         
         #if $offsetSelect.offset == "from_file"
         
@@ -39,9 +39,6 @@
                 <param name="offset_img" type="data" format="png" label="Choose the p site offset image from plastid" />
             </when>
         </conditional>
-        <param name="tool_dir" type="select" label="Select the tool directory for MappingQC">
-            <options from_data_table="MappingQC_tool_dir" />
-        </param>
     </inputs>
     <outputs>
         <data format="html" name="fig_overview" label="HTML output" />

@@ -1,7 +1,0 @@
-# This is a sample file distributed with Galaxy that is used to define a
-# list of Ensembl sqlite databases, using three columns tab separated
-# (longer whitespace are TAB characters):
-
-#<value>        <dbkey> <name>  <path>
-
-tool_dir	tool_dir	MappingQC tool directory	/srv/galaxy/server/tool-data/proteoformer/mqc_tools/
