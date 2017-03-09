@@ -70,7 +70,7 @@
             #if $readtype.plastidStandard.suite == "plastid"
                 --min_l_plastid $readtype.plastidStandard.min_l_plastid
                 --max_l_plastid $readtype.plastidStandard.max_l_plastid
-                --offset_img_untr $ribo_p_offset_untr
+                --offset_img_untr $ribo_p_offsets_untr
             #end if
         #else if $readtype.riboSinPair == "PE_polyA"
 
@@ -335,11 +335,11 @@
         </data>
         <data format="png" name="p_offsets_untr" label="Untreated offsets image">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
-            <filter>plastidStandard['suite'] == 'plastid'</filter>
+            <filter>readtype['plastidStandard']['suite'] == 'plastid'</filter>
         </data>
         <data format="png" name="p_offsets_tr" label="Treated offsets image">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
-            <filter>plastidStandard['suite'] == 'plastid'</filter>
+            <filter>readtype['plastidStandard']['suite'] == 'plastid'</filter>
         </data>
         
         <data format="sam" name="ribo_untr_sam" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads">
@@ -364,7 +364,7 @@
         </data>
         <data format="png" name="ribo_p_offsets_untr" label="Untreated offsets image">
             <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
-            <filter>plastidStandard['suite'] == 'plastid'</filter>
+            <filter>readtype['plastidStandard']['suite'] == 'plastid'</filter>
         </data>
 
         <data format="sam" name="SE_polyA_sam" label="$choose.mapper on ${on_string}: alignment SE_polyA RNAseq reads">
