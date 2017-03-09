@@ -211,10 +211,19 @@ def main():
     if plastid_option=="plastid":
         os.system("cp " + plastid_img + " " + outfolder + "/" + offset_img)
     write_out_html(outhtml, outfolder, samfile, run_name, totmaps, plastid_option, offsets_file, offset_img, prefix_gene_distr, ensembl_version, species, ens_db, treated)
+    #Make copy of html so that is certainly in the output folder as well
+    os.system("cp "+outhtml+" "+outfolder)
 
-    #zip output directory
+    ##Archive and collect output
+    #Make output archive
+    output_arch = "MappingQC_archive/"
+    os.system("mkdir " + output_arch)
+    #Bring output html and output images folder to archive
+    os.system("cp -r " + outhtml + " " + output_arch)
+    os.system("cp -r " + outfolder + " " + output_arch)
+    #zip output archive
     tmpZip = workdir+"tmp.zip"
-    os.system("zip -r -q "+tmpZip+" "+outfolder)
+    os.system("zip -r -q "+tmpZip+" "+output_arch)
     os.system("mv "+tmpZip+" "+outzip)
 
     return
@@ -225,20 +234,17 @@ def main():
 
 
 ## Write output html file
-def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offsets_file, offsets_img, prefix_gene_distr, ensembl_version, species, ens_db, treated):
-
-    #Get name of stylesheet file
-    stylefile = outfolder+"/"+run_name+"_"+treated+".css"
+def write_out_html(outfile, output_folder, samfile, run_name, totmaps, plastid, offsets_file, offsets_img, prefix_gene_distr, ensembl_version, species, ens_db, treated):
 
     #Load in offsets
     offsets = pd.read_csv(offsets_file, sep=',', header=None, names=["RPF", "offset"])
     max_rpf = offsets["RPF"].max()
     min_rpf = offsets["RPF"].min()
     html_table=""
-    for os in range(min_rpf, max_rpf+1, 1):
+    for ofs in range(min_rpf, max_rpf+1, 1):
         html_table += """<tr>
-        <td>"""+str(os)+"""</td>
-        <td>"""+str(int(offsets.loc[offsets["RPF"] == os]["offset"]))+"""</td>
+        <td>"""+str(ofs)+"""</td>
+        <td>"""+str(int(offsets.loc[offsets["RPF"] == ofs]["offset"]))+"""</td>
         </tr>
         """
 
@@ -258,7 +264,7 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
             """+html_table+"""
         </table>
         <div class="img" id="plastid_img">
-            <img src=\""""+outfolder+"/"+offsets_img+"""\" alt="Plastid analysis" id="plastid_plot">
+            <img src=\""""+offsets_img+"""\" alt="Plastid analysis" id="plastid_plot">
         </div>
         </p>
         """
@@ -285,13 +291,179 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
    <meta charset="utf-8"></meta>
    <meta name="description" content="Overview HTML of all mappingQC results"></meta>
    <link href="https://fonts.googleapis.com/css?family=Indie+Flower" rel="stylesheet">
-   <link rel="stylesheet" href=\""""+stylefile+"""\">
+   <style>
+        *{
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+
+        nav{
+            float:left;
+            padding: 15px;
+            width: 17%;
+            position: fixed;
+            height: 100%;
+            overflow: auto;
+            border-right: ridge;
+            border-color: lightgrey;
+            margin-top: 60px;
+            margin-left: -20px;
+            padding-left: 20px;
+            background-color: white;
+            z-index:1;
+        }
+
+        nav ul {
+            list-style-type: none;
+            margin: 0px;
+            padding: 5px;
+            padding-top: 15px;
+
+        }
+
+        nav li{
+            padding: 8px;
+            margin-bottom: 8px;
+            background-color: #33b5e5;
+            color: #ffffff;
+        }
+
+        nav li:hover {
+            background-color: #0099cc;
+        }
+
+        #content{
+            position: absolute;
+            margin-left:19%;
+            height: 76%;
+        }
+
+        #rpf_phase{
+            width:100%;
+        }
+
+        #header{
+            background-color: grey;
+            color: white;
+            position:fixed;
+            height: 2.7cm;
+            width:110%;
+            padding: 15px;
+            padding-top: 10px;
+            margin-left: -10px;
+            margin-top: -30px;
+            margin-right: -10px;
+            margin-bottom: 10px;
+            overflow: visible;
+            z-index: 2;
+        }
+
+        #mappingqc{
+            font-family: 'Indie Flower', cursive;
+            font-size: 44px;
+            padding-left: 10px;
+            position: relative;
+            z-index: 4;
+        }
+        #run_name{
+            padding-left: 43px;
+            position: relative;
+            z-index: 4;
+        }
+
+        #biobix_logo{
+            height:60%;
+            position: absolute;
+            right: 200px;
+            top: 30px;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .anchor{
+            display: block;
+            height: 14%; /*same height as header*/
+            margin-top: -10px; /*same height as header*/
+            visibility: hidden;
+        }
+
+        #analysis_info_table{
+            border-style: none;
+            border-width: 0px;
+        }
+
+        th {
+            border-style: solid;
+            border-width: 0px;
+            border-color: white;
+            border-collapse: collapse;
+            padding: 5px;
+            background-color: #33b5e5;
+            color: #ffffff;
+        }
+
+        td {
+            border-style: solid;
+            border-width: 0px;
+            border-color: white;
+            border-collapse: collapse;
+            background-color: #f2f2f2;
+            padding: 5px;
+        }
+
+        img {
+          max-width: 98%;
+          height: auto;
+          width: auto\9; /* ie8 */
+        }
+
+        #ranked_genes, #cumulative, #genes_density, #annotation_coding, #annotation_noncoding {
+            width: 20cm;
+        }
+
+        #offset_table {
+            float: left;
+            display: block;
+            margin-right: 120px;
+        }
+
+        #plastid_img {
+            float: left;
+            display: block;
+            max-width: 600px;
+        }
+
+        #section3 {
+            clear: left;
+        }
+
+
+        #footer{
+            background-color: grey;
+            color: white;
+            position: fixed;
+            bottom: 0cm;
+            padding-left: 30px;
+            margin-left: -30px;
+            height: 0.7cm;
+            width: 110%;
+            z-index: 2;
+        }
+        #footer_content{
+            position: fixed;
+            bottom: -0.3cm;
+        }
+   </style>
 </head>
 
 <body>
     <div id="header">
         <h1><span id="mappingqc">Mapping QC</span><span id="run_name">"""+run_name+"""</span></h1>
-        <img src=\""""+outfolder+"""/BIOBIX_logo.png\" alt="biobix_logo" id="biobix_logo">
+        <img src=\"BIOBIX_logo.png\" alt="biobix_logo" id="biobix_logo">
     </div>
 
     <nav id="navigator">
@@ -302,8 +474,8 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
             <li><a href="#section4">Metagenic classification</a></li>
             <li><a href="#section5">Total phase distribution</a></li>
             <li><a href="#section6">RPF phase distribution</a></li>
-            <li><a href="#section7">Phase - relative position distribution</li>
-            <li><a href="#section8">Triplet identity plots</li>
+            <li><a href="#section7">Phase - relative position distribution</a></li>
+            <li><a href="#section8">Triplet identity plots</a></li>
         </ul>
     </nav>
 
@@ -361,17 +533,17 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
         <h2 id="gene_distributions">Gene distributions</h2>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"/"+prefix_gene_distr+"""rankedgenes.png\" alt="Ranked genes" id="ranked_genes">
+            <img src=\""""+prefix_gene_distr+"""rankedgenes.png\" alt="Ranked genes" id="ranked_genes">
             </div>
         </p>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"/"+prefix_gene_distr+"""cumulative.png\" alt="Cumulative genes" id="cumulative">
+            <img src=\""""+prefix_gene_distr+"""cumulative.png\" alt="Cumulative genes" id="cumulative">
             </div>
         </p>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"/"+prefix_gene_distr+"""density.png\" alt="Genes density" id="genes_density">
+            <img src=\""""+prefix_gene_distr+"""density.png\" alt="Genes density" id="genes_density">
             </div>
         </p>
 
@@ -379,12 +551,12 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
         <h2 id="metagenic_classification">Metagenic classification</h2>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"/"+prefix_gene_distr+"""annotation_coding.pdf\" alt="Metagenic classification coding" id="annotation_coding">
+            <img src=\""""+prefix_gene_distr+"""annotation_coding.png\" alt="Metagenic classification coding" id="annotation_coding">
             </div>
         </p>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"/"+prefix_gene_distr+"""annotation_noncoding.pdf\" alt="Noncoding classification" id="annotation_noncoding">
+            <img src=\""""+prefix_gene_distr+"""annotation_noncoding.png\" alt="Noncoding classification" id="annotation_noncoding">
             </div>
         </p>
 
@@ -392,7 +564,7 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
         <h2 id="tot_phase">Total phase distribution</h2>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"""/tot_phase.png" alt="total phase plot" id="tot_phase_img">
+            <img src=\"tot_phase.png" alt="total phase plot" id="tot_phase_img">
             </div>
         </p>
 
@@ -400,7 +572,7 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
         <h2 id="phase_rpf_distr">RPF phase distribution</h2>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"""/rpf_phase.png" alt="rpf phase plot" id="rpf_phase_img">
+            <img src=\"rpf_phase.png" alt="rpf phase plot" id="rpf_phase_img">
             </div>
         </p>
 
@@ -408,7 +580,7 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
         <h2 id="phase_relpos_distr">Phase - relative position distribution</h2>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"""/phase_relpos_distr.png" alt="phase relpos distr" id="phase_relpos_distr_img">
+            <img src=\"phase_relpos_distr.png" alt="phase relpos distr" id="phase_relpos_distr_img">
             </div>
         </p>
 
@@ -416,7 +588,7 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
         <h2 id="triplet_identity">Triplet identity plots</h2>
         <p>
             <div class="img">
-            <img src=\""""+outfolder+"""/triplet_id.png" alt="triplet identity plots" id="triplet_id_img">
+            <img src=\"triplet_id.png" alt="triplet identity plots" id="triplet_id_img">
             </div>
         </p>
         <br><br>
@@ -434,179 +606,6 @@ def write_out_html(outfile, outfolder, samfile, run_name, totmaps, plastid, offs
     html_file = open(outfile, 'w')
     html_file.write(html_string)
     html_file.close()
-
-    #Structure style file
-    css_string = """*{
-    box-sizing: border-box;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
-
-nav{
-    float:left;
-    padding: 15px;
-    width: 17%;
-    position: fixed;
-    height: 100%;
-    overflow: auto;
-    border-right: ridge;
-    border-color: lightgrey;
-    margin-top: 60px;
-    margin-left: -20px;
-    padding-left: 20px;
-    background-color: white;
-    z-index:1;
-}
-
-nav ul {
-    list-style-type: none;
-    margin: 0px;
-    padding: 5px;
-    padding-top: 15px;
-
-}
-
-nav li{
-    padding: 8px;
-    margin-bottom: 8px;
-    background-color: #33b5e5;
-    color: #ffffff;
-}
-
-nav li:hover {
-    background-color: #0099cc;
-}
-
-#content{
-    position: absolute;
-    margin-left:19%;
-    height: 76%;
-}
-
-#rpf_phase{
-    width:100%;
-}
-
-#header{
-    background-color: grey;
-    color: white;
-    position:fixed;
-    height: 2.7cm;
-    width:110%;
-    padding: 15px;
-    padding-top: 10px;
-    margin-left: -10px;
-    margin-top: -30px;
-    margin-right: -10px;
-    margin-bottom: 10px;
-    overflow: visible;
-    z-index: 2;
-}
-
-#mappingqc{
-    font-family: 'Indie Flower', cursive;
-    font-size: 44px;
-    padding-left: 10px;
-    position: relative;
-    z-index: 4;
-}
-#run_name{
-    padding-left: 43px;
-    position: relative;
-    z-index: 4;
-}
-
-#biobix_logo{
-    height:60%;
-    position: absolute;
-    right: 200px;
-    top: 30px;
-}
-
-a {
-    color: inherit;
-    text-decoration: none;
-}
-
-.anchor{
-    display: block;
-    height: 14%; /*same height as header*/
-    margin-top: -10px; /*same height as header*/
-    visibility: hidden;
-}
-
-#analysis_info_table{
-    border-style: none;
-    border-width: 0px;
-}
-
-th {
-    border-style: solid;
-    border-width: 0px;
-    border-color: white;
-    border-collapse: collapse;
-    padding: 5px;
-    background-color: #33b5e5;
-    color: #ffffff;
-}
-
-td {
-    border-style: solid;
-    border-width: 0px;
-    border-color: white;
-    border-collapse: collapse;
-    background-color: #f2f2f2;
-    padding: 5px;
-}
-
-img {
-  max-width: 98%;
-  height: auto;
-  width: auto\9; /* ie8 */
-}
-
-#ranked_genes, #cumulative, #genes_density, #annotation_coding, #annotation_noncoding {
-    width: 20cm;
-}
-
-#offset_table {
-    float: left;
-    display: block;
-    margin-right: 120px;
-}
-
-#plastid_img {
-    float: left;
-    display: block;
-    max-width: 600px;
-}
-
-#section3 {
-    clear: left;
-}
-
-
-#footer{
-    background-color: grey;
-    color: white;
-    position: fixed;
-    bottom: 0cm;
-    padding-left: 30px;
-    margin-left: -30px;
-    height: 0.7cm;
-    width: 110%;
-    z-index: 2;
-}
-#footer_content{
-    position: fixed;
-    bottom: -0.3cm;
-}
-    """
-
-    #Generate style file
-    css_file = open(stylefile, "w")
-    css_file.write(css_string)
-    css_file.close()
 
     return
 
