@@ -25,14 +25,6 @@
     	<columns>value, dbkey, name, path</columns>
     	<file path="tools/proteoformer/snpdb.loc" />
     </table>
-    <table name="PROTEOFORMER_suite_tools" comment_char="#">
-	<columns>value, dbkey, name, path</columns>
-	<file path="tools/proteoformer/suite_tools.loc" />
-   </table>
-   <table name="MappingQC_tool_dir" comment_char="#">
-	<columns>value, dbkey, name, path</columns>
-	<file path="tools/proteoformer/mappingqc_tool_dir.loc" />
-    </table>
     <!-- Locations of all fasta files under genome directory -->
     <table name="all_fasta" comment_char="#" allow_duplicate_entries="False">
         <columns>value, dbkey, name, path</columns>

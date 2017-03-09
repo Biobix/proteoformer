@@ -35,7 +35,7 @@
             --out_bam_tr "${treat_bam}"
             --out_sqlite "${out_sqlite}"
             --suite $readtype.plastidStandard.suite
-            --suite_tools_loc $readtype.plastidStandard.loc_suite_tools.fields.path
+            --suite_tools_loc "/srv/galaxy/server/tool-data/proteoformer/suite_tools"
 
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${untreat_bam_tr}"
@@ -61,7 +61,7 @@
             --out_bam_untr "${ribo_untr_bam}"
             --out_sqlite "${ribo_untr_out_sqlite}"
             --suite $readtype.plastidStandard.suite
-            --suite_tools_loc $readtype.plastidStandard.loc_suite_tools.fields.path
+            --suite_tools_loc "/srv/galaxy/server/tool-data/proteoformer/suite_tools"
             
             #if $choose.tr_coord == "Y"
                 --out_bam_tr_untr "${ribo_untr_bam_tr}"
@@ -198,16 +198,8 @@
                         <option value="standard">Standard offsets (from Ingolia paper 2012)</option>
                     </param>
                     <when value="plastid">
-                        <param name="loc_suite_tools" type="select" label="Select the suite tools folder">
-                            <options from_data_table="PROTEOFORMER_suite_tools" />
-                        </param>
                         <param name="min_l_plastid" value="22" type="integer" label="Choose the minimum length for Plastid offset calculation"/>
                         <param name="max_l_plastid" value="34" type="integer" label="Choose the maximum length for Plastid offset calculation"/>
-                    </when>
-                    <when value="standard">
-                        <param name="loc_suite_tools" type="select" label="Select the suite tools folder">
-                            <options from_data_table="PROTEOFORMER_suite_tools" />
-                        </param>
                     </when>
                 </conditional>
                 <param name="min_l_parsing" value="26" type="integer" label="Choose the minimum length for parsing into the count tables"/>
@@ -243,16 +235,8 @@
                         <option value="standard">Standard offsets (from Ingolia paper 2012)</option>
                     </param>
                     <when value="plastid">
-                        <param name="loc_suite_tools" type="select" label="Select the suite tools folder">
-                            <options from_data_table="PROTEOFORMER_suite_tools" />
-                        </param>
                         <param name="min_l_plastid" value="22" type="integer" label="Choose the minimum length for Plastid offset calculation"/>
                         <param name="max_l_plastid" value="34" type="integer" label="Choose the maximum length for Plastid offset calculation"/>
-                    </when>
-                    <when value="standard">
-                        <param name="loc_suite_tools" type="select" label="Select the suite tools folder">
-                            <options from_data_table="PROTEOFORMER_suite_tools" />
-                        </param>
                     </when>
                 </conditional>
                 <param name="min_l_parsing" value="26" type="integer" label="Choose the minimum length for parsing into the count tables"/>
