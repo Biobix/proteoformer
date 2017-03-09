@@ -460,7 +460,7 @@ system("perl ".$tool_dir."/metagenic_classification.pl --tooldir ".$tool_dir." -
 print "\n\n";
 print "# Run plot generation and output HTML file creation module #\n";
 #Run plot generation Python file
-my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -o ".$output_folder." -p \"".$offset_option."\" -i ".$offset_img." -e ".$ens_db." -h ".$html." -z ".$zip;
+my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -h ".$html." -z ".$zip;
 if ($offset_option eq "plastid"){
     $python_command = $python_command." -i ".$offset_img;
 }
