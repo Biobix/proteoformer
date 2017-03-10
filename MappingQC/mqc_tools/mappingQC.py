@@ -154,7 +154,6 @@ def main():
     m = re.search("^.*/(.*?)/$", outfolder)
     if m:
         outfolder = m.group(1)
-    print outfolder
     if outhtml == '':
         outhtml = workdir+"/mappingQC_out_"+treated+".html"
     if outzip == '':
