@@ -113,7 +113,7 @@ if ($offset_option eq "plastid"){
     if ($offset_img){
         print "Offset image                                              : $offset_img\n";
     } else {
-        print "Do not forget the offset image if offset argument is \"plastid\"!";
+        die "Do not forget the offset image if offset argument is \"plastid\"!;
     }
 }
 
