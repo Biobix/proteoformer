@@ -496,6 +496,7 @@ else {
 my $cnt=0;
 
 foreach (@loopfastQ) {
+
     $cnt++;
     #next unless ($cnt == 2);
     my $fastqName = "fastq".$cnt;
@@ -526,7 +527,9 @@ foreach (@loopfastQ) {
         if (uc($readtype) =~ m/PE/) {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
         }
-
+        if (uc($readtype) eq 'SE_TOTAL') {
+            map_STAR($_,$fastqName,$clipper,$mismatch);
+        }
         my $end = time - $start;
         printf("runtime TopHat against genomic: %02d:%02d:%02d\n\n",int($end/3600), int(($end % 3600)/60), int($end % 60));
     }
@@ -544,6 +547,9 @@ foreach (@loopfastQ) {
             map_STAR($_,$fastqName,$clipper,$mismatch);
         }
         if (uc($readtype) =~ m/PE/) {
+            map_STAR($_,$fastqName,$clipper,$mismatch);
+        }
+        if (uc($readtype) eq 'SE_TOTAL') {
             map_STAR($_,$fastqName,$clipper,$mismatch);
         }
 
@@ -614,7 +620,7 @@ sub map_bowtie {
 
     system ($clip_command);
     print "     Trimming $seqFileName"."\n";
-    system ($fastx_trim_loc." -Q33 -v -t 28 -l 26 -i ".$work_dir."/fastq/$seqFileName"."_clip.fastq -o ".$work_dir."/fastq/$seqFileName"."_trim.fastq");
+    system ($fastx_trim_loc." -Q33 -v -t 28 -l 20 -i ".$work_dir."/fastq/$seqFileName"."_clip.fastq -o ".$work_dir."/fastq/$seqFileName"."_trim.fastq");
 
     ###### Map against rRNA db
     # Check rRNA Index
@@ -703,7 +709,7 @@ sub map_bowtie2 {
         my $clip_command = $fastx_clip_loc." -Q33 -a ".$adapter." -l 20 -c -n –v -i ".$work_dir."/fastq/$seqFileName".".fastq -o ".$work_dir."/fastq/$seqFileName"."_clip.fastq";
         system ($clip_command);
         print "     Trimming $seqFileName".", Bowtie2 end-to-end version selected\n";
-        system ($fastx_trim_loc." -Q33 -v -t 28 -l 26 -i ".$work_dir."/fastq/$seqFileName"."_clip.fastq -o ".$work_dir."/fastq/$seqFileName"."_trim.fastq");
+        system ($fastx_trim_loc." -Q33 -v -t 28 -l 20 -i ".$work_dir."/fastq/$seqFileName"."_clip.fastq -o ".$work_dir."/fastq/$seqFileName"."_trim.fastq");
         $fasta_to_rRNA = $work_dir."/fastq/$seqFileName"."_trim.fastq";
     }
 
@@ -798,14 +804,14 @@ sub map_STAR {
 
         print "     Clipping $seqFileName"." using fastx_clipper tool\n";
         # Without length cut-off and adaptor presence
-        my $clip_command = $fastx_clip_loc." -Q33 -a ".$adaptorSeq." -l 26 -n –v -i ".$fasta." -o ".$work_dir."/fastq/".$seqFileName."_clip.fastq";
+        my $clip_command = $fastx_clip_loc." -Q33 -a ".$adaptorSeq." -l 20 -n –v -i ".$fasta." -o ".$work_dir."/fastq/".$seqFileName."_clip.fastq";
         print "     ".$clip_command."\n";
         system ($clip_command);
         $fasta = $work_dir."/fastq/$seqFileName"."_clip.fastq";
         print "clipfasta= $fasta\n";
 
 	    print "     Trimming $seqFileName"." using fastq_quality_trimmer tool\n";
-		my $trim_command = $fastx_trim_loc." -Q33 -v -t 28 -l 26  -i ".$fasta." -o ".$work_dir."/fastq/".$seqFileName."_clip_trim.fastq";
+		my $trim_command = $fastx_trim_loc." -Q33 -v -t 28 -l 20  -i ".$fasta." -o ".$work_dir."/fastq/".$seqFileName."_clip_trim.fastq";
 	    system ($trim_command);
 		$fasta = $work_dir."/fastq/$seqFileName"."_clip_trim.fastq";
 		print "trimfasta= $fasta\n";
@@ -826,6 +832,8 @@ sub map_STAR {
         system("mkdir  -p ".$work_dir."/fastq/nophix");
         $command = $STAR_loc." --genomeLoad NoSharedMemory --outFilterMismatchNmax 2  --seedSearchStartLmaxOverLread .5 ".$clip_stat." --alignIntronMax 1 --genomeDir ".$ref_loc.$IndexPhix." --readFilesIn ".$fasta."  --outFileNamePrefix ".$work_dir."/fastq/nophix/ --runThreadN ".$cores." --outReadsUnmapped Fastx";
         # Run
+		print "Phix mapping ...\n";
+		print "$command\n";
         system($command);
         # Print
         print "   Finished rRNA multiseed mapping $seqFileName"."\n";
@@ -889,7 +897,7 @@ sub map_STAR {
 				#print "     ".$clip_command."\n";
 				system ($clip_command);
 				print "     Trimming $seqFileName"."\n";
-				system ($fastx_trim_loc." -Q33 -v -t 28 -l 26 -i ".$work_dir."/fastq/$seqFileName"."_clip.fastq -o ".$work_dir."/fastq/$seqFileName"."_trim.fastq");
+				system ($fastx_trim_loc." -Q33 -v -t 28 -l 20 -i ".$work_dir."/fastq/$seqFileName"."_clip.fastq -o ".$work_dir."/fastq/$seqFileName"."_trim.fastq");
 
 				###### Map against rRNA db using Bowtie
 				# Check rRNA Index
@@ -1084,10 +1092,10 @@ sub map_STAR {
 		#print "renaming SAM output file...\n";
 
 		# Bam file depends on what fastq file is processed (fastq1 = untreated, fastq2 = treated; that is for RIBO-seq experiments)
-		my $bamf = ($seqFileName  eq 'fastq1') ? $out_bam_tr_untr : $out_bam_tr_tr;
-		system("mv ".$directory."Aligned.toTranscriptome.out.sorted.bam ".$bamf);
+		my $bamf_tr = ($seqFileName  eq 'fastq1') ? $out_bam_tr_untr : $out_bam_tr_tr;
+		system("mv ".$directory."Aligned.toTranscriptome.out.sorted.bam ".$bamf_tr);
 
-		print "transcript coordinate $bamf\n";
+		print "transcript coordinate $bamf_tr\n";
 		system("rm ".$directory."Aligned.toTranscriptome.out.bam > /dev/null 2>&1");
 		#system("rm ".$directory."Aligned.toTranscriptome.out.sorted.bam");
 		#system("rm ".$directory."Aligned.toTranscriptome.out.sorted.sam");
@@ -1277,14 +1285,14 @@ sub map_topHat2 {
 
         print "     Clipping $seqFileName"." using fastx_clipper tool\n";
         # Without length cut-off and adaptor presence
-        my $clip_command = $fastx_clip_loc." -Q33 -a ".$adaptorSeq." -l 26 -n –v -i ".$fasta." -o ".$work_dir."/fastq/$seqFileName"."_clip.fastq";
+        my $clip_command = $fastx_clip_loc." -Q33 -a ".$adaptorSeq." -l 20 -n –v -i ".$fasta." -o ".$work_dir."/fastq/$seqFileName"."_clip.fastq";
         print "     ".$clip_command."\n";
         system ($clip_command);
         $fasta = $work_dir."/fastq/$seqFileName"."_clip.fastq";
         print "clipfasta= $fasta\n";
 
         print "     Trimming $seqFileName"." using fastq_quality_trimmer tool\n";
-        my $trim_command = $fastx_trim_loc." -Q33 -v -t 28 -l 26  -i ".$fasta." -o ".$work_dir."/fastq/$seqFileName"."_clip_trim.fastq";
+        my $trim_command = $fastx_trim_loc." -Q33 -v -t 28 -l 20  -i ".$fasta." -o ".$work_dir."/fastq/$seqFileName"."_clip_trim.fastq";
         system ($trim_command);
         $fasta = $work_dir."/fastq/$seqFileName"."_clip_trim.fastq";
         print "trimfasta= $fasta\n";
@@ -1871,4 +1879,3 @@ sub parseLogBowtie {
     return ($inReads,$mappedReadsU,$mappedReadsM,$unmappedReads);
 
 }
-
