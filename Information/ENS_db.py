@@ -90,9 +90,10 @@ os.system('mkdir tmp/ENS')
 # Dictionary for 3letter abbreviation for species
 #
 
-speciesdict = {'human': 'hsa', 'mouse': 'mmu', 'fruitfly': 'dme', 'yeast': 'sce', 'c.elegans': 'cel','homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'drosophila_melanogaster': 'dme', 'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel'};
+speciesdict = {'human': 'hsa', 'mouse': 'mmu', 'fruitfly': 'dme', 'yeast': 'sce', 'c.elegans': 'cel',
+               'homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'drosophila_melanogaster': 'dme',
+               'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel'};
 
-print speciesdict[species]
 
 #
 # Check whether database already exists
@@ -138,7 +139,7 @@ def download(ftp_link,core):
 #
 
 if (species=='human' or species=='homo_sapiens'):
-    if(int(ens_v) >= 76 and int(ens_v) <= 87):
+    if(int(ens_v) >= 76 and int(ens_v) <= 88):
          core='/homo_sapiens_core_' + ens_v + '_38.sql.gz'
          download('ftp://ftp.ensembl.org/pub/release-'+ ens_v +'/mysql/homo_sapiens_core_' + ens_v + '_38/',core)
     elif(int(ens_v) >= 74 and int(ens_v) <= 75):
@@ -146,47 +147,47 @@ if (species=='human' or species=='homo_sapiens'):
          download('ftp://ftp.ensembl.org/pub/release-'+ ens_v +'/mysql/homo_sapiens_core_' + ens_v + '_37/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 87")
+        print("supported ensembl versions: from 74 till 88")
         sys.exit()
 elif (species=='mouse' or species=='mus_musculus'):
-    if(int(ens_v) >= 74 and int(ens_v) <= 87):
+    if(int(ens_v) >= 74 and int(ens_v) <= 88):
         core='/mus_musculus_core_' + ens_v + '_38.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/mus_musculus_core_' + ens_v +'_38/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 75 till 87")
+        print("supported ensembl versions: from 75 till 88")
         sys.exit()
 elif (species=='fruitfly' or species=='drosophila_melanogaster'):
-    if(int(ens_v) >= 74 and int(ens_v) <= 87):
+    if(int(ens_v) >= 74 and int(ens_v) <= 88):
         core='/drosophila_melanogaster_core_' + ens_v + '_546.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/drosophila_melanogaster_core_' + ens_v +'_546/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 87 ")
+        print("supported ensembl versions: from 74 till 88 ")
         sys.exit()
 elif (species == 'saccharomyces_cerevisiae' or species == 'yeast'):
-    if(int(ens_v) >= 74 and int(ens_v) <= 87):
+    if(int(ens_v) >= 74 and int(ens_v) <= 88):
         core='/saccharomyces_cerevisiae_core_' + ens_v + '_4.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/saccharomyces_cerevisiae_core_' + ens_v +'_4/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 87")
+        print("supported ensembl versions: from 74 till 88")
         sys.exit()
 elif (species=='caenorhabditis_elegans' or species =="c.elegans"):
-    if(int(ens_v) >= 74 and int(ens_v) <= 87):
+    if(int(ens_v) >= 74 and int(ens_v) <= 88):
         core='/caenorhabditis_elegans_core' + ens_v + '_245.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/caenorhabditis_elegans_core_' + ens_v +'_245/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 87")
+        print("supported ensembl versions: from 74 till 88")
         sys.exit()
 elif (species=='danio_rerio' or species =="zebrafish"):
-    if(int(ens_v) >= 74 and int(ens_v) <= 87):
+    if(int(ens_v) >= 74 and int(ens_v) <= 88):
         core='/danio_rerio_core_' + ens_v + '_9.sql.gz'
         download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/danio_rerio_core_' + ens_v +'_9/',core)
     else:
         print("ERROR: unsupported ensembl version: " + ens_v)
-        print("supported ensembl versions: from 74 till 87")
+        print("supported ensembl versions: from 74 till 88")
         sys.exit()
 else:
     print("Error: unsupported species: " +species )
@@ -219,10 +220,10 @@ grep -v ' UNIQUE KEY ' |
 grep -v ' PRIMARY KEY ' |
 perl -pe 's/ ENGINE[ ]*=[ ]*[A-Za-z_][A-Za-z_0-9]*(.*DEFAULT)?/ /gi' |
 perl -pe 's/ CHARSET[ ]*=[ ]*[A-Za-z_][A-Za-z_0-9]*/ /gi' |
-perl -pe 's/ MAX_ROWS[ ]*=[ ]*[A-Za-z_][A-Za-z_0-9]*/ /gi' |
+perl -pe 's/ MAX_ROWS=[A-Za-z_0-9]*/ /gi' |
+perl -pe 's/ AVG_ROW_LENGTH=[A-Za-z_0-9]*/ /gi' |
 perl -pe 's/ [ ]*AUTO_INCREMENT=[0-9]* / /gi' |
 perl -pe 's/ unsigned / /g' |
-perl -pe 's/ MAX_ROWS / /g' |
 perl -pe 's/ set[(][^)]*[)] / varchar(255) /gi' |
 perl -pe 's/ auto_increment/ primary key autoincrement/gi' |
 perl -pe 's/ smallint[(][0-9]*[)] / integer /gi' |
