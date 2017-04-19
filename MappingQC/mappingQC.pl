@@ -17,7 +17,7 @@ use Cwd;
 
 # nohup perl ./mappingQC.pl --samfile STAR/fastq1/untreat.sam --treated 'untreated' --cores 20 --result_db SQLite/results.db --ens_db SQLite/ENS_mmu_82.db --offset plastid > nohup_mappingqc.txt &
 
-my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$maxmultimap,$ens_db,$offset_option,$offset_file,$offset_img,$output_folder,$tool_dir,$html,$zip);
+my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$unique,$ens_db,$offset_option,$offset_file,$offset_img,$output_folder,$tool_dir,$html,$zip);
 
 GetOptions(
 "work_dir:s" => \$work_dir,             # The working directory                                         Optional argument (default: CWD)
@@ -26,12 +26,12 @@ GetOptions(
 "cores=i"=>\$cores,                     # The amount of cores to use                                    Optional argument (default: 5)
 "result_db=s"=>\$resultdb,              # The result db with mapping results                            Mandatory argument
 "tmp:s"=>\$tmpfolder,                   # The tmp folder                                                Optional argument (default: CWD/tmp)
-"maxmultimap=i"=>\$maxmultimap,         # The maximum multimapped positions for parsing                 Optional argument (default: 16)
+"unique=s"=>\$unique,                     # Wheter only unique reads should be used (Y/N)                 Optional argument (default: Y, mandatory Y for unique mapping)
 "ens_db=s"=>\$ens_db,                   # The Ensembl db for annotation                                 Mandatory argument
 "offset:s" =>\$offset_option,           # The offset source for parsing alignments                      Optional argument (default: standard)
 "offset_file:s" =>\$offset_file,        # The offsets input file                                        Mandatory if offset option equals 'from_file'
 "offset_img=s" =>\$offset_img,          # The offsets image from plastid                                Mandatory if offset option equals 'plastid'
-"output_folder:s" => \$output_folder,   # The output folder for storing output images                   Optional argument (default: CWD/mappingQC_(un)treated/)
+"output_folder:s" => \$output_folder,   # The output folder for storing output files                    Optional argument (default: CWD/mappingQC_output/)
 "tool_dir:s" => \$tool_dir,             # The directory with all necessary tools                        Optional argument (default: CWD/mqc_tools/)
 "html:s" => \$html,                     # The output html file name                                     Optional argument (default: CWD/mappingqc_out.html)
 "zip:s" => \$zip                        # The output zip file name of the output folder                 Optional argument (default CWD/mappingQC_(un)treated.zip )
@@ -79,12 +79,6 @@ if ($resultdb){
 } else {
     die "\nDon't forget to pass the results DB!\n\n";
 }
-if ($maxmultimap){
-    print "Maximun number of loci for reads to be acceptable        : $maxmultimap\n";
-} else {
-    $maxmultimap = 16;
-    print "Maximun number of loci for reads to be acceptable        : $maxmultimap\n";
-}
 if ($ens_db){
     print "the Ensembl DB                               : $ens_db\n";
 } else {
@@ -113,17 +107,17 @@ if ($offset_option eq "plastid"){
     if ($offset_img){
         print "Offset image                                              : $offset_img\n";
     } else {
-        die "Do not forget the offset image if offset argument is \"plastid\"!;
+        print "Do not forget the offset image if offset argument is \"plastid\"!";
     }
 }
 
 if ($output_folder){
     print "The output folder is set to     : $output_folder\n";
 } else {
-    $output_folder = $work_dir."/mappingQC_".$treated."/";
+    $output_folder = $work_dir."/mappingQC_output/";
 }
 if ($tool_dir){
-    print "The tool directory is set to:    $tool_dir\n";
+    print "The tool directory is set to    : $tool_dir\n";
 } else {
     $tool_dir = $work_dir."/mqc_tools/";
     print "The tool directory is set to     : $tool_dir\n";
@@ -146,11 +140,34 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Get arguments vars
-my ($species,$version,$IGENOMES_ROOT) = get_ARG_vars($resultdb,$us_sqlite_results,$pw_sqlite_results);
+my ($species,$version,$IGENOMES_ROOT,$mapping_unique,$firstRankMultiMap,$maxmultimap,$mapper) = get_ARG_vars($resultdb,$us_sqlite_results,$pw_sqlite_results);
 
 # Igenomes
 print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
+print "Species                                          : $species\n";
+print "Ensembl version                                  : $version\n";
+print "Mapper used                                      : $mapper\n";
+print "Mapping was done uniquely                        : $mapping_unique\n";
+#Unique parameter for mappingQC itself
+if (! $unique){
+    $unique = 'Y';
+}
+if ($mapping_unique eq 'Y'){
+    if ($unique eq 'Y'){
+        print "MappingQC unique                                 : $unique\n";
+    } else {
+        print "If mapping was done uniquely, mappingQC should run with unique parameter 'Y' as well!\n";
+        die;
+    }
+} elsif ($mapping_unique eq 'N'){
+    print "MappingQC unique                                 : $unique\n";
+}
 
+if($mapping_unique eq 'N'){
+    print "Mapping First rank multimapped                   : $firstRankMultiMap\n";
+    print "Maximum multi mapping                            : $maxmultimap\n";
+}
+    
 # Cores
 if ($cores) {
     print "Number of cores to use for analysis			: $cores\n";
@@ -158,6 +175,7 @@ if ($cores) {
     $cores = 5;
     print "Number of cores to use for analysis			: $cores\n";
 }
+
 
 #Conversion for species terminology
 my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
@@ -221,13 +239,21 @@ my @splitsam = split(/\//, $sam );
 my $samFileName = $splitsam[$#splitsam];
 @splitsam = split(/\./,$samFileName);
 $samFileName = $splitsam[0];
-my $samfilechr1 = $TMP."/mappingqc/".$samFileName."_1.sam";
+my $uniquefile = $TMP."/mappingqc_".$treated."/unique.txt";
 
-if (-e $samfilechr1){
-    print "Splitted sam files already exist...\n";
+if (-e $uniquefile){
+    open(my $UF, $uniquefile) or die "Could not open $uniquefile";
+    my $line = <$UF>;
+    chomp($line);
+    if ($line ne $unique){
+        print "Splitting genomic mapping per chromosome...\n";
+        split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated,$unique,$firstRankMultiMap,$maxmultimap,$mapper);
+    } else {
+        print "SAM splitted files already exist...\n";
+    }
 } else {
     print "Splitting genomic mapping per chromosome...\n";
-    split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated);
+    split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated,$unique,$firstRankMultiMap,$maxmultimap,$mapper);
 }
 
 # Construct p offset hash
@@ -444,23 +470,22 @@ $dbh_results->disconnect;
 
 
 #Make output folder
-system("mkdir ".$output_folder);
+system("mkdir -p ".$output_folder);
 my $treated_meta_gene;
 
 print "\n\n";
-print "# Run gene distribution module #\n";
-#Run Gene Distribution script
-system("perl ".$tool_dir."/gene_distribution.pl --cores ".$cores." --tooldir ".$tool_dir." --in_sqlite ".$resultdb." --output_folder ".$output_folder." --treated ".$treated." --ens_db ".$ens_db);
+print "# Gene distribution #\n";
+gene_distribution($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id, $treated, $mapping_unique, $unique);
 
 print "\n\n";
-print "# Run metagenic classification module #\n";
+print "# Metagenic classification #\n";
 # Metagenic classification
-system("perl ".$tool_dir."/metagenic_classification.pl --tooldir ".$tool_dir." --cores ".$cores." --in_sqlite ".$resultdb." --ens_db ".$ens_db." --output_folder ".$output_folder." --treated ".$treated);
+metagenic_analysis($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id, $treated, $mapping_unique, $unique);
  
 print "\n\n";
 print "# Run plot generation and output HTML file creation module #\n";
 #Run plot generation Python file
-my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -h ".$html." -z ".$zip;
+my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -h ".$html." -z ".$zip;
 if ($offset_option eq "plastid"){
     $python_command = $python_command." -i ".$offset_img;
 }
@@ -479,6 +504,823 @@ printf("Runtime: %02d:%02d:%02d\n\n",int($end/3600), int(($end % 3600)/60), int(
 ############
 # THE SUBS #
 ############
+
+##Metagenic classification per chr ##
+sub metagenic_analysis_chr {
+    
+    #Catch
+    my $ens_db = $_[0];
+    my $resultdb = $_[1];
+    my $chr = $_[2];
+    my $coord_system_id = $_[3];
+    my $treated = $_[4];
+    my $mapping_unique = $_[5];
+    my $unique = $_[6];
+    
+    #####
+    # Ensembl info
+    ####
+    
+    #Ensembl options
+    my $us_ens = "";
+    my $pw_ens = "";
+    
+    #Connect to ensembl
+    my $dbh = DBI->connect('DBI:SQLite:'.$ens_db,$us_ens,$pw_ens,
+    {RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
+    
+    #Get seq_region_id
+    my $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
+    my $execute = $dbh->prepare($query);
+    $execute->execute();
+    my $seq_region;
+    while(my @result = $execute->fetchrow_array()){
+        $seq_region = $result[0];
+    }
+    $execute->finish();
+    
+    #######
+    # Transcripts
+    #######
+    
+    #Init
+    my $trs_c = {};
+    my $trs_nc = {};
+    
+    #Get coding transcripts
+    my $query1 = "SELECT transcript_id,gene_id,seq_region_start,seq_region_end,seq_region_strand,biotype,stable_id FROM transcript WHERE seq_region_id = '$seq_region' AND biotype = 'protein_coding'";
+    my $execute1 = $dbh->prepare($query1);
+    $execute1->execute();
+    
+    $trs_c = $execute1->fetchall_hashref('transcript_id');
+    $execute1->finish();
+    
+    # Get all other transcripts
+    my $query2 = "SELECT transcript_id,gene_id,seq_region_start,seq_region_end,seq_region_strand,biotype,stable_id FROM transcript WHERE seq_region_id = '$seq_region' AND biotype NOT LIKE '%protein_coding%'";
+    my $execute2 = $dbh->prepare($query2);
+    $execute2->execute();
+    
+    $trs_nc = $execute2->fetchall_hashref('transcript_id');
+    $execute2->finish();
+    
+    # Split transcripts in forward and reverse arrays
+    my ($tr_c_for,$tr_c_rev);
+    foreach my $tr_id (sort { $trs_c->{$a}{'seq_region_start'} <=> $trs_c->{$b}{'seq_region_start'} } keys %{$trs_c}){
+        if($trs_c->{$tr_id}{'seq_region_strand'} eq '1'){	# Forward
+            push(@$tr_c_for,$tr_id);
+        }else{	# Reverse
+            push(@$tr_c_rev,$tr_id);
+        }
+    }
+    my ($tr_nc_for,$tr_nc_rev);
+    foreach my $tr_id (sort { $trs_nc->{$a}{'seq_region_start'} <=> $trs_nc->{$b}{'seq_region_start'} } keys %{$trs_nc}){
+        if($trs_nc->{$tr_id}{'seq_region_strand'} eq '1'){	# Forward strand
+            push(@$tr_nc_for,$tr_id);
+        }else{	# Reverse strand
+            push(@$tr_nc_rev,$tr_id);
+        }
+    }
+    
+    ###########
+    ## EXONs & UTRs
+    ###########
+    ## PROTEIN-CODING TRANSCRIPTS
+    ###########
+    # Init
+    my $exon = {};
+    my (%cds_for,%cds_rev); # CDS = UTRs + EXONs
+    
+    foreach my $tr_id(keys %{$trs_c}){
+        # Get all exons for obtained transcripts from tables exon and exon_transcript
+        my $query3 = "SELECT a.exon_id,b.seq_region_start,b.seq_region_end,b.seq_region_strand,a.rank FROM exon_transcript a JOIN exon b ON a.exon_id = b.exon_id WHERE a.transcript_id = '$tr_id'";
+        my $execute3 = $dbh->prepare($query3);
+        $execute3->execute();
+        $exon = $execute3->fetchall_hashref('exon_id');
+        
+        $execute3->execute();
+        my $highest_rank=0;
+        while(my @result3 = $execute3->fetchrow_array()){
+            #$result3[0]: exon_id
+            #$result3[1]: seq_region_start
+            #$result3[2]: seq_region_end
+            #$result3[3]: seq_region_strand
+            #$result3[4]: rank
+            
+            for(my $i1=$result3[1];$i1<=$result3[2];$i1++){
+                if($result3[3] == 1){	# Forward strand
+                    $cds_for{$chr.':'.$i1}{'exon'}++;
+                }else{	# Reverse strand
+                    $cds_rev{$chr.':'.$i1}{'exon'}++;
+                }
+            }
+            
+            #Search highest rank
+            if($result3[4]>$highest_rank){
+                $highest_rank = $result3[4];
+            }
+        }
+        $execute3->finish();
+        
+        # Get first and last exon of each transcript from table translation
+        my $query4 = "SELECT start_exon_id,end_exon_id,seq_start,seq_end FROM translation WHERE transcript_id = '$tr_id'";
+        my $execute4 = $dbh->prepare($query4);
+        $execute4->execute();
+        
+        while(my @result4 = $execute4->fetchrow_array()){
+            #$result4[0]: start_exon_id
+            #$result4[1]: end_exon_id
+            #$result4[2]: seq_start (offset position translation start)
+            #$result4[3]: seq_end (offset position translation stop)
+            
+            my ($start_id,$end_id,$seq_start,$seq_end) = ($result4[0],$result4[1],$result4[2],$result4[3]);
+            my ($start_first_exon,$stop_first_exon,$start_last_exon,$stop_last_exon,$rank_first_exon,$rank_last_exon);
+            my ($start_codon,$stop_codon);
+            
+            # Determine start codon and stop codon
+            # Determine 5' and 3' UTRs
+            
+            if($trs_c->{$tr_id}{'seq_region_strand'} eq '1'){ # Forward strand
+                $start_first_exon = $exon->{$start_id}{'seq_region_start'};
+                $stop_first_exon = $exon->{$start_id}{'seq_region_end'};
+                $rank_first_exon = $exon->{$start_id}{'rank'};
+                $start_last_exon = $exon->{$end_id}{'seq_region_start'};
+                $stop_last_exon = $exon->{$end_id}{'seq_region_end'};
+                $rank_last_exon = $exon->{$end_id}{'rank'};
+                $start_codon = $start_first_exon + $seq_start - 1;
+                $stop_codon = $start_last_exon + $seq_end - 1;
+                
+                for(my $l1=$start_first_exon;$l1<$start_codon;$l1++){
+                    $cds_for{$chr.':'.$l1}{'5UTR'}++;
+                }
+                #5UTR also in exons before first translated exon
+                if ($rank_first_exon>1){
+                    foreach my $exon_id (keys(%{$exon})){
+                        if ($exon->{$exon_id}->{'rank'} < $rank_first_exon){
+                            for(my $l1a = $exon->{$exon_id}->{'seq_region_start'};$l1a<=$exon->{$exon_id}->{'seq_region_end'};$l1a++){
+                                $cds_for{$chr.':'.$l1a}{'5UTR'}++;
+                            }
+                        }
+                    }
+                }
+                
+                #3UTR also in exons after the last translated exon
+                for(my $l2=($stop_codon+1);$l2<=$stop_last_exon;$l2++){
+                    $cds_for{$chr.':'.$l2}{'3UTR'}++;
+                }
+                if ($rank_last_exon < $highest_rank){
+                    foreach my $exon_id (keys(%{$exon})){
+                        if ($exon->{$exon_id}->{'rank'} > $rank_last_exon){
+                            for (my $l2a = $exon->{$exon_id}->{'seq_region_start'};$l2a<=$exon->{$exon_id}->{'seq_region_end'};$l2a++){
+                                $cds_for{$chr.':'.$l2a}{'3UTR'}++;
+                            }
+                        }
+                    }
+                }
+                
+            }elsif($trs_c->{$tr_id}{'seq_region_strand'} eq '-1'){ # Reverse strand
+                $start_first_exon = $exon->{$start_id}{'seq_region_end'};
+                $stop_first_exon = $exon->{$start_id}{'seq_region_start'};
+                $rank_first_exon = $exon->{$start_id}{'rank'};
+                $start_last_exon = $exon->{$end_id}{'seq_region_end'};
+                $stop_last_exon = $exon->{$end_id}{'seq_region_start'};
+                $rank_last_exon = $exon->{$end_id}{'rank'};
+                $start_codon = $start_first_exon - $seq_start + 1;
+                $stop_codon = $start_last_exon - $seq_end + 1;
+                
+                #5UTR also in exons before first translated exon
+                for(my $l3=($start_codon+1);$l3<=$start_first_exon;$l3++){
+                    $cds_rev{$chr.':'.$l3}{'5UTR'}++;
+                }
+                if ($rank_first_exon>1){
+                    foreach my $exon_id (keys(%{$exon})){
+                        if ($exon->{$exon_id}->{'rank'} < $rank_first_exon){
+                            for (my $l3a=$exon->{$exon_id}->{'seq_region_start'}; $l3a<=$exon->{$exon_id}->{'seq_region_end'};$l3a++){
+                                $cds_rev{$chr.':'.$l3a}{'5UTR'}++;
+                            }
+                        }
+                    }
+                }
+                
+                #3UTR also in exons after the last translated exon
+                for(my $l4=$stop_last_exon;$l4<$stop_codon;$l4++){
+                    $cds_rev{$chr.':'.$l4}{'3UTR'}++;
+                }
+                
+                
+                if ($rank_last_exon < $highest_rank){
+                    foreach my $exon_id (keys(%{$exon})){
+                        if ($exon->{$exon_id}->{'rank'} > $rank_last_exon){
+                            for (my $l4a=$exon->{$exon_id}->{'seq_region_start'};$l4a<=$exon->{$exon_id}->{'seq_region_end'};$l4a++){
+                                $cds_rev{$chr.':'.$l4a}{'3UTR'}++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        $execute4->finish();
+        
+    } #close transcript id loop
+    
+    ###########
+    ## NON-CODING TRANSCRIPTS
+    ###########
+    # Get biotypes
+    my $query5 = "SELECT biotype FROM transcript WHERE biotype NOT LIKE '%protein_coding%' GROUP BY biotype";
+    my $execute5 = $dbh->prepare($query5);
+    $execute5->execute();
+    
+    my %biotypes_nc;
+    while(my @results5 = $execute5->fetchrow_array()){
+        $biotypes_nc{$results5[0]} = 0;
+    }
+    $execute5->finish();
+    # Disconnect
+    $dbh->disconnect();
+    
+    ###########
+    ## RIBO-DATA
+    ###########
+    ###########
+    ## ANNOTATE RIBO-SEQ READS
+    ###########
+    print "\t\tAnnotating ribo-seq reads of chr ".$chr."\n";
+    
+    # Get ribo-seq reads, split per strand
+    my ($ribo_for, $pos_for) = get_reads($chr,1,$resultdb,$treated,$mapping_unique,$unique);
+    my ($ribo_rev, $pos_rev) = get_reads($chr,-1,$resultdb,$treated,$mapping_unique,$unique);
+
+    # Init values
+    my ($ribo_reads,$ribo_readsnc) = (0,0);
+    my ($ribo_exon,$ribo_intron,$ribo_5utr,$ribo_3utr,$ribo_intergenic) = (0,0,0,0,0);
+    
+    # Loop over forward ribo-seq reads
+    my @window_c = (); # Init window with protein-coding transcripts
+    my @window_nc = (); # Init window with non protein-coding transcripts
+    foreach my $pos (@{$pos_for}){
+        #####
+        ## PROTEIN-CODING WINDOW
+        ######
+        # Push all tr_ids to @window_c where tr_start < window_pos
+        my $last_added_index_c = -1;
+        foreach my $tr_for_id (@$tr_c_for){
+            if($trs_c->{$tr_for_id}{'seq_region_start'} <= $pos){
+                $last_added_index_c++;
+                push(@window_c,$tr_for_id);
+            }else{last;} # Don't unnecessarily loop over all transcripts
+        }
+        
+        # Get rid of tr_c_for elements brought into @window_c
+        splice(@$tr_c_for, 0, $last_added_index_c+1); #length parameter = last index (- first index (=0) ) + 1
+        
+        # Get rid of tr_ids in @window_c where tr_end < window_pos
+        @window_c = grep {$trs_c->{$_}{'seq_region_end'} >= $pos} @window_c;
+        
+        #####
+        ## NON-CODING WINDOW
+        #####
+        # Push all tr_ids to @window_nc where tr_start < window_pos
+        my $last_added_index_nc = -1;
+        foreach my $tr_for_id (@$tr_nc_for){
+            if($trs_nc->{$tr_for_id}{'seq_region_start'} <= $pos){
+                $last_added_index_nc++;
+                push(@window_nc,$tr_for_id);
+            }else{last;} # Don't unnecessarily loop over all transcripts
+        }
+        
+        # Get rid of tr_nc_for elements already in @window_nc
+        splice(@$tr_nc_for, 0, $last_added_index_nc+1);
+        
+        # Get rid of tr_ids in @window_nc where tr_end < window_pos
+        @window_nc = grep {$trs_nc->{$_}{'seq_region_end'} >= $pos} @window_nc;
+        
+        #####
+        ## ANNOTATE
+        #####
+        # Loop over windows and check functional annotation of each ribo-seq read
+        $ribo_reads = $ribo_reads + $ribo_for->{$pos}{'count'};
+        if(@window_c){
+            # Annotate reads in PROTEIN-CODING transcripts
+            my $count = $ribo_for->{$pos}{'count'};
+            
+            # Check 5'UTR
+            if(defined($cds_for{$chr.':'.$pos}{'5UTR'})){
+                $ribo_5utr = $ribo_5utr + $count;
+            }
+            
+            # Check 3'UTR
+            elsif(defined($cds_for{$chr.':'.$pos}{'3UTR'})){
+                $ribo_3utr = $ribo_3utr + $count;
+            }
+            
+            # Check Exons
+            elsif(defined($cds_for{$chr.':'.$pos}{'exon'})){
+                $ribo_exon = $ribo_exon + $count;
+            }
+            
+            # If still not defined -> intronic region
+            else{
+                $ribo_intron = $ribo_intron + $count;
+            }
+        }elsif(@window_nc){
+            # Annotate reads in NON PROTEIN-CODING transcripts
+            $ribo_readsnc = $ribo_readsnc + $ribo_for->{$pos}{'count'};
+            
+            # Define biotype (if #biotypes>0, take a random/first one)
+            my @biotypes; my $i = 0;
+            foreach my $tr_for_id (@window_nc){
+                $biotypes[$i] = $trs_nc->{$tr_for_id}{'biotype'};
+                $i++;
+            }
+            my $random = int(rand(@biotypes));
+            my $biotype = $biotypes[$random];
+            $biotypes_nc{$biotype} = $biotypes_nc{$biotype} + $ribo_for->{$pos}{'count'};
+        }else{
+            $ribo_intergenic = $ribo_intergenic + $ribo_for->{$pos}{'count'};
+        }
+    } #close forward loop
+    
+    # Loop over reverse ribo-seq reads
+    @window_c = (); # Empty window_c
+    @window_nc = (); # Empty window_nc
+    foreach my $pos (@{$pos_rev}){
+        ######
+        ## PROTEIN-CODING WINDOW
+        ######
+        # Push all tr_ids to @window_c where tr_start < window_pos
+        my $last_added_index_c = -1;
+        foreach my $tr_rev_id (@$tr_c_rev){
+            if($trs_c->{$tr_rev_id}{'seq_region_start'} <= $pos){
+                $last_added_index_c++;
+                push(@window_c,$tr_rev_id);
+            }else{last;} # Don't unnecessarily loop over all transcripts
+        }
+        
+        # Get rid of tr_c_rev elements already in @window_c
+        splice(@$tr_c_rev, 0, $last_added_index_c+1);
+        
+        # Get rid of tr_ids in @window_c where tr_end < window_pos
+        @window_c = grep {$trs_c->{$_}{'seq_region_end'} >= $pos} @window_c;
+        
+        ######
+        ## NON-CODING WINDOW
+        ######
+        # Push all tr_ids to @window_nc where tr_start < window_pos
+        my $last_added_index_nc = -1;
+        foreach my $tr_rev_id (@$tr_nc_rev){
+            if($trs_nc->{$tr_rev_id}{'seq_region_start'} <= $pos){
+                $last_added_index_nc++;
+                push(@window_nc,$tr_rev_id);
+            }else{last;} # Don't unnecessarily loop over all transcripts
+        }
+        
+        # Get rid of tr_nc_for elements already in @window_nc
+        splice(@$tr_nc_rev, 0, $last_added_index_nc+1);
+        
+        # Get rid of tr_ids in @window_nc where tr_end < window_pos
+        @window_nc = grep {$trs_nc->{$_}{'seq_region_end'} >= $pos} @window_nc;
+        
+        ######
+        ## ANNOTATE
+        ######
+        # Loop over windows and check functional annotation of each ribo-seq read
+        $ribo_reads = $ribo_reads + $ribo_rev->{$pos}{'count'};
+        if(@window_c){
+            # Annotate reads in PROTEIN-CODING transcripts
+            my $count = $ribo_rev->{$pos}{'count'};
+            
+            # Check 5'UTR
+            if(defined($cds_rev{$chr.':'.$pos}{'5UTR'})){
+                $ribo_5utr = $ribo_5utr + $count;
+            }
+            
+            # Check 3'UTR
+            elsif(defined($cds_rev{$chr.':'.$pos}{'3UTR'})){
+                $ribo_3utr = $ribo_3utr + $count;
+            }
+            
+            # Check Exons
+            elsif(defined($cds_rev{$chr.':'.$pos}{'exon'})){
+                $ribo_exon = $ribo_exon + $count;
+            }
+            
+            # If still not defined -> intronic region
+            else{
+                $ribo_intron = $ribo_intron + $count;
+            }
+        }elsif(@window_nc){
+            # Annotate reads in NON PROTEIN-CODING transcripts
+            $ribo_readsnc = $ribo_readsnc + $ribo_rev->{$pos}{'count'};
+            
+            # Define biotype (if #biotypes>0, take a random/first one)
+            my @biotypes; my $i = 0;
+            foreach my $tr_rev_id (@window_nc){
+                $biotypes[$i] = $trs_nc->{$tr_rev_id}{'biotype'};
+                $i++;
+            }
+            my $random = int(rand(@biotypes));
+            my $biotype = $biotypes[$random];
+            $biotypes_nc{$biotype} = $biotypes_nc{$biotype} + $ribo_rev->{$pos}{'count'};
+            
+        }else{
+            $ribo_intergenic = $ribo_intergenic + $ribo_rev->{$pos}{'count'};
+        }
+    } # Close rev-loop
+    
+    # Print results
+    print OUT1 $chr."\t".$ribo_reads."\t".$ribo_exon."\t".$ribo_5utr."\t".$ribo_3utr."\t".$ribo_intron."\t".$ribo_readsnc."\t".$ribo_intergenic."\n";
+    print OUT2 $chr."\t".$ribo_readsnc;
+    foreach my $biotype(sort keys %biotypes_nc){
+        print OUT2 "\t".$biotypes_nc{$biotype};
+    }
+    print OUT2 "\n";
+    
+    print "\t*) Finished metagenic analysis for chromosome ".$chr."\n";
+
+    
+    
+    return;
+}
+
+## Metagenic classification ##
+sub metagenic_analysis {
+    
+    #Catch
+    my $ens_db = $_[0];
+    my %chr_sizes = %{$_[1]};
+    my $cores = $_[2];
+    my $tool_dir = $_[3];
+    my $resuldb = $_[4];
+    my $coord_system_id = $_[5];
+    my $treated = $_[6];
+    my $mapping_unique = $_[7];
+    my $unique = $_[8];
+    
+    #Ensembl options
+    my $us_ENS = "";
+    my $pw_ENS = "";
+    
+    #Get Non coding biotypes out of ensembl
+    my %biotypes = %{get_nPCbiotypes($ens_db, $us_ENS, $pw_ENS)};
+    
+    #Open files
+    my $out_table1 = $TMP."/mappingqc_".$treated."/annotation_coding.txt";
+    my $out_table2 = $TMP."/mappingqc_".$treated."/annotation_noncoding.txt";
+    if(-e $out_table1){
+        system("rm -rf ".$out_table1);
+    }
+    if(-e $out_table2){
+        system("rm -rf ".$out_table2);
+    }
+    open(OUT1,"+>>",$out_table1) or die $!;
+    open(OUT2,"+>>",$out_table2) or die $!;
+    
+    print OUT1 "chr\tribo\texon\t5utr\t3utr\tintron\tnon_protein_coding\tintergenic\n";
+    print OUT2 "chr\tnon_protein_coding";
+    foreach my $biotype(sort keys %biotypes){
+        print OUT2 "\t".$biotype;
+    }
+    print OUT2 "\n";
+    
+    #Init multi core
+    my $pm = new Parallel::ForkManager($cores);
+    
+    foreach my $chr (keys(%chr_sizes)){
+        
+        #Start parallel process for each chromosome
+        $pm->start and next;
+        
+        #main loop
+        metagenic_analysis_chr($ens_db, $resultdb, $chr, $coord_system_id, $treated, $mapping_unique, $unique);
+        
+        #Finish process
+        $pm->finish;
+        
+    }
+    
+    #Finish all processes
+    $pm->wait_all_children;
+    
+    #Close output stream
+    close(OUT1);
+    close(OUT2);
+    
+    #output figures
+    my $out_png1 = $TMP."/mappingqc_".$treated."/annotation_coding.png";
+    my $out_png2 = $TMP."/mappingqc_".$treated."/annotation_noncoding.png";
+    if(-e $out_png1){
+        system("rm -rf ".$out_png1);
+    }
+    if(-e $out_png2){
+        system("rm -rf ".$out_png2);
+    }
+    
+    # Make Pie Charts
+    piecharts($out_table1,$out_table2,$out_png1,$out_png2,$tool_dir);
+    
+    return;
+}
+
+#Startup R for plotting pie charts
+sub piecharts{
+    print "Make Pie Charts...\n";
+    
+    # Catch
+    my $out_table1 = $_[0];
+    my $out_table2 = $_[1];
+    my $out_png1 = $_[2];
+    my $out_png2 = $_[3];
+    my $tooldir = $_[4];
+    
+    # Execute Rscript
+    system("Rscript ".$tooldir."/metagenic_piecharts.R ".$out_table1." ".$out_table2." ".$out_png1." ".$out_png2);
+}
+
+## Gene distribution for each chromosome ##
+sub gene_distribution_chr {
+    
+    #Catch
+    my $ens_db = $_[0];
+    my $resultdb = $_[1];
+    my $chr = $_[2];
+    my $coord_system_id = $_[3];
+    my $treated = $_[4];
+    my $mapping_unique = $_[5];
+    my $unique = $_[6];
+    
+    #Open files
+    my $out_chr_table = $TMP."/mappingqc_".$treated."/genedistribution_".$chr.".txt";
+    open OUT_CHR_GD,"+>>".$out_chr_table or die $!;
+    
+    #Ensembl db
+    my $dsn_ENS = "DBI:SQLite:dbname=$ens_db";
+    my $us_ENS  = "";
+    my $pw_ENS  = "";
+    my $dbh = dbh($dsn_ENS, $us_ENS, $pw_ENS);
+    
+    #Get seq region id
+    my $seq_region = get_seq_region_id($dbh, $chr, $coord_system_id);
+    
+    #Get all genes with start and stop position
+    my $query1 = "SELECT stable_id,seq_region_start,seq_region_end,seq_region_strand FROM gene WHERE seq_region_id = '$seq_region'";
+    my $execute1 = $dbh->prepare($query1);
+    $execute1->execute();
+    
+    my %genes;
+    while(my @result1 = $execute1->fetchrow_array()){
+        #$result1[0]: gene stable_id
+        #$result1[1]: gene seq_region_start
+        #$result1[2]: gene seq_region_end
+        #$result1[3]: gene seq_region_strand
+        
+        $genes{$chr.":".$result1[3]}{$result1[0]} = [$result1[1],$result1[2]];
+    }
+    $execute1->finish();
+    
+    #Disconnect from ensembl
+    $dbh->disconnect();
+    
+    #Make lists of genes (forward and reverse) sorted based on coordinates
+    my %for_genes = %{$genes{$chr.":1"}};
+    my %rev_genes = %{$genes{$chr.":-1"}};
+    my(@genes_for,@genes_rev);
+    foreach my $gene_id (sort { $genes{$chr.":1"}{$a}[0] <=> $genes{$chr.":1"}{$b}[0] } keys(%for_genes)){
+        push(@genes_for,$gene_id);
+    }
+    foreach my $gene_id (sort { $genes{$chr.":-1"}{$a}[0] <=> $genes{$chr.":-1"}{$b}[0] } keys(%rev_genes)){
+        push(@genes_rev,$gene_id);
+    }
+    
+    ##############
+    ## RIBO-SEQ -> READs (~A-site position): determine gene distribution
+    ##############
+    print "\t\tAnnotating ribo-seq reads of chr ".$chr."\n";
+    
+    # Get ribo-seq reads, split per strand
+    my ($ribo_for, $pos_for) = get_reads($chr,1,$resultdb,$treated,$mapping_unique,$unique);
+    my ($ribo_rev, $pos_rev) = get_reads($chr,-1,$resultdb,$treated,$mapping_unique,$unique);
+    
+    #Init
+    my %gene_count;
+    my $intergenic_count;
+    
+    # Loop over forward ribo-seq reads
+    my @window_genes_for = (); # Init window with genes
+    foreach my $pos (@{$pos_for}){
+        #Push all genes into window where start<window_pos
+        my $last_added_index_g = -1;
+        foreach my $gene_id (@genes_for){
+            if($genes{$chr.":1"}{$gene_id}[0] <= $pos){
+                $last_added_index_g++;
+                push(@window_genes_for,$gene_id);
+            }else{
+                #Don't unnecessarily loop over all genes
+                last;
+            }
+        }
+        
+        #Get rid of gene ids in gene list already in the window
+        splice(@genes_for, 0, $last_added_index_g+1);
+        
+        #Get rid of gene ids in window where end coordinate < window position
+        @window_genes_for = grep {$genes{$chr.":1"}{$_}[1] >= $pos} @window_genes_for;
+        
+        #Annotate read count for all genes in the window
+        my $def = 0;
+        foreach my $gene_id (@window_genes_for){
+            $def++; #defined in genes
+            $gene_count{$gene_id} += $ribo_for->{$pos}{'count'};
+        }
+        
+        if($def==0){
+            $intergenic_count += $ribo_for->{$pos}{'count'};
+        }
+    }#Close forward loop
+    
+    my @window_genes_rev = ();
+    #Loop over reverse ribo-seq reads
+    foreach my $pos (@{$pos_rev}){
+        #Push all genes into window where start<window_pos
+        my $last_added_index_g = -1;
+        foreach my $gene_id (@genes_rev){
+            if($genes{$chr.":-1"}{$gene_id}[0] <= $pos){
+                $last_added_index_g++;
+                push(@window_genes_rev,$gene_id);
+            }else{
+                #Don't unnecessarily loop over all genes
+                last;
+            }
+        }
+        
+        #Get rid of gene ids in gene list already in the window
+        splice(@genes_rev, 0, $last_added_index_g+1);
+        
+        #Get rid of gene ids in window where end coordinate < window position
+        @window_genes_rev = grep {$genes{$chr.":-1"}{$_}[1] >= $pos} @window_genes_rev;
+        
+        #Annotate read count for all genes in the window
+        my $def = 0;
+        foreach my $gene_id (@window_genes_rev){
+            $def++; #defined in genes
+            $gene_count{$gene_id} += $ribo_rev->{$pos}{'count'};
+        }
+        
+        if($def==0){
+            $intergenic_count += $ribo_rev->{$pos}{'count'};
+        }
+    }#Close reverse loop
+    
+    ##############
+    ## RESULTS: Make table
+    ##############
+    
+    foreach my $id (keys(%gene_count)){
+        print OUT_CHR_GD $id."\t".$gene_count{$id}."\n";
+    }
+    close(OUT_CHR_GD);
+    
+    print "\t*) Finished gene distribution construction for chromosome ".$chr."\n";
+    
+    return;
+}
+
+### Gene distribution ###
+sub gene_distribution {
+    
+    #Catch
+    my $ens_db = $_[0];
+    my %chr_sizes = %{$_[1]};
+    my $cores = $_[2];
+    my $tool_dir = $_[3];
+    my $resultdb= $_[4];
+    my $coord_system_id = $_[5];
+    my $treated = $_[6];
+    my $mapping_unique = $_[7];
+    my $unique = $_[8];
+    
+    # Open files
+    my $out_table = $TMP."/mappingqc_".$treated."/genedistribution.txt";
+    system("rm -rf ".$out_table);
+    system("touch ".$out_table);
+    open(OUT_GD,"+>>".$out_table);
+    print OUT_GD "GeneID\tread_count\n";
+    close(OUT_GD);
+    
+    #Init multi core
+    my $processes = $cores; # Nr of processes
+    my $pm = new Parallel::ForkManager($processes); # Open fork
+    
+    # Loop through chromosomes
+    foreach my $chr(keys(%chr_sizes)){
+        print "\tStarting analysis for chr ".$chr."...\n";
+        # Start parallel process
+        $pm->start and next;
+        
+        #Chromosomal gene distribution construction
+        gene_distribution_chr($ens_db, $resultdb, $chr, $coord_system_id, $treated, $mapping_unique, $unique);
+        
+        # Close process
+        $pm->finish;
+    }
+    
+    # Finish forking
+    $pm->wait_all_children;
+    
+    #Concatenate all chromosomal out tables
+    foreach my $chr(keys(%chr_sizes)){
+        my $chr_out_table = $TMP."/mappingqc_".$treated."/genedistribution_".$chr.".txt";
+        my $tmp_file = $TMP."/mappingqc_".$treated."/tmp.txt";
+        system("cat ".$out_table." ".$chr_out_table." > ".$tmp_file);
+        system("mv ".$tmp_file." ".$out_table);
+        system("rm -rf ".$chr_out_table);
+    }
+    
+    #Make plots
+    print "Make gene distribution plots\n";
+    my $out_png1 = $TMP."/mappingqc_".$treated."/rankedgenes.png";
+    my $out_png2 = $TMP."/mappingqc_".$treated."/cumulative.png";
+    my $out_png3 = $TMP."/mappingqc_".$treated."/density.png";
+    make_plots_gd($out_table, $out_png1, $out_png2, $out_png3, $tool_dir);
+    
+    return;
+}
+
+## Make plots in R ##
+sub make_plots_gd{
+    
+    #Catch
+    my $out_table = $_[0];
+    my $out_png1 = $_[1];
+    my $out_png2 = $_[2];
+    my $out_png3 = $_[3];
+    my $tool_dir = $_[4];
+    
+    #Execute R script
+    system("Rscript ".$tool_dir."/quality_plots.R ".$out_table." ".$out_png1." ".$out_png2." ".$out_png3);
+    
+    return;
+}
+
+# Get reads out of count tables
+sub get_reads {
+    
+    #Catch
+    my $chr = $_[0];
+    my $strand = $_[1];
+    my $resultdb = $_[2];
+    my $treated = $_[3];
+    my $mapping_unique = $_[4];
+    my $unique = $_[5];
+    
+    #Init
+    my $ribo_reads = {};
+    my $read_keys = [];
+    
+    #Connect to result db
+    my $dsn = 'DBI:SQLite:'.$resultdb;
+    my $user = "";
+    my $pw = "";
+    my $dbh = dbh($dsn, $user, $pw);
+    
+    # Create/define SQLite DBs/tables for the ribo-run
+    my $table_ribo;
+    if($treated eq 'untreated'){
+        if ($mapping_unique eq 'N'){
+            if ($unique eq 'N'){
+                $table_ribo = 'count_fastq1';
+            } elsif ($unique eq 'Y'){
+                $table_ribo = 'count_fastq1_unique';
+            }
+        } elsif ($mapping_unique eq 'Y'){
+            $table_ribo = 'count_fastq1';
+        }
+    } elsif($treated eq 'treated'){
+        if ($mapping_unique eq 'N'){
+            if ($unique eq 'N'){
+                $table_ribo = 'count_fastq2';
+            } elsif ($unique eq 'Y'){
+                $table_ribo = 'count_fastq2_unique';
+            }
+        } elsif ($mapping_unique eq 'Y'){
+            $table_ribo = 'count_fastq1';
+        }
+    } else {
+        print "ERROR: treated option should be 'treated' or 'untreated'!";
+        die;
+    }
+    
+    #Get all reads for a chromosome
+    my $query = "SELECT start,count FROM $table_ribo WHERE chr = '$chr' AND strand = '$strand'";
+    my $execute = $dbh->prepare($query);
+    $execute->execute();
+    
+    while(my @result = $execute->fetchrow_array()){
+        $ribo_reads->{$result[0]}->{'count'} = $result[1];
+        push(@{$read_keys},$result[0]);
+    }
+    
+    return($ribo_reads, $read_keys);
+}
 
 ### RIBO PARSE PER CHR ###
 sub RIBO_parsing_genomic_per_chr {
@@ -981,6 +1823,10 @@ sub split_SAM_per_chr {
     my $work_dir = $_[1];
     my $sam = $_[2];
     my $treated = $_[3];
+    my $unique = $_[4];
+    my $firstRankMultiMap = $_[5];
+    my $maxmultimap = $_[6];
+    my $mapper = $_[7];
     
     my @splitsam = split(/\//, $sam );
     my $samFileName = $splitsam[$#splitsam];
@@ -991,6 +1837,12 @@ sub split_SAM_per_chr {
     
     #Remove eventual existing samfiles
     system("rm -f ".$TMP."/mappingqc_".$treated."/".$samFileName."_*.sam");   # Delete existing
+    
+    # Make unique file
+    my $uniquefile = $TMP."/mappingqc_".$treated."/unique.txt";
+    open(UF, ">>".$uniquefile) || die "Cannot open ".$uniquefile." file\n";
+    print UF $unique;
+    close(UF);
     
     # Touch per chr
     foreach $chr (keys %chr_sizes){
@@ -1015,12 +1867,25 @@ sub split_SAM_per_chr {
         @mapping_store = split(/\t/,$line);
         $chr = $mapping_store[2];
         
-        #Keep all mappings, also MultipleMapping locations are available (alternative to pseudogenes mapping) GM:07-10-2013
-        #Note that we only retain the up until <16 multiple locations (to avoid including TopHat2 peak @ 16)
-        #For STAR the maxMultiMap is not included in the output (e.g. if maxmultimap is set to 16, up untill 15 is included)
-        #For TopHat2 the maxMultiMap is included in the output (e.g. if maxmultimap is set to 16, up untill 16 is included)
-        #In order to have the same actual limit, the maxmultimap is discarded (see record below)
-        next unless ( $line !~ m/NH:i:$maxmultimap/ );
+        # Unique vs. (Unique+Multiple) alignment selection
+        # NH:i:1 means that only 1 alignment is present
+        # HI:i:xx means that this is the xx-st ranked (for Tophat ranking starts with 0, for STAR ranking starts with 1)
+        if ($unique eq "Y") {
+            next unless (($mapping_store[4] == 255 && uc($mapper) eq "STAR") || ($line =~ m/NH:i:1\D/ && uc($mapper) eq "TOPHAT2"));
+        }
+        elsif ($unique eq "N") {
+            #If multiple: best scoring or random (if equally scoring) is chosen
+            if ($firstRankMultiMap eq "Y") {
+                next unless (($mapping_store[12] eq "HI:i:1" && uc($mapper) eq "STAR") || (($line =~ m/HI:i:0/ || $line =~ m/NH:i:1\D/) && uc($mapper) eq "TOPHAT2"));
+            }
+            #Keep all mappings, also MultipleMapping locations are available (alternative to pseudogenes mapping) GM:07-10-2013
+            #Note that we only retain the up until <16 multiple locations (to avoid including TopHat2 peak @ 16)
+            #For STAR the maxMultiMap is not included in the output (e.g. if maxmultimap is set to 16, up untill 15 is included)
+            #For TopHat2 the maxMultiMap is included in the output (e.g. if maxmultimap is set to 16, up untill 16 is included)
+            #In order to have the same actual limit, the maxmultimap is discarded (see record below)
+            next unless ( $line !~ m/NH:i:$maxmultimap/ );
+            
+        }
         
         # Write off
         if ($prev_chr ne $chr) {
@@ -1039,6 +1904,37 @@ sub split_SAM_per_chr {
     # Close
     close(A);
     close(I);
+}
+
+#Get non coding biotypes
+sub get_nPCbiotypes{
+    
+    # Catch
+    my $db_ensembl = $_[0];
+    my $user = $_[1];
+    my $pw = $_[2];
+    
+    # Connect to Ensembl db
+    my $dbh = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
+    {RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
+    
+    # Query db
+    my $query = "SELECT biotype FROM transcript WHERE biotype NOT LIKE '%protein_coding%' GROUP BY biotype";
+    my $execute = $dbh->prepare($query);
+    $execute->execute();
+    
+    my %biotypes;
+    while(my @results = $execute->fetchrow_array()){
+        $biotypes{$results[0]} = 0;
+    }
+    
+    $execute->finish();
+    
+    # Disconnect
+    $dbh->disconnect();
+    
+    # Return
+    return(\%biotypes)
 }
 
 # Given a Cigar string return a double array
@@ -1250,10 +2146,34 @@ sub get_ARG_vars{
     my $IGENOMES_ROOT = $sth->fetch()->[0];
     $sth->finish();
     
+    $query = "select value from arguments where variable = \'unique\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $unique = $sth->fetch()->[0];
+    $sth->finish();
+    
+    $query = "select value from arguments where variable = \'firstRankMultiMap\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $firstRankMultiMap = $sth->fetch()->[0];
+    $sth->finish();
+    
+    $query = "select value from arguments where variable = \'maxmultimap\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $maxmultimap = $sth->fetch()->[0];
+    $sth->finish();
+    
+    $query = "select value from arguments where variable = \'mapper\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $mapper = $sth->fetch()->[0];
+    $sth->finish();
+    
     $dbh_results -> disconnect();
     
     # Return ARG variables
-    return($species,$version,$IGENOMES_ROOT);
+    return($species,$version,$IGENOMES_ROOT,$unique,$firstRankMultiMap,$maxmultimap,$mapper);
 } # Close sub
 
 ## GET seq_region_id ##

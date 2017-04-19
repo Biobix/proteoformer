@@ -35,8 +35,14 @@ ARGUMENTS
                                                 (default STAR/fastq(1/2)/(un)treat.sam)
     -t | --treated                          Untreated or treated sample
                                                 (default: untreated) (should be untreated/treated)
+    -m | --mapping_unique                   Whether mapping was executed unique or not (Y/N)
+                                                (default: Y)
+    -f | --firstRankMultiMap                Whether mapping was executed with first rank multimapping (Y/N)
+                                                (default: Y)
+    -u | --unique                           MappingQC unique (Y/N)
+                                                (default: Y)
     -o | --outfolder                        The output folder for plots
-                                                (default mappingQC_(un)treated)
+                                                (default images_plots)
     -h | --outhtml                          The output html file
                                                 (default mappingQC_out_(un)treated.html)
     -z | --outzip                           The output zip file name
@@ -58,7 +64,7 @@ def main():
 
     # Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:o:h:z:p:i:e:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db="])
+        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:o:h:z:p:i:e:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db="])
     except getopt.GetoptError as err:
         print err
         sys.exit()
@@ -75,6 +81,12 @@ def main():
             samfile = a
         if o in ('-t', '--treated'):
             treated = a
+        if o in ('-m', '--mapping_unique'):
+            mapping_unique = a
+        if o in ('-f', '--firstRankMultiMap'):
+            firstRankMultiMap = a
+        if o in ('-u', '--unique'):
+            unique = a
         if o in ('-o', '--outfolder'):
             outfolder = a
         if o in ('-h', '--outhtml'):
@@ -104,6 +116,18 @@ def main():
         treated
     except:
         treated=''
+    try:
+        mapping_unique
+    except:
+        mapping_unique = ''
+    try:
+        firstRankMultiMap
+    except:
+        firstRankMultiMap = ''
+    try:
+        unique
+    except:
+        unique = ''
     try:
         outfolder
     except:
@@ -148,16 +172,50 @@ def main():
     elif treated != "untreated" and treated != "treated":
         print "ERROR: treated option should be 'treated' or 'untreated'!"
         sys.exit()
+    if mapping_unique == '':
+        mapping_unique = 'Y'
+    if firstRankMultiMap == '':
+        firstRankMultiMap = 'Y'
+    if unique == '':
+        unique = 'Y'
     if outfolder == '':
-        outfolder = workdir+"/mappingQC_"+treated
-    #Trim off last backslash
-    m = re.search("^.*/(.*?)/$", outfolder)
-    if m:
-        outfolder = m.group(1)
+        outfolder = workdir+"/images_plots/"
     if outhtml == '':
-        outhtml = workdir+"/mappingQC_out_"+treated+".html"
+        outhtml = outfolder+"/mappingQC.html"
+        outhtml_short = "mappingQC.html"
+    else:  # only take the last part of the name
+        backslash_test = re.search('/', outhtml)
+        if backslash_test:
+            m = re.search('.*/(.+?\.(html|dat))$', outhtml)
+            if m:
+                outhtml_short = m.group(1)
+            else:
+                print "Could not extract html file name out of given path ("+outhtml+")"
+                sys.exit()
+        else:
+            m = re.search('(.+?\.(html|dat))$', outhtml)
+            if m:
+                outhtml_short = m.group(1)
+            else:
+                print "Could not extract html file name out of given path ("+outhtml+")"
+                sys.exit()
     if outzip == '':
-        outzip = workdir+"/mappingQC_"+treated+".zip"
+        outzip = workdir+"/mappingQC.zip"
+        outzip_short = "mappingQC.zip"
+    else: # Only take the last part of the name
+        backslash_test = re.search('/', outzip)
+        if backslash_test:
+            m = re.search('.*/(.+?\.(zip|dat))$', outzip)
+            if m:
+                outzip_short = m.group(1)
+            else:
+                print "Could not extract zip file name out of given path ("+outzip+")"
+        else:
+            m = re.search('(.+?\.(zip|dat))$', outzip)
+            if m:
+                outzip_short = m.group(1)
+            else:
+                print "Could not extract zip file name out of given path (" + outzip + ")"
     if plastid_option == '':
         plastid_option='plastid'
     elif plastid_option!='standard' and plastid_option!='plastid' and plastid_option!='from_file':
@@ -176,7 +234,7 @@ def main():
 
     #Make plot  directory
     if not os.path.exists(outfolder):
-        os.system("mkdir "+outfolder)
+        os.system("mkdir -p "+outfolder)
 
     #Download biobix image
     os.system("wget --quiet \"http://www.nxtgnt.ugent.be/images/img/logos/BIOBIX_logo.png\"")
@@ -209,20 +267,34 @@ def main():
     offset_img = "offsets.png"
     if plastid_option=="plastid":
         os.system("cp " + plastid_img + " " + outfolder + "/" + offset_img)
-    write_out_html(outhtml, outfolder, samfile, run_name, totmaps, plastid_option, offsets_file, offset_img, prefix_gene_distr, ensembl_version, species, ens_db, treated)
-    #Make copy of html so that is certainly in the output folder as well
-    os.system("cp "+outhtml+" "+outfolder)
+    # Copy metagenic pie charts to output folder
+    tmp_rankedgenes = tmpfolder + "/mappingqc_"+treated+"/rankedgenes.png"
+    tmp_cumulative = tmpfolder + "/mappingqc_"+treated+"/cumulative.png"
+    tmp_density = tmpfolder + "/mappingqc_"+treated+"/density.png"
+    tmp_metagenic_plot_c = tmpfolder + "/mappingqc_"+treated+"/annotation_coding.png"
+    tmp_metagenic_plot_nc = tmpfolder + "/mappingqc_"+treated+"/annotation_noncoding.png"
+    os.system("cp " + tmp_cumulative + " " + outfolder)
+    os.system("cp " + tmp_rankedgenes + " " + outfolder)
+    os.system("cp " + tmp_density + " " + outfolder)
+    os.system("cp " + tmp_metagenic_plot_c + " " + outfolder)
+    os.system("cp " + tmp_metagenic_plot_nc + " " + outfolder)
+    write_out_html(outhtml, samfile, run_name, totmaps, plastid_option, offsets_file, offset_img, prefix_gene_distr, ensembl_version, species, ens_db, treated, mapping_unique, firstRankMultiMap, unique)
 
     ##Archive and collect output
     #Make output archive
-    output_arch = "MappingQC_archive/"
-    os.system("mkdir " + output_arch)
+    output_arch = "mappingQC_archive/"
+    #Try to fetch alternative name out of zip file name
+    m = re.search('(.+)\.zip$', outzip_short)
+    if m:
+        output_arch = m.group(1)
+    os.system("mkdir " + workdir + "/" + output_arch)
     #Bring output html and output images folder to archive
-    os.system("cp -r " + outhtml + " " + output_arch)
+    os.system("cp -r " + outhtml + " " + outfolder)
     os.system("cp -r " + outfolder + " " + output_arch)
     #zip output archive
-    tmpZip = workdir+"tmp.zip"
+    tmpZip = workdir+"/tmp.zip"
     os.system("zip -r -q "+tmpZip+" "+output_arch)
+    os.system("rm -rf " + output_arch)
     os.system("mv "+tmpZip+" "+outzip)
 
     return
@@ -233,7 +305,7 @@ def main():
 
 
 ## Write output html file
-def write_out_html(outfile, output_folder, samfile, run_name, totmaps, plastid, offsets_file, offsets_img, prefix_gene_distr, ensembl_version, species, ens_db, treated):
+def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, offsets_img, prefix_gene_distr, ensembl_version, species, ens_db, treated, mapping_unique, firstRankMultiMap, unique):
 
     #Load in offsets
     offsets = pd.read_csv(offsets_file, sep=',', header=None, names=["RPF", "offset"])
@@ -508,6 +580,18 @@ def write_out_html(outfile, output_folder, samfile, run_name, totmaps, plastid, 
                 <td>"""+treated+"""</td>
             </tr>
             <tr>
+                <td>Mapping unique?</td>
+                <td>"""+mapping_unique+"""</td>
+            </tr>
+            <tr>
+                <td>Mapping first rank?</td>
+                <td>"""+firstRankMultiMap+"""</td>
+            </tr>
+            <tr>
+                <td>MappingQC unique?</td>
+                <td>"""+unique+"""</td>
+            </tr>
+            <tr>
                 <td>Selected offset source</td>
                 <td>"""+plastid+"""</td>
             </tr>
@@ -532,17 +616,17 @@ def write_out_html(outfile, output_folder, samfile, run_name, totmaps, plastid, 
         <h2 id="gene_distributions">Gene distributions</h2>
         <p>
             <div class="img">
-            <img src=\""""+prefix_gene_distr+"""rankedgenes.png\" alt="Ranked genes" id="ranked_genes">
+            <img src=\"rankedgenes.png\" alt="Ranked genes" id="ranked_genes">
             </div>
         </p>
         <p>
             <div class="img">
-            <img src=\""""+prefix_gene_distr+"""cumulative.png\" alt="Cumulative genes" id="cumulative">
+            <img src=\"cumulative.png\" alt="Cumulative genes" id="cumulative">
             </div>
         </p>
         <p>
             <div class="img">
-            <img src=\""""+prefix_gene_distr+"""density.png\" alt="Genes density" id="genes_density">
+            <img src=\"density.png\" alt="Genes density" id="genes_density">
             </div>
         </p>
 
@@ -550,12 +634,12 @@ def write_out_html(outfile, output_folder, samfile, run_name, totmaps, plastid, 
         <h2 id="metagenic_classification">Metagenic classification</h2>
         <p>
             <div class="img">
-            <img src=\""""+prefix_gene_distr+"""annotation_coding.png\" alt="Metagenic classification coding" id="annotation_coding">
+            <img src=\"annotation_coding.png\" alt="Metagenic classification coding" id="annotation_coding">
             </div>
         </p>
         <p>
             <div class="img">
-            <img src=\""""+prefix_gene_distr+"""annotation_noncoding.png\" alt="Noncoding classification" id="annotation_noncoding">
+            <img src=\"annotation_noncoding.png\" alt="Noncoding classification" id="annotation_noncoding">
             </div>
         </p>
 
@@ -782,7 +866,7 @@ def plot_rpf_phase(phase_distr, outfile):
     ymax=max(y)
 
     #Make a grid so that x- and y-coordinate for each point are given
-    xpos, ypos = np.meshgrid(x[:] - 0.125, y[:] -0.375)
+    xpos, ypos = np.meshgrid(x[:] - 0.125, y[:] - 0.375)
 
     #Flatten: transform 2 dimensional array to 1 dimensional
     xpos = xpos.flatten('F')
