@@ -63,7 +63,7 @@ my $matrix;			# Blast search matrix
 my $word_size;		# word size
 my $extra_info;		# Extra refererence
 my $translation_db;	# FASTA file of non redundant derived translation products
-my $snp_file;		# File to store SNP info for sequences in protein database
+my $var_file;		# File to store SNP and indel info for sequences in protein database
 my $tis_call;		# Allow annotated TIS that do not pass the TIS calling algorithm in the databases [Y or N]
 my $db_config_version; 	# Ensembl databset confirguration version
 my $external_ref;	# External reference in biomart to map transcripts to
@@ -94,7 +94,7 @@ GetOptions(
 	'word_size=i'	 		=> \$word_size,
 	'matrix=s'	 			=> \$matrix,
 	'translation_db=s'		=> \$translation_db,
-	'snp_file=s'			=> \$snp_file,
+	'var_file=s'			=> \$var_file,
 	'tis_call=s'			=> \$tis_call,
 	'tmp=s'					=> \$tmp
 );
@@ -110,6 +110,8 @@ GetOptions(
 # perl generate_translation_db.pl -blast_db /path/to/blast_db -result_db results.db -tis_ids 1 -blast_pgm ublast -mflag 1 -mapping_db mart_export_mm.txt -num_threads 3 -work_dir working_dir -tis_call Y -tmp temporary_dir -translation_db file_name
 # mmusculus_gene_ensembl
 # mart_export_mm.txt
+
+# perl generate_translation_db.pl -result_db SQLite/results.db -tis_ids 1 -tis_call Y
 #####
 
 
@@ -144,6 +146,68 @@ if ($tis_call) {
 } else {
 	$tis_call = "Y";
 	print STDOUT "Allow annotated transcripts that do not pass the TIS calling algorithm: $tis_call\n";
+}
+
+if ($mslength) {
+    print STDOUT "Minimum Word size: $mslength\n";
+} else {
+    $mslength=6;
+    print STDOUT "Minimum sequence length	: $mslength\n";
+}
+if ($evalue) {
+    print STDOUT "Blast e-value : $evalue\n";
+} else {
+    $evalue=1e-10;
+    print STDOUT "Blast e-value : $evalue\n";
+}
+
+if ($min_blast_length) {
+    print STDOUT "Minimum sequence length allowed for Blast search	: $min_blast_length\n";
+} else {
+    $min_blast_length = 32;
+    print STDOUT "Minimum sequence length allowed for Blast search : $min_blast_length\n";
+}
+
+if ($identity) {
+    print STDOUT "Blast Identity value : $identity%\n";
+} else {
+    $identity=75;
+    print STDOUT "Blast Identity value : $identity%\n";
+}
+
+if ($coverage) {
+    print STDOUT "Minimum percentage of identical positions : $coverage\n";
+} else {
+    $coverage=30;
+    print STDOUT "Minimum percentage of identical positions : $coverage\n";
+}
+
+if ($word_size) {
+    print STDOUT "Minimum Word size: $word_size\n";
+} else {
+    $word_size = 3;
+    print STDOUT "Minimum Word size: $word_size\n";
+}
+
+if ($gapopen) {
+    print STDOUT "Cost of gap open	: $gapopen\n";
+} else {
+    $gapopen = 11;
+    print STDOUT "Cost of gap open	: $gapopen\n";
+}
+
+if ($gapextend) {
+    print STDOUT "Gap extension penalty	: $gapextend\n";
+} else {
+    $gapextend = 1;
+    print STDOUT "Gap extension penalty	: $gapextend\n";
+}
+
+if ($matrix) {
+    print STDOUT "Minimum Word size: $matrix\n";
+} else {
+    $matrix="BLOSUM62";
+    print STDOUT "Matrix blast search matrix : $matrix\n";
 }
 
 if ($mflag) {
@@ -199,6 +263,12 @@ if ($mflag) {
 			$blast_pgm = "ublast";
 			print STDOUT "Blast program used for mapping : $blast_pgm\n"; 
 		}
+        
+        if ($blastdb) {
+            print STDOUT "The blast database is : $blastdb\n";
+        } else {
+            print STDOUT "No blast database supplied. Ensure you have choose the no blast search option.\n"
+        }
 		
 	} elsif ($mflag == 4) {
 		print STDOUT "Derived translation product  database will not be mapped to any canonical information.\n"
@@ -208,74 +278,7 @@ if ($mflag) {
 	print STDOUT "Derived translation product database will not be mapped to any canonical information.\n";
 }
 
-if ($blastdb) {
-	print STDOUT "The blast database is : $blastdb\n";
-} else {
-	print STDOUT "No blast database supplied. Ensure you have choose the no blast search option.\n"
-}
 
-if ($evalue) {
-	print STDOUT "Blast e-value : $evalue\n";
-} else {
-	$evalue=1e-10;
-	print STDOUT "Blast e-value : $evalue\n";
-}
-
-if ($min_blast_length) {
-	print STDOUT "Minimum sequence length allowed for Blast search	: $min_blast_length\n";
-} else {
-	$min_blast_length = 32;
-	print STDOUT "Minimum sequence length allowed for Blast search : $min_blast_length\n";	
-}
-
-if ($identity) {
-	print STDOUT "Blast Identity value : $identity%\n";
-} else {
-	$identity=75;
-	print STDOUT "Blast Identity value : $identity%\n";
-}
-
-if ($coverage) {
-	print STDOUT "Minimum percentage of identical positions : $coverage\n";
-} else {
-	$coverage=30;
-	print STDOUT "Minimum percentage of identical positions : $coverage\n";
-}
-
-if ($word_size) {
-	print STDOUT "Minimum Word size: $word_size\n";
-} else {
-	$word_size = 3;
-	print STDOUT "Minimum Word size: $word_size\n";
-}
-
-if ($gapopen) {
-	print STDOUT "Cost of gap open	: $gapopen\n";
-} else {
-	$gapopen = 11;
-	print STDOUT "Cost of gap open	: $gapopen\n";
-}
-
-if ($mslength) {
-	print STDOUT "Minimum Word size: $mslength\n";
-} else {
-	$mslength=6;
-	print STDOUT "Minimum sequence length	: $mslength\n";
-}
-
-if ($gapextend) {
-	print STDOUT "Gap extension penalty	: $gapextend\n";
-} else {
-	$gapextend = 1;
-	print STDOUT "Gap extension penalty	: $gapextend\n";
-}
-
-if ($matrix) {
-	print STDOUT "Minimum Word size: $matrix\n";
-} else {
-	$matrix="BLOSUM62";
-	print STDOUT "Matrix blast search matrix : $matrix\n";
-}
 
 	# get arguments from SQLite DB
 my $dsn_results = "DBI:SQLite:dbname=$result_db";
@@ -307,6 +310,8 @@ if ($mflag) {
 	} 
 }
 
+STDOUT->flush();
+
 my @idsref = get_analysis_ids($dbh_results,$tis_ids);  #$tis_ids is input variable
 
 foreach (@idsref) {	# generate translation db for selected tis_ids 
@@ -330,10 +335,12 @@ sub generate_trans_db {
 	my $table = "tis_".$tis_id."_transcripts";
 	my @tis = split '_', $tis_id;
 	
+    print "Get transcript out of results DB\n";
 	my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0]);
 	$total_tr = scalar(keys %$transcript);
 	$total_gene = scalar(keys %$gene_transcript);
 
+    print "Remove redundancy\n";
 	my $non_redundant_transcript = remove_redundancy($transcript);
 	my $total_non_red_tr = scalar(keys %$non_redundant_transcript);
 	
@@ -357,15 +364,16 @@ sub generate_trans_db {
 		$translation_db =  path($species."_".$table.".fasta",$output_dir);
 	} 
 
-	unless ($snp_file) {
+	unless ($var_file) {
 		unless (-d "$output_dir") { system ("mkdir ".$output_dir)}
-		$snp_file =  path($species."_".$table."_SNP.txt",$output_dir);
+		$var_file =  path($species."_".$table."_VAR.txt",$output_dir);
 	}
-
-	write_output($non_redundant_transcript,$translation_db,$snp_file);
+    
+    print "Write output\n";
+	write_output($non_redundant_transcript,$translation_db,$var_file);
 	
 	timer($startRun);	# Get Run time
-	print STDOUT "\n";
+	print STDOUT "-- Done --\n";
 }
 
 
@@ -374,7 +382,7 @@ sub write_output {
 
 	my $transcript 	= $_[0];
 	my $output 		= $_[1];
-	my $snp_file 	= $_[2];
+	my $var_file 	= $_[2];
 
 	my $count_mapped = 0;		
 	my %annotations_mapped = ();
@@ -433,12 +441,12 @@ sub write_output {
 		}
 	}
 
-	# Write SNP Information to file
-	open(F, ">".$snp_file) or die "Cannot create file $snp_file \n";
-	print F "transcript\tSNP_info\n";
+	# Write SNP and indel Information to VAR file
+	open(F, ">".$var_file) or die "Cannot create file $var_file \n";
+	print F "transcript\tSNP_info\tindel_info\n";
 	foreach my $tr (sort keys %$transcript) {
-		next if ($transcript->{$tr}->{'snp'} eq "");
-		print F "$tr\t$transcript->{$tr}->{'snp'}\n";
+		next if ($transcript->{$tr}->{'snp'} eq "" and $transcript->{$tr}->{'indel'} eq "");
+		print F "$tr\t$transcript->{$tr}->{'snp'}\t$transcript->{$tr}->{'indel'}\n";
 	}
 	close F;
 
@@ -725,8 +733,8 @@ sub remove_redundancy {
 
 				if ($seq1 eq $seq2) {
 
-					# if sequence in non redundant hash contains snp while current sequence does not
-					if ($non_red_trans->{$tr2}->{'snp'} ne "" and $transcript->{$tr1}->{'snp'} eq "") {
+					# if sequence in non redundant hash contains snp or indel while current sequence does not
+					if (($non_red_trans->{$tr2}->{'snp'} ne "" and $transcript->{$tr1}->{'snp'} eq "") or ($non_red_trans->{$tr2}->{'indel'} ne "" and $transcript->{$tr1}->{'indel'} eq "")) {
 						$non_red_trans->{$tr1} = $transcript->{$tr1};	# put current sequence in noin redundant hash
 						if ($gene1 ne $gene2) {						# if the transcript are from different genes keep transcript ID
 							push @{$non_red_trans->{$tr1}->{'others'}}, $tr2;
@@ -780,27 +788,27 @@ sub get_transcripts_from_resultdb {
 
 	my ($dbh,$tbl,$tis) = @_;
 
-	my $snp_tracker = {};
+	my $var_tracker = {};
 	my $transcript = {};
 	my $gene_transcript = {};
 
 	my ($transcript2geneid,$annotated_tr) = transcript_gene_id($dbh,$tbl);
 		
 	print STDOUT "Extracting transcripts form SQLite database. Please wait ....\n";
-	my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, aa_seq FROM ".$tbl;
+	my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, INDEL, aa_seq FROM ".$tbl;
  	my $sth = $dbh->prepare($query);
 	$sth->execute();
 	
-	while ( my ($tr_stable_id, $chr, $start, $start_codon, $dist_to_aTIS, $aTIS_call, $annotation, $peak_shift, $snp, $aa_seq) = $sth->fetchrow()) {
+	while ( my ($tr_stable_id, $chr, $start, $start_codon, $dist_to_aTIS, $aTIS_call, $annotation, $peak_shift, $snp, $indel, $aa_seq) = $sth->fetchrow()) {
 
 		# if instructed to not keep aTIS with not enough coverage to call TIS
 		if (uc($tis_call) eq "N") {next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE')}
 		$aa_seq =~ s/\*//g;
 		next if (length($aa_seq) < $mslength);	# skip if sequence is less than minimum allowed amino acid length
 
-		# Skip all non aTIS with SNP information that corresponds to an annotated TIS i.e redundant non annotated TIS
+		# Skip all non aTIS without SNP or indel information that corresponds to an annotated TIS i.e redundant non annotated TIS
 		my $red_tis = 0;
-		if ($annotation ne 'aTIS' and $snp eq "") {
+		if ($annotation ne 'aTIS' and $snp eq "" and $indel eq "") {
 			if ($transcript2geneid->{$tr_stable_id}) {
 				my $gene = $transcript2geneid->{$tr_stable_id}->{'gene'};
 				foreach my $start1 (keys %{$annotated_tr->{$gene}}) {
@@ -812,18 +820,19 @@ sub get_transcripts_from_resultdb {
 
 		# create unique transcript ID
 		my $tr = $tr_stable_id."_".$chr."_".$start."_".$annotation;
-		if ($snp ne "") {		# if snp info exit for current record
-			if ($snp_tracker->{$tr}) {
-				$snp_tracker->{$tr}++;
-				$tr = $tr."_".$snp_tracker->{$tr};
+		if ($snp ne "" or $indel ne "") {		# if snp or indel info exist for current record
+			if ($var_tracker->{$tr}) {
+				$var_tracker->{$tr}++;
+				$tr = $tr."_".$var_tracker->{$tr};
 			} else {
-				$snp_tracker->{$tr} = 1;
-				$tr = $tr."_".$snp_tracker->{$tr};
+				$var_tracker->{$tr} = 1;
+				$tr = $tr."_".$var_tracker->{$tr};
 			}
 		}
 
 		$transcript->{$tr}->{'chr'} 		= $chr;
 		$transcript->{$tr}->{'snp'} 		= $snp;
+        $transcript->{$tr}->{'indel'}       = $indel;
 		$transcript->{$tr}->{'codon'} 		= $start_codon;
 		$transcript->{$tr}->{'aTIS_call'} 	= $aTIS_call;
 		$transcript->{$tr}->{'anno'} 		= $annotation;
@@ -973,16 +982,20 @@ sub get_analysis_ids {
 
 	if ($ids_in eq "all") {
 
-		my $query = "select ID, SNP from TIS_overview";
+		my $query = "select ID, SNP, indel from TIS_overview";
 	    my $sth = $dbh->prepare($query);
 		$sth->execute();
 
-		while ( my ($id, $snp) = $sth->fetchrow()) {
-			if (uc($snp) eq "NO") {
+		while ( my ($id, $snp, $indel) = $sth->fetchrow()) {
+			if ((uc($snp) eq "NO") && (uc($indel) eq "NO")) {
 				push @idsref, $id;
-			} else {
-				push @idsref, $id."_".$snp;
-			}
+			} elsif (uc($snp) eq "NO") {
+				push @idsref, $id."_snp".$snp;
+            } elsif (uc($indel) eq "NO") {
+                push @idsref, $id."_indel".$indel;
+            } else {
+                push @idsref, $id."_snp".$snp."_indel".$indel;
+            }
 		}
 		$sth->finish();
     } else {
@@ -990,16 +1003,20 @@ sub get_analysis_ids {
 		my @sel_ids  = split(',',$ids_in);
 		foreach (@sel_ids) {
 
-			my $query = "select ID, SNP from TIS_overview where ID = $_";
+			my $query = "select ID, SNP, indel from TIS_overview where ID = $_";
 		    my $sth = $dbh->prepare($query);
 			$sth->execute();
-			my ($id, $snp) = $sth->fetchrow();
+			my ($id, $snp, $indel) = $sth->fetchrow();
 			
-			if (uc($snp) eq "NO") {
-				push @idsref, $id;
-			} else {
-				push @idsref, $id."_".$snp;
-			}
+            if ((uc($snp) eq "NO") && (uc($indel) eq "NO")) {
+                push @idsref, $id;
+            } elsif (uc($snp) eq "NO") {
+                push @idsref, $id."_snp".$snp;
+            } elsif (uc($indel) eq "NO") {
+                push @idsref, $id."_indel".$indel;
+            } else {
+                push @idsref, $id."_snp".$snp."_indel".$indel;
+            }
 			$sth->finish();
 		}
     }
