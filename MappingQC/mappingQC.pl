@@ -366,7 +366,7 @@ my $temp_csv_rpf_phase = $TMP."/mappingqc_".$treated."/rpf_phase.csv";
 system("touch ".$temp_csv_rpf_phase);
 
 my $rpf_phase = {};
-for (my $i=22;$i<=34;$i++){
+for (my $i=$offset_hash->{"min"};$i<=$offset_hash->{"max"};$i++){
     for (my $j=0;$j<=2;$j++){
         $rpf_phase->{$i}->{$j} = 0;
     }
