@@ -140,7 +140,7 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Get arguments vars
-my ($species,$version,$IGENOMES_ROOT,$mapping_unique,$firstRankMultiMap,$maxmultimap,$mapper) = get_ARG_vars($resultdb,$us_sqlite_results,$pw_sqlite_results);
+my ($species,$version,$IGENOMES_ROOT,$mapping_unique,$firstRankMultiMap,$maxmultimap,$mapper,$min_l_parsing,$max_l_parsing) = get_ARG_vars($resultdb,$us_sqlite_results,$pw_sqlite_results);
 
 # Igenomes
 print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
@@ -257,6 +257,7 @@ if (-e $uniquefile){
     split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated,$unique,$firstRankMultiMap,$maxmultimap,$mapper);
 }
 
+
 # Construct p offset hash
 my $offset_hash = {};
 if($offset_option eq "plastid"){
@@ -305,27 +306,20 @@ if($offset_option eq "plastid"){
         }
     }
 } else {
-    #Standard offset options from Ingolia paper
-    if(uc($species) eq 'FRUITFLY'){
-        $offset_hash->{25} = 12;
-    }
-    $offset_hash->{26} = 12;
-    $offset_hash->{27} = 12;
-    $offset_hash->{28} = 12;
-    $offset_hash->{29} = 12;
-    $offset_hash->{30} = 12;
-    $offset_hash->{31} = 13;
-    $offset_hash->{32} = 13;
-    $offset_hash->{33} = 13;
-    $offset_hash->{34} = 14;
+    #min and max offset from arguments table
+    $offset_hash->{'min'} = $min_l_parsing;
+    $offset_hash->{'max'} = $max_l_parsing;
     
-    #Boundaries
-    if(uc($species) eq 'FRUITFLY'){
-        $offset_hash->{"min"} = 25;
-    } else {
-        $offset_hash->{"min"} = 26;
+    #Standard offset options from Ingolia paper
+    for(my $i = $min_l_parsing; $i<=$max_l_parsing; $i++){
+        if($i<=30){
+            $offset_hash->{$i} = 12;
+        } elsif ($i<=33){
+            $offset_hash->{$i} = 13;
+        } else {
+            $offset_hash->{$i} = 14;
+        }
     }
-    $offset_hash->{"max"} = 34;
 }
 
 #Write offsets to csv for output html file
@@ -2171,10 +2165,22 @@ sub get_ARG_vars{
     my $mapper = $sth->fetch()->[0];
     $sth->finish();
     
+    $query = "select value from arguments where variable = \'min_l_parsing\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $min_l_parsing = $sth->fetch()->[0];
+    $sth->finish();
+    
+    $query = "select value from arguments where variable = \'max_l_parsing\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $max_l_parsing = $sth->fetch()->[0];
+    $sth->finish();
+    
     $dbh_results -> disconnect();
     
     # Return ARG variables
-    return($species,$version,$IGENOMES_ROOT,$unique,$firstRankMultiMap,$maxmultimap,$mapper);
+    return($species,$version,$IGENOMES_ROOT,$unique,$firstRankMultiMap,$maxmultimap,$mapper,$min_l_parsing,$max_l_parsing);
 } # Close sub
 
 ## GET seq_region_id ##
