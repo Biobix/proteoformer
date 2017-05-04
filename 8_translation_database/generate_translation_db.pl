@@ -276,6 +276,7 @@ if ($mflag) {
 
 } else {
 	print STDOUT "Derived translation product database will not be mapped to any canonical information.\n";
+    $mflag=4;
 }
 
 
