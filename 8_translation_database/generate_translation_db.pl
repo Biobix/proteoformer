@@ -320,8 +320,6 @@ foreach (@idsref) {	# generate translation db for selected tis_ids
 	generate_trans_db($_);
 }
 
-die;
-
 
 #############################################
 	#
@@ -334,9 +332,7 @@ sub generate_trans_db {
 	my $tis_id = shift;
 
 	my $startRun = time();
-	my $table = "tis_".$tis_id."_transcripts";
-    print "\n\n\nTable name: ".$table."\n\n";
-    die;
+	my $table = "TIS_".$tis_id."_transcripts";
 	my @tis = split '_', $tis_id;
 	
     print "Get transcript out of results DB\n";
