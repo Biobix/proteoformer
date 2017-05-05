@@ -320,6 +320,7 @@ foreach (@idsref) {	# generate translation db for selected tis_ids
 	generate_trans_db($_);
 }
 
+die;
 
 
 #############################################
@@ -334,6 +335,8 @@ sub generate_trans_db {
 
 	my $startRun = time();
 	my $table = "tis_".$tis_id."_transcripts";
+    print "\n\n\nTable name: ".$table."\n\n";
+    die;
 	my @tis = split '_', $tis_id;
 	
     print "Get transcript out of results DB\n";
@@ -988,20 +991,37 @@ sub get_analysis_ids {
 		$sth->execute();
 
 		while ( my ($id, $snp, $indel) = $sth->fetchrow()) {
+            my $add = "";
 			if ((uc($snp) eq "NO") && (uc($indel) eq "NO")) {
 				push @idsref, $id;
 			} elsif (uc($snp) eq "NO") {
-				push @idsref, $id."_snp".$snp;
+                my @indel_tools = split '_', $indel;
+                foreach my $tool (@indel_tools){
+                    $add = $add."_indel".$tool;
+                }
+				push @idsref, $id.$add;
             } elsif (uc($indel) eq "NO") {
-                push @idsref, $id."_indel".$indel;
+                my @snp_tools = split '_', $snp;
+                foreach my $tool (@snp_tools){
+                    $add = $add."_snp".$tool;
+                }
+                push @idsref, $id.$add;
             } else {
-                push @idsref, $id."_snp".$snp."_indel".$indel;
+                my @snp_tools = split '_', $snp;
+                foreach my $tool (@snp_tools){
+                    $add = $add."_snp".$tool;
+                }
+                my @indel_tools = split '_', $indel;
+                foreach my $tool (@indel_tools){
+                    $add = $add."_indel".$tool;
+                }
+                push @idsref, $id.$add;
             }
 		}
 		$sth->finish();
     } else {
         	
-		my @sel_ids  = split(',',$ids_in);
+		my @sel_ids  = split ',', $ids_in;
 		foreach (@sel_ids) {
 
 			my $query = "select ID, SNP, indel from TIS_overview where ID = $_";
@@ -1009,14 +1029,31 @@ sub get_analysis_ids {
 			$sth->execute();
 			my ($id, $snp, $indel) = $sth->fetchrow();
 			
+            my $add = "";
             if ((uc($snp) eq "NO") && (uc($indel) eq "NO")) {
                 push @idsref, $id;
             } elsif (uc($snp) eq "NO") {
-                push @idsref, $id."_snp".$snp;
+                my @indel_tools = split '_', $indel;
+                foreach my $tool (@indel_tools){
+                    $add = $add."_indel".$tool;
+                }
+                push @idsref, $id.$add;
             } elsif (uc($indel) eq "NO") {
-                push @idsref, $id."_indel".$indel;
+                my @snp_tools = split '_', $snp;
+                foreach my $tool (@snp_tools){
+                    $add = $add."_snp".$tool;
+                }
+                push @idsref, $id.$add;
             } else {
-                push @idsref, $id."_snp".$snp."_indel".$indel;
+                my @snp_tools = split '_', $snp;
+                foreach my $tool (@snp_tools){
+                    $add = $add."_snp".$tool;
+                }
+                my @indel_tools = split '_', $indel;
+                foreach my $tool (@indel_tools){
+                    $add = $add."_indel".$tool;
+                }
+                push @idsref, $id.$add;
             }
 			$sth->finish();
 		}
