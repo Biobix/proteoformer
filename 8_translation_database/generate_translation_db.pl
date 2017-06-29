@@ -96,7 +96,6 @@ GetOptions(
 	'translation_db=s'		=> \$translation_db,
 	'var_file=s'			=> \$var_file,
 	'tis_call=s'			=> \$tis_call,
-	'tmp=s'					=> \$tmp
 );
 
 # ---------------------------------------------------------------------
@@ -128,7 +127,7 @@ if ($work_dir) {
 	print STDOUT "The following working directory : $work_dir\n";
 }
 
-my $TMP  = ($ENV{'TMP'}) ? $ENV{'TMP'} : ($tmp) ? $tmp : "$work_dir/tmp"; # (1) get the TMP environment variable, (2) get the $tmpfolder variable, (3) get current_working_dir/tmp
+my $TMP  = ($ENV{'TMP'}) ? $ENV{'TMP'} :  "$work_dir/tmp"; # (1) get the TMP environment variable, (2) get the $tmpfolder variable, (3) get current_working_dir/tmp
 if (!-d "$TMP") { 
 	system ("mkdir ".$TMP);
 } 
@@ -288,7 +287,7 @@ my ($run_name,$species,$mapper,$nr_of_cores)=get_input_vars($dbh_results);
 print STDOUT "Number of cores used: $nr_of_cores\n";
 print STDOUT "\n";
 
-my %annotation = ( "aTIS"=>1,"5UTR"=>2,"CDS"=>3,"ntr"=>4,"3UTR"=>5);
+my %annotation = ( "aTIS"=>1,"5UTR"=>3,"CDS"=>2,"ntr"=>4,"3UTR"=>5);
 my %top_anno = ("aTIS","5UTR");
 
 print STDOUT "Annotations and their rankings (with 1 the most important) \n";
@@ -316,7 +315,6 @@ STDOUT->flush();
 my @idsref = get_analysis_ids($dbh_results,$tis_ids);  #$tis_ids is input variable
 
 foreach (@idsref) {	# generate translation db for selected tis_ids 
-
 	generate_trans_db($_);
 }
 
@@ -340,7 +338,7 @@ sub generate_trans_db {
 	$total_tr = scalar(keys %$transcript);
 	$total_gene = scalar(keys %$gene_transcript);
 
-    print "Remove redundancy\n";
+    print "Removin redundant sequences from TIS fasta database\n";
 	my $non_redundant_transcript = remove_redundancy($transcript);
 	my $total_non_red_tr = scalar(keys %$non_redundant_transcript);
 	
@@ -425,9 +423,9 @@ sub write_output {
 	my $percent_mapped = sprintf '%.1f', 100*($count_mapped/($nonRedundantTrans+1));
 	my $percent = sprintf '%.1f', 100*($nonRedundantTrans/$total_tr);
 
-	print STDOUT "Totat genes with at least one TIS called:  ", $total_gene, "\n";
-	print STDOUT "Totat transcripts in database:  ", $total_tr, "\n";
-	print STDOUT "Number of transcripts after cleaning out redundancy ",$nonRedundantTrans," ($percent%)\n";
+	print STDOUT "Total number of genes with at least one TIS called ", $total_gene, "\n";
+	print STDOUT "Total number of possible TIS predicted ", $total_tr, "\n";
+	print STDOUT "Total number of non redundant sequence in fasta db ",$nonRedundantTrans," ($percent%)\n";
 
 	if ($mflag == 1 or $mflag == 2 or $mflag == 2) {
 		print STDOUT "Number of transcripts mapped to external refernece: $count_mapped ($percent_mapped%)\n\n";
@@ -631,6 +629,7 @@ sub ublast_parser {
 	return $transcript;
 }
 
+
 sub transcripts_to_blast {
 
 	my $transcript = $_[0];
@@ -712,73 +711,94 @@ sub id_based_mapping {
 
 ##------ REMOVE REDUNDANCY -------##
 
-
 sub remove_redundancy {
 
 	my $transcript = $_[0];
 
-	my $non_red_trans;
-	
-	print STDOUT "Removing redundant sequences, this might take a while. Please wait...\n";
-	foreach my $tr1 (keys %$transcript) {
-		my $gene1 = $transcript->{$tr1}->{'gene'};
-		my $seq1 = $transcript->{$tr1}->{'seq'};
-		my $anno_rank1 = $annotation{$transcript->{$tr1}->{'anno'}};
+    my $transcript_seq;
 
-		if ($non_red_trans) {
-			foreach my $tr2 (keys %$non_red_trans) {
-				my $gene2 = $non_red_trans->{$tr2}->{'gene'};
-				my $seq2 = $non_red_trans->{$tr2}->{'seq'};
-				my $anno_rank2 = $annotation{$non_red_trans->{$tr2}->{'anno'}};
+    my $count = 0;
+	foreach my $tr (keys %$transcript) {
 
-				if ($seq1 eq $seq2) {
+        my $seq1 = $transcript->{$tr}->{'seq'};
+        $transcript->{$tr}->{'len'} = length($seq1);
 
-					# if sequence in non redundant hash contains snp or indel while current sequence does not
-					if (($non_red_trans->{$tr2}->{'snp'} ne "" and $transcript->{$tr1}->{'snp'} eq "") or ($non_red_trans->{$tr2}->{'indel'} ne "" and $transcript->{$tr1}->{'indel'} eq "")) {
-						$non_red_trans->{$tr1} = $transcript->{$tr1};	# put current sequence in noin redundant hash
-						if ($gene1 ne $gene2) {						# if the transcript are from different genes keep transcript ID
-							push @{$non_red_trans->{$tr1}->{'others'}}, $tr2;
+        if ($transcript_seq) {
+            if (exists $transcript_seq->{$seq1}) {
+                $transcript_seq->{$seq1}->{$tr} = 1;
+            } else {
+				my $flag = 1;
+        		my $seq1_tmp = substr($seq1, 1);
+                foreach my $seq2 (keys %$transcript_seq) {
+                    my $seq2_tmp = substr($seq2, 1);
 
-							if ($non_red_trans->{$tr2}->{'others'}) {
-								push @{$non_red_trans->{$tr1}->{'others'}}, @{$non_red_trans->{$tr2}->{'others'}};
-							}
-						}
-						delete $non_red_trans->{$tr2};
+                    if (index($seq1_tmp, $seq2_tmp) >= 0) {
+                        foreach my $tr_tmp (keys %{$transcript_seq->{$seq2}}) {
+                            $transcript_seq->{$seq1}->{$tr_tmp} = 1;
+                        }
+                        delete $transcript_seq->{$seq2};
+						$flag = 0;
+						last;
+                    } elsif (index($seq2_tmp, $seq1_tmp) >= 0) {
+                        $transcript_seq->{$seq2}->{$tr} = 1;
+						$flag = 0;
+						last;
+                    }               
+                }
 
-					}  else {
-						if ($gene1 ne $gene2) {						# if the transcript are from different genes keep transcript ID
-							push @{$non_red_trans->{$tr2}->{'others'}}, $tr1;
-						}
-					}
-				} elsif (index($seq1, $seq2) > 0) {	# if seq1 contains seq2
-					$non_red_trans->{$tr1} = $transcript->{$tr1};
-					if ($gene1 ne $gene2) {
-						push @{$non_red_trans->{$tr1}->{'others'}}, $tr2;
-
-						if ($non_red_trans->{$tr2}->{'others'}) {
-							push @{$non_red_trans->{$tr1}->{'others'}}, @{$non_red_trans->{$tr2}->{'others'}};
-						}
-					}
-					delete $non_red_trans->{$tr2};	# delete seq2 from non redundant hash
-
-				} elsif (index($seq2,$seq1) > 0) {		# if seq2 contains seq1 keep seq1 id in others
-					if ($gene1 ne $gene2) {
-						push @{$non_red_trans->{$tr2}->{'others'}}, $tr1;
-					}
-
-				} else {	# if the 2 sequences are different add seq1 to non redundant hash
-					$non_red_trans->{$tr1} = $transcript->{$tr1};
+				# seq not a subseq of any in non redundant hash
+				if ($flag == 1) {
+            		$transcript_seq->{$seq1}->{$tr} = 1;
 				}
-			}
-		} else {
-			#$non_red_trans = {};	# initialize the non redundant hash
-			$non_red_trans->{$tr1} = $transcript->{$tr1};
-		}
-	}
-	
+            }
+        } else {
+            $transcript_seq->{$seq1}->{$tr} = 1;
+        }
+    }
+
+    # select representative accession for longest non redundant sequence
+	my $non_red_trans;
+    foreach my $seq (keys %$transcript_seq) {
+        my @acessions = (keys %{$transcript_seq->{$seq}});
+        my $selected_acc = pop @acessions;
+        foreach my $tr (@acessions) {
+            if ($transcript->{$tr}->{'len'} > $transcript->{$selected_acc}->{'len'}) {
+                $selected_acc = $tr;
+            } elsif ($transcript->{$tr}->{'len'} == $transcript->{$selected_acc}->{'len'}) {
+                if ($transcript->{$selected_acc}->{'snp'} ne "" and $transcript->{$selected_acc}->{'indel'} ne "") {
+                        # Selected acession have SNP and INDEL info hence keep
+                } else {
+                    if ($transcript->{$tr}->{'snp'} ne "" and $transcript->{$tr}->{'indel'} ne "") {
+                        $selected_acc = $tr;    # current accession has SNP and INDEL  while select doesn't
+                    } else {
+                        if ($transcript->{$selected_acc}->{'indel'} eq "") {
+                            if ($transcript->{$tr}->{'indel'} ne "") {
+                                $selected_acc = $tr;    #INDEL takes precedence
+                            } else {
+                                if ($transcript->{$tr}->{'snp'} ne "" and $transcript->{$selected_acc}->{'snp'} eq "") {
+                                    $selected_acc = $tr;    #INDEL takes precedence
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+		$non_red_trans->{$selected_acc} = $transcript->{$selected_acc};
+
+        foreach my $tr (keys %{$transcript_seq->{$seq}}) {
+            next if ($selected_acc eq $tr);
+            next if ($transcript->{$selected_acc}->{'gene'} eq $transcript->{$tr}->{'gene'});
+            push @{$non_red_trans->{$selected_acc}->{'others'}}, $tr;
+        }
+    }
+
+
 	return $non_red_trans;
 
 }
+
 
 
 ##------ GET TRANSCRIPTS -------##
