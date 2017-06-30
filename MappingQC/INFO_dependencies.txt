@@ -1,0 +1,32 @@
+MappingQC: some extra information on the dependencies
+
+Main script is mappingQC.pl and you can run it as in following example:
+perl ./mappingQC.pl --samfile yoursamfile.sam --treated untreated --cores 20 --result_db yourproteoformerresults.db --ens_db ENS_mmu_82.db --unique N --offset plastid --offset_img youruntreatedoffsetsimg.png --tool_dir mqc_tools
+
+As you can see, mappingQC relies on a tool directory with some additional tools. These include:
+* metagenic_piecharts.R			An R tool to plot the metagenic piecharts in R
+* quality_plots.R				An R tool to plot the gene distribution quality plots in R
+* mappingQC.py					A python (Python2) script to plot all the other plots and assemble all the output in an HTML overview file. Everything will also be exported as a zip folder.
+
+MappingQC, like the rest of the PROTEOFORMER pipeline, relies also on SQLite and the sqlite3 command line tool for storing results in database structures.
+
+MappingQC relies on following Perl modules which have to be installed on your system:
+* DBI
+* Getopt::Long
+* Parallel::ForkManager
+* CWD
+* Data::Dumper (for debugging purposes)
+
+Furthermore, mappingQC relies on following Python2 modules which have to be installed on your system:
+* getopt
+* defaultdict (collections)
+* sqlite3
+* pandas
+* numpy
+* matplotlib (including pyplot, colors, cm, gridspec, ticker and mplot3d)
+* seaborn
+
+For the 3D plot (counts as a function of phase and RPF length), you have to make an adaptation in the Python2 libraries of mplot3d. The default axes3d.py script (that will be installed if you download and install mplot3d, the one that python2 actually uses!) needs to be replaced by the axes3d.py script you can find at https://github.com/Biobix/proteoformer/tree/master/MappingQC/mqc_tools/site-packages. You also need to delete the axes3d.pyc script!
+mplot3d is not able to plot 3D barcharts in non-cubic environments and this adapted script will solve this issue.
+
+For more information about mappingQC: Steven.Verbruggen@UGent.be
