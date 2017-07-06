@@ -78,10 +78,8 @@ print("Selected species     : " + species)
 directory = os.getcwd()
 os.chdir(directory)
 
-
-if (!-e "tmp") {
-    os.system('mkdir tmp');
-}
+if not os.path.exists("tmp"):
+    os.system('mkdir tmp')
 
 if os.path.isdir("tmp/ENS"):
     shutil.rmtree('tmp/ENS')
