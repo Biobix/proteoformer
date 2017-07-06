@@ -1340,7 +1340,7 @@ sub RIBO_parsing_genomic_per_chr {
     #Initialize
     my ($genmatchL,$offset,$start,$intron_total,$extra_for_min_strand);
     my $phase_count_RPF = {};
-    for (my $i=22;$i<=34;$i++){
+    for (my $i=$offset_hash->{'min'};$i<=$offset_hash->{'max'};$i++){
         for (my $j=0;$j<=2;$j++){
             $phase_count_RPF->{$i}->{$j} = 0;
         }
