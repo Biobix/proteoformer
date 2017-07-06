@@ -52,7 +52,7 @@
 **What it does**
 
 MappingQC is a tool to easily generate some figures which give a nice overview of the quality of the mapping of ribosome profiling data. More specific, it gives an overview of the P site offset calculation, the gene distribution and the metagenic classification. Furthermore, MappingQC does a thorough analysis of the triplet periodicity and the linked triplet phase (typical for ribosome profiling) in the canonical transcript of your data. Especially, the link between the phase distribution and the RPF length, the relative sequence position and the triplet identity are taken into account.
-MappingQC will also become available as a stand-alone tool, separated from PROTEOFORMER and its SQLite results structure, so that you can apply it on every samfile you like, independent of the mapping source.
+MappingQC is also available as a stand-alone tool, separated from PROTEOFORMER and its SQLite results structure, so that you can apply it on every samfile you like, independent of the mapping source.
 
 -----
 
@@ -74,7 +74,7 @@ MappingQC will also become available as a stand-alone tool, separated from PROTE
 
 1)  HTML file: overview file of the tables and figures. Main output of MappingQC
 
-2)  ZIP file: contains a folder with all necessary figures. This file should be unpacked in the same folder on your local machine as your HTML file so that the HTML file can fetch all the figures out of this folder.
+2)  ZIP file: contains a folder with all necessary figures. In this folder you can also find the overview HTML file.
 
 ------
 
