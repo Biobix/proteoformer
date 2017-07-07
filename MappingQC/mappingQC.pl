@@ -17,7 +17,7 @@ use Cwd;
 
 # nohup perl ./mappingQC.pl --samfile STAR/fastq1/untreat.sam --treated 'untreated' --cores 20 --result_db SQLite/results.db --ens_db SQLite/ENS_mmu_82.db --offset plastid > nohup_mappingqc.txt &
 
-my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$unique,$ens_db,$offset_option,$offset_file,$offset_img,$output_folder,$tool_dir,$html,$zip);
+my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$unique,$ens_db,$offset_option,$offset_file,$offset_img,$output_folder,$tool_dir,$plotrpftool,$html,$zip);
 
 GetOptions(
 "work_dir:s" => \$work_dir,             # The working directory                                         Optional argument (default: CWD)
@@ -26,13 +26,17 @@ GetOptions(
 "cores=i"=>\$cores,                     # The amount of cores to use                                    Optional argument (default: 5)
 "result_db=s"=>\$resultdb,              # The result db with mapping results                            Mandatory argument
 "tmp:s"=>\$tmpfolder,                   # The tmp folder                                                Optional argument (default: CWD/tmp)
-"unique=s"=>\$unique,                     # Wheter only unique reads should be used (Y/N)                 Optional argument (default: Y, mandatory Y for unique mapping)
+"unique=s"=>\$unique,                   # Wheter only unique reads should be used (Y/N)                 Optional argument (default: Y, mandatory Y for unique mapping)
 "ens_db=s"=>\$ens_db,                   # The Ensembl db for annotation                                 Mandatory argument
 "offset:s" =>\$offset_option,           # The offset source for parsing alignments                      Optional argument (default: standard)
 "offset_file:s" =>\$offset_file,        # The offsets input file                                        Mandatory if offset option equals 'from_file'
 "offset_img=s" =>\$offset_img,          # The offsets image from plastid                                Mandatory if offset option equals 'plastid'
 "output_folder:s" => \$output_folder,   # The output folder for storing output files                    Optional argument (default: CWD/mappingQC_output/)
 "tool_dir:s" => \$tool_dir,             # The directory with all necessary tools                        Optional argument (default: CWD/mqc_tools/)
+"plotrpftool:s" => \$plotrpftool,       # The module that will be used for plotting the RPF-phase figure
+                                            #grouped2D: use Seaborn to plot a grouped 2D bar chart (default)
+                                            #pyplot3D: use mplot3d to plot a 3D bar chart (Suffers sometimes from Escher effects)
+                                            #mayavi: use the mayavi package to plot a 3D bar chart (only on systems with graphics cards)
 "html:s" => \$html,                     # The output html file name                                     Optional argument (default: CWD/mappingqc_out.html)
 "zip:s" => \$zip                        # The output zip file name of the output folder                 Optional argument (default CWD/mappingQC_(un)treated.zip )
 );
@@ -115,6 +119,16 @@ if ($output_folder){
     print "The output folder is set to     : $output_folder\n";
 } else {
     $output_folder = $work_dir."/mappingQC_output/";
+}
+if ($plotrpftool){
+    if ($plotrpftool eq "grouped2D" || $plotrpftool eq "pyplot3D" || $plotrpftool eq "mayavi"){
+        print "RPF phase plotting tool:         : $plotrpftool\n";
+    } else {
+        die "The plotrpftool option should be 'grouped2D', 'pyplot3D' or 'mayavi'!\n";
+    }
+} else {
+    $plotrpftool = "grouped2D";
+    print "RPF phase plotting tool:         : $plotrpftool\n";
 }
 if ($tool_dir){
     print "The tool directory is set to    : $tool_dir\n";
@@ -480,7 +494,7 @@ metagenic_analysis($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_sy
 print "\n\n";
 print "# Run plot generation and output HTML file creation module #\n";
 #Run plot generation Python file
-my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -h ".$html." -z ".$zip;
+my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -x ".$plotrpftool." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -h ".$html." -z ".$zip;
 if ($offset_option eq "plastid"){
     $python_command = $python_command." -i ".$offset_img;
 }

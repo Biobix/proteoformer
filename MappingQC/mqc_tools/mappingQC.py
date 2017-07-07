@@ -6,10 +6,10 @@ import os
 import sys
 import pandas as pd
 import numpy as np
+import math
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.gridspec import GridSpec
 from matplotlib.colors import hex2color
 from matplotlib import cm
@@ -17,6 +17,7 @@ import seaborn as sns
 from matplotlib.ticker import ScalarFormatter
 import re
 import time
+
 
 
 __author__ = 'Steven Verbruggen'
@@ -41,6 +42,8 @@ ARGUMENTS
                                                 (default: Y)
     -u | --unique                           MappingQC unique (Y/N)
                                                 (default: Y)
+    -x | --plotrpftool                      The tool to plot the RPF phase figure (grouped2D/pyplot3D/mayavi)
+                                                (default: grouped2D)
     -o | --outfolder                        The output folder for plots
                                                 (default images_plots)
     -h | --outhtml                          The output html file
@@ -64,7 +67,7 @@ def main():
 
     # Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:o:h:z:p:i:e:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db="])
+        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:x:o:h:z:p:i:e:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "plotrpftool=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db="])
     except getopt.GetoptError as err:
         print err
         sys.exit()
@@ -87,6 +90,8 @@ def main():
             firstRankMultiMap = a
         if o in ('-u', '--unique'):
             unique = a
+        if o in ('-x', '--plotrpftool'):
+            plotrpftool = a
         if o in ('-o', '--outfolder'):
             outfolder = a
         if o in ('-h', '--outhtml'):
@@ -128,6 +133,10 @@ def main():
         unique
     except:
         unique = ''
+    try:
+        plotrpftool
+    except:
+        plotrpftool = ''
     try:
         outfolder
     except:
@@ -178,6 +187,8 @@ def main():
         firstRankMultiMap = 'Y'
     if unique == '':
         unique = 'Y'
+    if plotrpftool == '':
+        plotrpftool = "grouped2D"
     if outfolder == '':
         outfolder = workdir+"/images_plots/"
     if outhtml == '':
@@ -249,7 +260,12 @@ def main():
 
     #Make RPF-phase distribution plot
     outfile = outfolder+"/rpf_phase.png"
-    plot_rpf_phase(phase_distr, outfile)
+    if plotrpftool == "grouped2D":
+        plot_rpf_phase_grouped2D(phase_distr, outfile)
+    elif plotrpftool == "pyplot3D":
+        plot_rpf_phase_pyplot3D(phase_distr, outfile)
+    elif plotrpftool == "mayavi":
+        plot_rpf_phase_mayavi(phase_distr, outfile)
 
     #Make phase position distribution
     phase_position_distr(tmpfolder, outfolder, treated)
@@ -697,7 +713,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
 def triplet_plots(data, outputfolder):
     outfile = outputfolder+"/triplet_id.png"
 
-    plt.style.use('fivethirtyeight') #Stylesheet
+    sns.set_palette('terrain') #Palette
     fig = plt.figure(figsize=(36, 32))
     grid = GridSpec(8, 9) #Construct grid for subplots
     grid_i = -1 #Grid coordinates
@@ -815,9 +831,172 @@ class FixedOrderFormatter(ScalarFormatter):
         """Over-riding this to avoid having orderOfMagnitude reset elsewhere"""
         self.orderOfMagnitude = self._order_of_mag
 
+## Make plot of RPF against phase as a grouped 2D bar chart
+def plot_rpf_phase_grouped2D(phase_distr, outfile):
+    # Parse data into Pandas data frame
+    df = pd.DataFrame.from_dict(phase_distr, orient="index")
+    df = df[['0', '1', '2']]  # Reorder columns
+    df = df.stack()  # Put all phases as separated observations
+    df = df.reset_index()
+    df.columns = ['RPF length', 'Phase', 'Count']
+
+    # Set figure
+    sns.set_style(style="whitegrid")
+    sns.set_palette("terrain")
+    fig, ax = plt.subplots(1, 1)
+
+    # Background color
+    ax.set(axis_bgcolor="#f2f2f2")
+
+    # Plot
+    sns.factorplot(x='RPF length', y='Count', hue='Phase', data=df, ax=ax, kind="bar")
+    sns.despine()
+
+    # Y label
+    ax.set_ylabel("Count")
+
+    # Legend position
+    ax.legend(title="Phase", loc='center right', bbox_to_anchor=(1.12, 0.5), ncol=1)
+
+    # Finish plot
+    plt.tight_layout()
+
+    # Save figure
+    fig.savefig(outfile)
+
+    return
+
+## Make plot of RPF against phase with mayavi
+def plot_rpf_phase_mayavi(phase_distr, outfile):
+    from mayavi import mlab
+
+    # Parameters
+    lensoffset = 0.5
+    spread_factor = 2
+
+    # Init data structures
+    s = []
+    x = [0, 1, 2]
+
+    # Parse
+    for rpf in sorted(phase_distr.keys()):
+        data_row = []
+        for phase in x:
+            data_row.append(phase_distr[rpf][str(phase)])
+        s.append(data_row)
+    s = np.array(s)
+    y = sorted(phase_distr.keys(), reverse=True)
+
+    # Z data scaling parameters
+    mean_s = np.mean(s)
+    order_s = math.floor(math.log10(mean_s))
+    max_s_axis = int(math.ceil(np.max(s) / (10 ** order_s)))
+
+    # Bottom mesh
+    xpos, ypos = np.meshgrid(x, y)
+
+    # Figure
+    mlab.figure(size=(400000, 320000), bgcolor=(1, 1, 1))
+
+    # Colors
+    # Color map
+    cs = []
+    for i in range(0, 220, int(220 / len(y)) + 1):
+        clr = cm.terrain(i)
+        cs.append(clr[0:3])  # Save as RGB, not RGBA
+
+    # Bars
+    s_plot = s / (10 ** order_s)
+    for i in range(0, len(y)):
+        RPF = ypos[i]
+        phase = xpos[i]
+        data_z = s_plot[i]
+        color = cs[i]
+        mlab.barchart(RPF * spread_factor, phase * spread_factor, data_z, color=color, line_width=10)
+
+    # Axes
+    yy = np.arange((min(x) - 0.25) * spread_factor, (max(x) + lensoffset) * spread_factor, 0.01)
+    yx = np.repeat((max(y) + lensoffset) * spread_factor, len(yy))
+    yz = np.repeat(0, len(yy))
+
+    xx = np.arange((min(y) - 0.25) * spread_factor, (max(y) + lensoffset) * spread_factor, 0.01)
+    xy = np.repeat((max(x) + lensoffset) * spread_factor, len(xx))
+    xz = np.repeat(0, len(xx))
+
+    z_ax_max = math.ceil(np.max(s) / (10 ** order_s))
+    zz = np.arange(0, z_ax_max, 0.01)
+    zx = np.repeat((min(y) - 0.25) * spread_factor, len(zz))
+    zy = np.repeat((max(x) + lensoffset) * spread_factor, len(zz))
+
+    mlab.plot3d(yx, yy, yz, line_width=0.01, tube_radius=0.01, color=(0, 0, 0))
+    mlab.plot3d(zx, zy, zz, line_width=0.01, tube_radius=0.01, color=(0, 0, 0))
+    mlab.plot3d(xx, xy, xz, line_width=0.01, tube_radius=0.01, color=(0, 0, 0))
+
+    # Axes labels
+    mlab.text3d((np.mean(y) + 1) * spread_factor, (max(x) + lensoffset + 1.5) * spread_factor, 0, 'RPF',
+                color=(0, 0, 0), scale=0.6, orient_to_camera=False, orientation=[0, 0, 180])
+    mlab.text3d((max(y) + lensoffset + 1.25) * spread_factor, (np.mean(x) - 1) * spread_factor, 0, 'Phase',
+                color=(0, 0, 0), scale=0.6, orient_to_camera=False, orientation=[0, 0, 90])
+    mlab.text3d((min(y) - 0.5) * spread_factor, (max(x) + 1.75) * spread_factor, np.max(s_plot - 4) / 2,
+                'Counts (10^{0:g})'.format(order_s), color=(0, 0, 0), scale=0.6, orient_to_camera=False,
+                orientation=[180, 90, 45])
+
+    # Axes ticks
+    # Phase
+    for i in x:
+        mlab.text3d((max(y) + lensoffset + 0.5) * spread_factor, i * spread_factor, 0, str(i), color=(0, 0, 0),
+                    scale=0.5)
+        xx_tick = np.arange((min(y) - 0.25) * spread_factor, (max(y) + lensoffset) * spread_factor + 0.2, 0.01)
+        xy_tick = np.repeat(i * spread_factor, len(xx_tick))
+        xz_tick = np.repeat(0, len(xx_tick))
+        mlab.plot3d(xx_tick, xy_tick, xz_tick, line_width=0.01, tube_radius=0.01, color=(0.7, 0.7, 0.7))
+    # RPF
+    for j in range(0, len(y)):
+        mlab.text3d((j + min(y) + 0.35) * spread_factor, (max(x) + lensoffset + 0.5) * spread_factor, 0, str(y[j]),
+                    color=(0, 0, 0), scale=0.5)
+        yy_tick = np.arange((min(x) - 0.25) * spread_factor, (max(x) + lensoffset) * spread_factor + 0.2, 0.01)
+        yx_tick = np.repeat((j + min(y)) * spread_factor, len(yy_tick))
+        yz_tick = np.repeat(0, len(yy_tick))
+        mlab.plot3d(yx_tick, yy_tick, yz_tick, line_width=0.01, tube_radius=0.01, color=(0.7, 0.7, 0.7))
+    # Counts
+    for k in range(0, max_s_axis + 1, 2):
+        mlab.text3d((min(y) - 0.5) * spread_factor, (max(x) + 0.75) * spread_factor, k, str(k), color=(0, 0, 0),
+                    scale=0.5)
+        xx_back = np.arange((min(y) - 0.25) * spread_factor, (max(y) + lensoffset) * spread_factor, 0.01)
+        xy_back = np.repeat((min(x) - 0.25) * spread_factor, len(xx_back))
+        xz_back = np.repeat(k, len(xx_back))
+        mlab.plot3d(xx_back, xy_back, xz_back, line_width=0.01, tube_radius=0.01, color=(0.7, 0.7, 0.7))
+        yy_side = np.arange((min(x) - 0.25) * spread_factor, (max(x) + lensoffset) * spread_factor, 0.01)
+        yx_side = np.repeat((min(y) - 0.25) * spread_factor, len(yy_side))
+        yz_side = np.repeat(k, len(yy_side))
+        mlab.plot3d(yx_side, yy_side, yz_side, line_width=0.01, tube_radius=0.01, color=(0.7, 0.7, 0.7))
+
+    # Side surfaces
+    y_wall, z_wall = np.mgrid[(min(y) - 0.25) * spread_factor:(max(y) + lensoffset) * spread_factor:2j, 0:z_ax_max:2j]
+    x_wall = np.zeros_like(y_wall) - lensoffset
+
+    x_wall2, z_wall2 = np.mgrid[(min(x) - 0.25) * spread_factor:(max(x) + lensoffset) * spread_factor:2j, 0:z_ax_max:2j]
+    y_wall2 = np.zeros_like(x_wall2) + ((min(y) - 0.25) * spread_factor)
+
+    y_wall3, x_wall3 = np.mgrid[(min(y) - 0.25) * spread_factor:(max(y) + lensoffset) * spread_factor:2j,
+                       (min(x) - 0.25) * spread_factor:(max(x) + lensoffset) * spread_factor:2j, ]
+    z_wall3 = np.zeros_like(y_wall3)
+
+    mlab.mesh(y_wall, x_wall, z_wall, color=(1, 1, 1))
+    mlab.mesh(y_wall2, x_wall2, z_wall2, color=(1, 1, 1))
+    mlab.mesh(y_wall3, x_wall3, z_wall3, color=(1, 1, 1))
+
+    # Camera
+    mlab.view(azimuth=55, elevation=65, distance='auto')
+
+    # Export figure
+    mlab.savefig(outfile)
+
+    return
 
 ## Make plot of RPF against phase
-def plot_rpf_phase(phase_distr, outfile):
+def plot_rpf_phase_pyplot3D(phase_distr, outfile):
+    from mpl_toolkits.mplot3d import Axes3D
 
     #Initialize fig and axes
     fig = plt.figure(figsize=(20,13))
