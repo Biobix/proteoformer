@@ -63,28 +63,28 @@ if (!-d "$TMP") {
     system ("mkdir ". $TMP);
 }
 if ($sam){
-    print "the input sam file                                                : $sam\n";
+    print "the input sam file                                       : $sam\n";
 } else {
     die "\nDon't forget to pass the sam file!\n\n";
 }
 if ($treated){
     if ($treated eq "treated" || $treated eq "untreated"){
-        print "Sample treatment                                  : $treated\n";
+        print "Sample treatment                                         : $treated\n";
     } else {
         print "ERROR: treated argument should be 'untreated' or 'treated'!\n";
         die;
     }
 } else {
     $treated = "untreated";
-    print "Sample treatment                                  : $treated\n";
+    print "Sample treatment                                         : $treated\n";
 }
 if ($resultdb){
-    print "the results DB                               : $resultdb\n";
+    print "the results DB                                           : $resultdb\n";
 } else {
     die "\nDon't forget to pass the results DB!\n\n";
 }
 if ($ens_db){
-    print "the Ensembl DB                               : $ens_db\n";
+    print "the Ensembl DB                                           : $ens_db\n";
 } else {
     die "\nDon't forget to pass the Ensembl DB!\n\n";
 }
@@ -116,37 +116,38 @@ if ($offset_option eq "plastid"){
 }
 
 if ($output_folder){
-    print "The output folder is set to     : $output_folder\n";
+    print "The output folder is set to                              : $output_folder\n";
 } else {
     $output_folder = $work_dir."/mappingQC_output/";
+    print "The output folder is set to                              : $output_folder\n";
 }
 if ($plotrpftool){
     if ($plotrpftool eq "grouped2D" || $plotrpftool eq "pyplot3D" || $plotrpftool eq "mayavi"){
-        print "RPF phase plotting tool:         : $plotrpftool\n";
+        print "RPF phase plotting tool:                                 : $plotrpftool\n";
     } else {
         die "The plotrpftool option should be 'grouped2D', 'pyplot3D' or 'mayavi'!\n";
     }
 } else {
     $plotrpftool = "grouped2D";
-    print "RPF phase plotting tool:         : $plotrpftool\n";
+    print "RPF phase plotting tool:                                 : $plotrpftool\n";
 }
 if ($tool_dir){
-    print "The tool directory is set to    : $tool_dir\n";
+    print "The tool directory is set to                             : $tool_dir\n";
 } else {
     $tool_dir = $work_dir."/mqc_tools/";
-    print "The tool directory is set to     : $tool_dir\n";
+    print "The tool directory is set to                             : $tool_dir\n";
 }
 if ($html){
-    print "Output html file name                       : $html\n";
+    print "Output html file name                                    : $html\n";
 } else {
     $html = $work_dir."/mappingqc_out.html";
-    print "Output html file name                       : $html\n";
+    print "Output html file name                                    : $html\n";
 }
 if ($zip){
-    print "Output zip file name                         : $zip\n";
+    print "Output zip file name                                     : $zip\n";
 } else {
     $zip = $work_dir."/mappingQC_".$treated.".zip";
-    print "Output zip file name                         : $zip\n";
+    print "Output zip file name                                     : $zip\n";
 }
 
 my $dsn_sqlite_results = "DBI:SQLite:dbname=$resultdb";
@@ -157,29 +158,29 @@ my $pw_sqlite_results  = "";
 my ($species,$version,$IGENOMES_ROOT,$mapping_unique,$firstRankMultiMap,$maxmultimap,$mapper,$min_l_parsing,$max_l_parsing) = get_ARG_vars($resultdb,$us_sqlite_results,$pw_sqlite_results);
 
 # Igenomes
-print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
-print "Species                                          : $species\n";
-print "Ensembl version                                  : $version\n";
-print "Mapper used                                      : $mapper\n";
-print "Mapping was done uniquely                        : $mapping_unique\n";
+print "The following igenomes folder is used                    : $IGENOMES_ROOT\n";
+print "Species                                                  : $species\n";
+print "Ensembl version                                          : $version\n";
+print "Mapper used                                              : $mapper\n";
+print "Mapping was done uniquely                                : $mapping_unique\n";
 #Unique parameter for mappingQC itself
 if (! $unique){
     $unique = 'Y';
 }
 if ($mapping_unique eq 'Y'){
     if ($unique eq 'Y'){
-        print "MappingQC unique                                 : $unique\n";
+        print "MappingQC unique                                         : $unique\n";
     } else {
         print "If mapping was done uniquely, mappingQC should run with unique parameter 'Y' as well!\n";
         die;
     }
 } elsif ($mapping_unique eq 'N'){
-    print "MappingQC unique                                 : $unique\n";
+    print "MappingQC unique                                         : $unique\n";
 }
 
 if($mapping_unique eq 'N'){
-    print "Mapping First rank multimapped                   : $firstRankMultiMap\n";
-    print "Maximum multi mapping                            : $maxmultimap\n";
+    print "Mapping First rank multimapped                           : $firstRankMultiMap\n";
+    print "Maximum multi mapping                                    : $maxmultimap\n";
 }
     
 # Cores
