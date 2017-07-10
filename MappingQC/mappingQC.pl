@@ -372,14 +372,19 @@ print "Prepare data for plotting modules\n";
 print "\tRPF phase table\n";
 #Count rpf phase table of all chromosomes together
 my $temp_csv_rpf_phase = $TMP."/mappingqc_".$treated."/rpf_phase.csv";
+if (-d $temp_csv_rpf_phase){
+    system("rm -rf ".$temp_csv_rpf_phase); #Remove already existing data
+}
 system("touch ".$temp_csv_rpf_phase);
 
+#Define total rpf_phase dict
 my $rpf_phase = {};
 for (my $i=$offset_hash->{"min"};$i<=$offset_hash->{"max"};$i++){
     for (my $j=0;$j<=2;$j++){
         $rpf_phase->{$i}->{$j} = 0;
     }
 }
+#Sum for all chromosome the rpf_phase counts
 foreach my $chr (keys %chr_sizes){
     my $infile = $TMP."/mappingqc_".$treated."/rpf_phase_".$chr.".csv";
     open(IN,"<".$infile) or die $!;
@@ -404,6 +409,9 @@ close(OUT_PHASE);
 print "\tPhase - relative position distribution\n";
 #Cat phase-position tmp files
 my $temp_csv_all_pos = $TMP."/mappingqc_".$treated."/pos_table_all.csv";
+if (-d $temp_csv_all_pos){
+    system("rm -rf ".$temp_csv_all_pos);
+}
 system("touch ".$temp_csv_all_pos);
 
 foreach my $chr (keys %chr_sizes){
@@ -437,6 +445,9 @@ foreach my $chr (keys %chr_sizes){
 
 #Write total file for triplet identity
 my $temp_total_triplet = $TMP."/mappingqc_".$treated."/total_triplet.csv";
+if (-d $temp_total_triplet){
+    system("rm -rf ".$temp_total_triplet);
+}
 open(OUT_TOTAL_TRIPLET, "+>> ".$temp_total_triplet);
 foreach my $triplet (keys %{$triplet_phase}){
     foreach my $phase (keys %{$triplet_phase->{$triplet}}){
@@ -450,6 +461,12 @@ close(OUT_TOTAL_TRIPLET);
 print "Store certain results in results DB\n";
 #Init dbh
 my $dbh_results = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
+
+#Drop tables which already exist
+my $query_drop_rpf_phase = "DROP TABLE IF EXISTS `rpf_phase_".$treated."`;"
+$dbh_results->do($query_drop_rpf_phase);
+my $query_drop_triplet = "DROP TABLE IF EXISTS `triplet_phase_".$treated."`;"
+$dbh_results->do($query_drop_triplet);
 
 #Create table rpf phase
 my $query_create_table = "CREATE TABLE IF NOT EXISTS `rpf_phase_".$treated."` (
@@ -1361,10 +1378,19 @@ sub RIBO_parsing_genomic_per_chr {
         }
     }
     my $phase_count_file = $TMP."/mappingqc_".$treated."/rpf_phase_".$chr.".csv";
+    if (-d $phase_count_file){
+        system("rm -rf ".$phase_count_file); #Remove already existing data
+    }
     my $phase_count_triplet = {};
     my $triplet_count_file = $TMP."/mappingqc_".$treated."/triplet_phase_".$chr.".csv";
+    if (-d $triplet_count_file){
+        system("rm -rf ".$triplet_count_file); #Remove already existing data
+    }
     my $chr_sam_file = $TMP."/mappingqc_".$treated."/".$samFileName."_".$chr.".sam";
     my $pos_file = $TMP."/mappingqc_".$treated."/phase_position_".$chr.".csv";
+    if(-d $pos_file){
+        system("rm -rf ".$pos_file); #Remove already existing data
+    }
     
     open (I,"<".$chr_sam_file) || die "Cannot open ".$chr_sam_file."\n";
     open (OUT_POS, "+>>".$pos_file) or die $!;
