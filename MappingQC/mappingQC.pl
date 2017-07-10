@@ -463,9 +463,9 @@ print "Store certain results in results DB\n";
 my $dbh_results = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
 
 #Drop tables which already exist
-my $query_drop_rpf_phase = "DROP TABLE IF EXISTS `rpf_phase_".$treated."`;"
+my $query_drop_rpf_phase = "DROP TABLE IF EXISTS `rpf_phase_".$treated."`;";
 $dbh_results->do($query_drop_rpf_phase);
-my $query_drop_triplet = "DROP TABLE IF EXISTS `triplet_phase_".$treated."`;"
+my $query_drop_triplet = "DROP TABLE IF EXISTS `triplet_phase_".$treated."`;";
 $dbh_results->do($query_drop_triplet);
 
 #Create table rpf phase
