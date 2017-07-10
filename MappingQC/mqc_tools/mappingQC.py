@@ -846,7 +846,7 @@ def plot_rpf_phase_grouped2D(phase_distr, outfile):
     fig, ax = plt.subplots(1, 1)
 
     # Background color
-    ax.set(axis_bgcolor="#f2f2f2")
+    ax.set_facecolor("#f2f2f2")
 
     # Plot
     sns.factorplot(x='RPF length', y='Count', hue='Phase', data=df, ax=ax, kind="bar")
