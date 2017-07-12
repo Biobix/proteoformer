@@ -10,8 +10,9 @@ EXAMPLE
 Main script is mappingQC.pl and you can run it as in following example:
 perl ./mappingQC.pl --samfile yoursamfile.sam --treated untreated --cores 20 --result_db yourproteoformerresults.db --ens_db ENS_mmu_82.db --unique N --offset plastid --offset_img youruntreatedoffsetsimg.png --tool_dir mqc_tools
 
-A Galaxy version of MappingQC and the whole PROTEOFORMER version is also available
+A Galaxy version of MappingQC and the whole PROTEOFORMER version is also available.
 
+There is also a stand-alone version of mappingQC available at https://github.com/Biobix/mQC
 
 
 INPUT PARAMETERS
