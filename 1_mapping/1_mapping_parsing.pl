@@ -131,8 +131,8 @@ print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
 print "Number of cores to use for analysis			: $cores\n";
 
 #Conversion for species terminology
-my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" : (uc($species) eq "SL1344") ? "SL1344" : (uc($species) eq "HUMAN") ? "Homo_sapiens" : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" : "";
-my $spec_short = (uc($species) eq "MOUSE") ? "mmu" : (uc($species) eq "SL1344") ? "sl1344" : (uc($species) eq "HUMAN") ? "hsa" : (uc($species) eq "ARABIDOPSIS") ? "ath" : (uc($species) eq "FRUITFLY") ? "dme" : "";
+my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" : (uc($species) eq "SL1344") ? "SL1344" : (uc($species) eq "HUMAN") ? "Homo_sapiens" : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
+my $spec_short = (uc($species) eq "MOUSE") ? "mmu" : (uc($species) eq "SL1344") ? "sl1344" : (uc($species) eq "HUMAN") ? "hsa" : (uc($species) eq "ARABIDOPSIS") ? "ath" : (uc($species) eq "FRUITFLY") ? "dme" : ($species) eq "ZEBRAFISH") ? "dre" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
 my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
@@ -140,6 +140,7 @@ my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
 : (uc($species) eq "SL1344") ? "ASM21085v2"
+: (uc($species) eq "ZEBRAFISH") ? "GRCz10"
 : (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
 : (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
