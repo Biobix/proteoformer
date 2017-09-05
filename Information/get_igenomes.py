@@ -111,7 +111,7 @@ if(species == 'arabidopsis'):
         print("Error: latest Ensembl Plants version is 29!")
         sys.exit()
 else:
-    if(ens_v>84):
+    if(ens_v>89):
         print("Error: latest Ensembl version is 84!")
         sys.exit()
 #Remove last "/" from instal dir path
