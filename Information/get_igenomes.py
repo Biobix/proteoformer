@@ -144,16 +144,28 @@ elif(species=='mouse'):
         ucscCode='mm9'
 elif(species=='fruitfly'):
     speciesLong='Drosophila_melanogaster'
-    assembly='BDGP6'
-    ucscCode='dm6'
+    if(ens_v>78):
+        assembly='BDGP6'
+        ucscCode='dm6'
+    else:
+        assembly='BDGP5'
+        ucscCode='dm3'
 elif(species=='yeast'):
     speciesLong='Saccharomyces_cerevisiae'
-    assembly='R64-1-1'
-    ucscCode='sacCer3'
+    if(ens_v>74):
+        assembly='R64-1-1'
+        ucscCode='sacCer3'
+    else:
+        assembly='EF2'
+        ucscCode='sacCer2'
 elif(species=='zebrafish'):
     speciesLong='Danio_rerio'
-    assembly='GRCz10'
-    ucscCode='danRer10'
+    if(ens_v>79):
+        assembly='GRCz10'
+        ucscCode='danRer10'
+    else:
+        assembly='Zv9'
+        ucscCode='danRer7'
 elif(species=='arabidopsis'):
     speciesLong='Arabidopsis_thaliana'
     assembly='TAIR10'
