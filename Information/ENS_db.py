@@ -223,6 +223,7 @@ perl -pe 's/ CHARSET[ ]*=[ ]*[A-Za-z_][A-Za-z_0-9]*/ /gi' |
 perl -pe 's/ MAX_ROWS=[A-Za-z_0-9]*/ /gi' |
 perl -pe 's/ AVG_ROW_LENGTH=[A-Za-z_0-9]*/ /gi' |
 perl -pe 's/ [ ]*AUTO_INCREMENT=[0-9]* / /gi' |
+perl -pe 's/ CHECKSUM=[0-9]*/ /gi' |
 perl -pe 's/ unsigned / /g' |
 perl -pe 's/ set[(][^)]*[)] / varchar(255) /gi' |
 perl -pe 's/ auto_increment/ primary key autoincrement/gi' |
