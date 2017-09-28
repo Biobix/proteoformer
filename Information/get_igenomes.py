@@ -23,6 +23,7 @@ __author__ = 'SV'
     
     human                       |   Homo_sapiens
     mouse                       |   Mus_musculus
+    rat                         |   Rattus norvegicus
     fruitfly                    |   Drosophila_melanogaster
     yeast                       |   Saccharomyces_cerevisiae
     zebrafish                   |   Danio_rerio
@@ -147,6 +148,14 @@ elif(species=='mouse'):
     else:
         assembly='NCBIM37'
         ucscCode='mm9'
+elif(species=='rat'):
+    speciesLong='Rattus_norvegicus'
+    if(ens_v>79):
+        assembly='Rnor_6.0'
+        ucscCode='rn6'
+    else:
+        assembly='Rnor_5.0'
+        ucscCode='rn5'
 elif(species=='fruitfly'):
     speciesLong='Drosophila_melanogaster'
     if(ens_v>78):
