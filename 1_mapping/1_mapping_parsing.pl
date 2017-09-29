@@ -131,11 +131,13 @@ print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
 print "Number of cores to use for analysis			: $cores\n";
 
 #Conversion for species terminology
-my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" : (uc($species) eq "SL1344") ? "SL1344" : (uc($species) eq "HUMAN") ? "Homo_sapiens" : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" : (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
-my $spec_short = (uc($species) eq "MOUSE") ? "mmu" : (uc($species) eq "SL1344") ? "sl1344" : (uc($species) eq "HUMAN") ? "hsa" : (uc($species) eq "ARABIDOPSIS") ? "ath" : (uc($species) eq "FRUITFLY") ? "dme" : (uc($species) eq "YEAST") ? "sce" : (uc($species) eq "ZEBRAFISH") ? "dre" : "";
+my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" : (uc($species) eq "RAT") ? "Rattus_norvegicus" : (uc($species) eq "SL1344") ? "SL1344" : (uc($species) eq "HUMAN") ? "Homo_sapiens" : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" : (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
+my $spec_short = (uc($species) eq "MOUSE") ? "mmu" : (uc($species) eq "RAT") ? "rnor" : (uc($species) eq "SL1344") ? "sl1344" : (uc($species) eq "HUMAN") ? "hsa" : (uc($species) eq "ARABIDOPSIS") ? "ath" : (uc($species) eq "FRUITFLY") ? "dme" : (uc($species) eq "YEAST") ? "sce" : (uc($species) eq "ZEBRAFISH") ? "dre" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
 my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
+: (uc($species) eq "RAT" && $ensemblversion >= 80 ) ? "Rnor-6.0"
+: (uc($species) eq "RAT" && $ensemblversion < 80 ) ? "Rnor-5.0"
 : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
