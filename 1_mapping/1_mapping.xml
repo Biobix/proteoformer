@@ -308,16 +308,16 @@
         <data format="bam" name="treat_bam"   label="$choose.mapper on ${on_string}: alignment PUR_HAR_LTM RIBOseq reads">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="bedGraph" name="untreat_s_bg" label="RIBOseq footprint count data un_CHX_EMT (s)">
+        <data format="bedgraph" name="untreat_s_bg" label="RIBOseq footprint count data un_CHX_EMT (s)">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="bedGraph" name="untreat_as_bg" label="RIBOseq footprint count data un_CHX_EMT (as)">
+        <data format="bedgraph" name="untreat_as_bg" label="RIBOseq footprint count data un_CHX_EMT (as)">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="bedGraph" name="treat_s_bg"    label="RIBOseq footprint count data PUR_HAR_LTM (s)">
+        <data format="bedgraph" name="treat_s_bg"    label="RIBOseq footprint count data PUR_HAR_LTM (s)">
             <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
-        <data format="bedGraph" name="treat_as_bg"   label="RIBOseq footprint count data data PUR_HAR_LTM (as)">
+        <data format="bedgraph" name="treat_as_bg"   label="RIBOseq footprint count data data PUR_HAR_LTM (as)">
         <filter>readtype['riboSinPair'] == 'ribo'</filter>
         </data>
         <data format="sqlite" name="out_sqlite"  label="SQLite DB with mapping results (step1)">
@@ -348,10 +348,10 @@
         <data format="bam" name="ribo_untr_bam" label="$choose.mapper on ${on_string}: alignment un_CHX_EMT RIBOseq reads">
             <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
         </data>
-        <data format="bedGraph" name="ribo_untr_s_bg" label="RIBOseq footprint count data un_CHX_EMT (s)">
+        <data format="bedgraph" name="ribo_untr_s_bg" label="RIBOseq footprint count data un_CHX_EMT (s)">
             <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
         </data>
-        <data format="bedGraph" name="ribo_untr_as_bg" label="RIBOseq footprint count data un_CHX_EMT (as)">
+        <data format="bedgraph" name="ribo_untr_as_bg" label="RIBOseq footprint count data un_CHX_EMT (as)">
             <filter>readtype['riboSinPair'] == 'ribo_untr'</filter>
         </data>
         <data format="sqlite" name="ribo_untr_out_sqlite"  label="SQLite DB with mapping results (step1)">
@@ -373,10 +373,10 @@
         <data format="sqlite" name="SE_polyA_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="SE_polyA_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
+        <data format="bedgraph" name="SE_polyA_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="SE_polyA_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
+        <data format="bedgraph" name="SE_polyA_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
         </data>
         <data format="bam" name="SE_polyA_bam_tr" label="$choose.mapper on ${on_string}: RNA-seq reads based on transcript coordinates">
@@ -392,10 +392,10 @@
         <data format="sqlite" name="PE_polyA_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="PE_polyA_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
+        <data format="bedgraph" name="PE_polyA_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
-        <data format="bedGraph" name="PE_polyA_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
+        <data format="bedgraph" name="PE_polyA_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'PE_polyA'</filter>
         </data>
         <data format="bam" name="PE_polyA_bam_tr" label="$choose.mapper on ${on_string}: RNA-seq reads based on transcript coordinates">
@@ -410,10 +410,10 @@
         <data format="sqlite" name="PE_total_out_sqlite" label="SQLite DB with mapping results (step1)" >
         	 <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
-        <data format="bedGraph" name="PE_total_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
+        <data format="bedgraph" name="PE_total_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
             <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
-        <data format="bedGraph" name="PE_total_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
+        <data format="bedgraph" name="PE_total_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
             <filter>readtype['riboSinPair'] == 'PE_total'</filter>
         </data>
         <data format="bam" name="PE_total_bam_tr" label="$choose.mapper on ${on_string}: RNA-seq reads based on transcript coordinates">
