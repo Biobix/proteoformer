@@ -2367,4 +2367,5 @@ sub print_help_text {
     --zip                           the output zip file name (default: work_dir/mappingQC_(un)treated.zip))
     "
     
+        print($help_string);
 }
