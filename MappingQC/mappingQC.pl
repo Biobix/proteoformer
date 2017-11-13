@@ -2365,7 +2365,7 @@ sub print_help_text {
                                         - mayavi: use the mayavi package to plot a 3D bar chart. This tool only works on local systems with graphical cards.
     --html                          the output html file name (default: work_dir/mappingqc_out.html)
     --zip                           the output zip file name (default: work_dir/mappingQC_(un)treated.zip))
-    "
+    ";
     
-        print($help_string);
+    print $help_string;
 }
