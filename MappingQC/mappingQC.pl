@@ -18,6 +18,7 @@ use Cwd;
 # nohup perl ./mappingQC.pl --samfile STAR/fastq1/untreat.sam --treated 'untreated' --cores 20 --result_db SQLite/results.db --ens_db SQLite/ENS_mmu_82.db --offset plastid > nohup_mappingqc.txt &
 
 my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$unique,$ens_db,$offset_option,$offset_file,$offset_img,$output_folder,$tool_dir,$plotrpftool,$html,$zip);
+my $help;
 
 GetOptions(
 "work_dir:s" => \$work_dir,             # The working directory                                         Optional argument (default: CWD)
@@ -38,8 +39,14 @@ GetOptions(
                                             #pyplot3D: use mplot3d to plot a 3D bar chart (Suffers sometimes from Escher effects)
                                             #mayavi: use the mayavi package to plot a 3D bar chart (only on systems with graphics cards)
 "html:s" => \$html,                     # The output html file name                                     Optional argument (default: CWD/mappingqc_out.html)
-"zip:s" => \$zip                        # The output zip file name of the output folder                 Optional argument (default CWD/mappingQC_(un)treated.zip )
+"zip:s" => \$zip,                       # The output zip file name of the output folder                 Optional argument (default CWD/mappingQC_(un)treated.zip )
+"help" => \$help                        # Help text option
 );
+
+if ($help){
+    print_help_text();
+    exit;
+}
 
 
 ###########################################################################
@@ -2321,4 +2328,41 @@ sub offsets_to_csv {
     }
     
     close($fw);
+}
+
+### Help text ###
+sub print_help_text {
+    
+    my $help_string = "\n\nMappingQC (PROTEOFORMER version)
+    
+    MappingQC is a tool to easily generate some figures which give a nice overview of the quality of the mapping of ribosome profiling data. More specific, it gives an overview of the P site offset calculation, the gene distribution and the metagenic classification. Furthermore, MappingQC does a thorough analysis of the triplet periodicity and the linked triplet phase (typical for ribosome profiling) in the canonical transcript of your data. Especially, the link between the phase distribution and the RPF length, the relative sequence position and the triplet identity are taken into account.
+    
+    Input parameters:
+    --help                          this helpful screen
+    --work_dir                      working directory to run the script in (default: current working directory)
+    --samfile                       customly chosen experiment name for the mappingQC run (mandatory)
+    --treated                       wheter the samfile is from the treated or untreated sample (untreated/treated, default untreated)
+    --cores                         the amount of cores to use (integer, default: 5)
+    --result_db                     the result db with mapping results (mandatory)
+    --tmp                           temporary files folder (default: work_dir/tmp)
+    --unique                        whether to use only the unique alignments (default: Y)(has to be Y for unique alignments)
+    --ens_db                        the ensembl database with annotation (mandatory)
+    --offset                        the offset source for parsing alignments (default: standard)
+                                        possible options:
+                                        - plastid: use the offsets calculated with plastid (Dunn et al. 2016) during PROTEOFORMER mapping step
+                                        - standard: use the standard offsets from the paper of Ingolia et al. (2012)
+                                        - from_file: use offsets from an input file
+    --offset_file                   the offsets input file (cfr. supra) (mandatory if offset=from_file)
+    --offset_img                    the offsets image from plastid generated during mapping (mandatory if offset=plastid)
+    --output_folder                 the output folder for storing output files (default: work_dir/mappingQC_output)
+    --tool_dir                      the directory with all necessary underlying tools (default: work_dir/mqc_tools)
+    --plotrpftool                   the module that will be used for plotting the RPF-phase figure
+                                        possible options:
+                                        - grouped2D: use Seaborn to plot a grouped 2D bar chart (default)
+                                        - pyplot3D: use mplot3d to plot a 3D bar chart. This tool can suffer sometimes from Escher effects, as it tries to plot a 3D plot with the 2D software of pyplot and matplotlib.
+                                        - mayavi: use the mayavi package to plot a 3D bar chart. This tool only works on local systems with graphical cards.
+    --html                          the output html file name (default: work_dir/mappingqc_out.html)
+    --zip                           the output zip file name (default: work_dir/mappingQC_(un)treated.zip))
+    "
+    
 }
