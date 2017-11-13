@@ -1,3 +1,5 @@
+#!/usr/bin/env perl
+
 $|=1;
 
 ####### Mapping Quality Control
