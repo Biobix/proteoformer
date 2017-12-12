@@ -145,11 +145,12 @@ my $us_results  = "";
 my $pw_results  = "";
 
 #Get arguments from arguments table
-my ($ensemblversion,$species,$ens_db,$IGENOMES_ROOT,$cores,$mean_length_fastq1,$mean_length_fastq2) = get_arguments($dsn_results,$us_results,$pw_results);
+my ($ensemblversion,$species,$ens_db,$IGENOMES_ROOT,$cores,$mean_length_fastq1,$mean_length_fastq2,$tr_calling) = get_arguments($dsn_results,$us_results,$pw_results);
 
 print "The igenomes_root folder used is                         : $IGENOMES_ROOT\n";
 print "Number of cores to use for Mapping                       : $cores\n";
 print "The following Ensembl db folder is used                  : $ens_db\n";
+print "The transcript calling method that was used              : $tr_calling\n";
 
 #Conversion for species terminology
 my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
@@ -198,7 +199,7 @@ if (!-d "$BIN_chrom_dir") {
 
 ## Tiscalling for all ribo_reads overlapping ENS transcripts
 print " \n  Starting transcript peak analysis per chromosome using ".$cores." cores...\n";
-TIS_calling($chrs,$dsn_ENS,$us_ENS,$pw_ENS,$cores,$id,$work_dir,$TMP);
+TIS_calling($chrs,$dsn_ENS,$us_ENS,$pw_ENS,$cores,$id,$work_dir,$TMP, $tr_calling);
 
 # End time
 print "   DONE! \n";
@@ -223,6 +224,7 @@ sub TIS_calling{
     my $id              =   $_[5];
     my $work_dir        =   $_[6];
     my $TMP             =   $_[7];
+    my $tr_calling      =   $_[8];
 
     # Init multi core
     my $pm = new Parallel::ForkManager($cores);
@@ -244,7 +246,7 @@ sub TIS_calling{
         my $seq_region_id = $chrs->{$chr}{'seq_region_id'};
 
         # Get transcriptsand all reads
-        my($trs,$CHX_for,$LTM_for,$CHX_rev,$LTM_rev) = get_transcripts_and_reads($seq_region_id,$chr);
+        my($trs,$CHX_for,$LTM_for,$CHX_rev,$LTM_rev) = get_transcripts_and_reads($seq_region_id,$chr,$tr_calling);
 
         # Match reads to trancripts
         $trs = match_reads_to_transcripts($trs,$CHX_for,$CHX_rev,$LTM_for,$LTM_rev);
@@ -957,6 +959,7 @@ sub get_transcripts_and_reads {
     # Catch
     my $seq_region_id   =   $_[0];
     my $chr             =   $_[1];
+    my $tr_calling      =   $_[2];
 
     # Init
     my $dbh = dbh($dsn_results,$us_results,$pw_results);
@@ -968,12 +971,24 @@ sub get_transcripts_and_reads {
 
     # Get transcripts
     my $query;
-    if (uc($transcriptfilter) eq "NONE") {
-        $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes'))";
-    } elsif (uc($transcriptfilter) eq "CANONICAL") {
-        $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes')) and canonical = 'Yes'";
-    } elsif (uc($transcriptfilter) eq "CCDS") {
-         $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes')) and ccds <> 'No'";
+    if (uc($tr_calling) eq "RULE_BASED"){
+        if (uc($transcriptfilter) eq "NONE") {
+            $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes'))";
+        } elsif (uc($transcriptfilter) eq "CANONICAL") {
+            $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes')) and canonical = 'Yes'";
+        } elsif (uc($transcriptfilter) eq "CCDS") {
+             $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation where seq_region_id = $seq_region_id AND (biotype = 'protein_coding' or (biotype != 'protein_coding' and exon_coverage = 'Yes')) and ccds <> 'No'";
+        }
+    } elsif (uc($tr_calling) eq "RIBOZINB") {
+        if (uc($transcriptfilter) eq "NONE") {
+            $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation_ribozinb where seq_region_id = $seq_region_id";
+        } elsif (uc($transcriptfilter) eq "CANONICAL") {
+            $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation_ribozinb where seq_region_id = $seq_region_id AND canonical = 'Yes'";
+        } elsif (uc($transcriptfilter) eq "CCDS") {
+            $query = "SELECT transcript_id,seq_region_id,seq_region_strand,seq_region_start,seq_region_end,read_counts,biotype,stable_id from tr_translation_ribozinb where seq_region_id = $seq_region_id AND ccds <> 'No'";
+        }
+    } else {
+        die "ERROR: wrong argument in tr_calling argument of arguments table!\n";
     }
     my $sth = $dbh->prepare($query);
 	$sth->execute();
@@ -1229,9 +1244,14 @@ sub get_arguments{
     $sth = $dbh->prepare($query);
 	$sth->execute();
 	my $mean_length_fastq2 = $sth->fetch()->[0];
+    
+    $query = "select value from `arguments` where variable = \'tr_calling\'";
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $tr_calling = $sth->fetch->[0];
 
     # Return input variables
-    return($ensemblversion,$species,$ens_db,$igenomes_root,$nr_of_cores,$mean_length_fastq1,$mean_length_fastq2);
+    return($ensemblversion,$species,$ens_db,$igenomes_root,$nr_of_cores,$mean_length_fastq1,$mean_length_fastq2,$tr_calling);
 
 }
 
