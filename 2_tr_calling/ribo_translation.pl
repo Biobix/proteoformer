@@ -184,12 +184,34 @@ make_sqlite_dumpfile();
 # import SQLite dump
 import_sqlite_dumpfile($tmpfolder."fastq1_transcript_all.csv");
 
+# Add transcript calling method
+update_arguments_table($in_sqlite);
+
 # Move to galaxy history
 system ("mv ".$in_sqlite." ".$out_sqlite);
 
 ################
 # 	THE SUBS   #
 ################
+
+sub update_arguments_table{
+    #Catch
+    my $db = $_[0];
+    my $user = "";
+    my $pw = "";
+    
+    # Connect to sqlite database
+    my $dbh  = DBI->connect('DBI:SQLite:'.$db,$user,$pw,
+    { RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
+    
+    #Update arguments table
+    my $query = "INSERT INTO arguments (variable, value) VALUES (tr_calling, rule_based);";
+    my $execute = $dbh->prepare($query);
+    $execute->execute();
+    $execute->finish();
+    
+    return;
+}
 
 sub get_chr{
     # Catch
