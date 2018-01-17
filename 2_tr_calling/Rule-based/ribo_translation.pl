@@ -205,8 +205,12 @@ sub update_arguments_table{
     { RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
     
     #Update arguments table
-    my $query = "INSERT INTO arguments (variable, value) VALUES (tr_calling, rule_based);";
+    my $query = "DELETE FROM arguments WHERE value='tr_calling';";
     my $execute = $dbh->prepare($query);
+    $execute->execute();
+    $execute->finish();
+    $query = "INSERT INTO arguments (variable, value) VALUES ('tr_calling', 'rule_based');";
+    $execute = $dbh->prepare($query);
     $execute->execute();
     $execute->finish();
     

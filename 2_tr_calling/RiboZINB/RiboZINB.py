@@ -346,6 +346,8 @@ def dump_csv(csv_path, result_db):
     os.system("rm -rf "+csv_path)
 
     #Add RiboZINB argument to arguments table
+    query = "DELETE FROM arguments WHERE value='tr_calling';"
+    cur.execute(query)
     query = "INSERT INTO arguments (variable, value) VALUES (\"tr_calling\", \"ribozinb\");"
     cur.execute(query)
 
