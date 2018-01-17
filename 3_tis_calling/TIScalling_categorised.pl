@@ -8,7 +8,6 @@ use Parallel::ForkManager;
 use Getopt::Long;
 use Storable 'dclone';
 use Cwd;
-use experimental 'smartmatch'; #Temporary fix for experimental smartMatch (in future replace with match::smart module
 
 #################
 # Perl commands #
@@ -1320,7 +1319,7 @@ sub peak_position {
     foreach my $exon (sort {$a <=> $b} keys %{$exons}){
 
         #Check if in which exon cDNA position is located
-        if ($cdna_pos ~~ [$exons->{$exon}{"e_start"}..$exons->{$exon}{"e_end"}]) {
+        if (($cdna_pos>=$exons->{$exon}{"e_start"}) && ($cdna_pos<=$exons->{$exon}{"e_end"})) {
 
             #Get peak genomic position based on cdna position and exon start
             $peak_pos = $exons->{$exon}{'seq_region_start'} - $exons->{$exon}{"e_start"} + $cdna_pos;
