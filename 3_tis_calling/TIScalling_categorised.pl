@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+$|=1;
 use strict;
 use warnings;
 use DBI;
@@ -144,6 +145,7 @@ my $us_results  = "";
 my $pw_results  = "";
 
 #Get arguments from arguments table
+print "\nGet arguments from arguments table\n";
 my ($ensemblversion,$species,$ens_db,$IGENOMES_ROOT,$cores,$mean_length_fastq1,$mean_length_fastq2,$tr_calling) = get_arguments($dsn_results,$us_results,$pw_results);
 
 print "The igenomes_root folder used is                         : $IGENOMES_ROOT\n";
