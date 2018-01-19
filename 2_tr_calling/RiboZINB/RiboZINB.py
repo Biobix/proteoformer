@@ -376,7 +376,7 @@ def convert_to_results_db_list(line, cur_ens, transcript_id, coord_system_id):
     features_merged_iso = line.split("\t")
 
     #transcript id
-    features_tr.append(transcript_id)
+    features_tr.append(search_ensembl_transcript_id(features_merged_iso[2]), cur_ens)
     #transcript stable id
     features_tr.append(features_merged_iso[2])
     #Chr and seq_region_id
@@ -412,6 +412,22 @@ def convert_to_results_db_list(line, cur_ens, transcript_id, coord_system_id):
     features_tr.append(gene_stable_id)
 
     return features_tr
+
+### Search Ensembl transcript ID based on transcript stable ID
+def search_ensembl_transcript_id(stable_id, cur_ens):
+    
+    #Init
+    transcript_id=0;
+    
+    #Search in Ensembl db
+    query = "SELECT transcript_id FROM transcript WHERE stable_id='"+stable_id+"';"
+    if cur_ens.execute(query):
+        transcript_id = int(cur_ens.fetchone()[0])
+    else:
+        print "ERROR: could not find the Ensembl transcript ID based on the stable ID for transcript "+stable_id
+        print "Query: "+query
+    
+    return transcript_id
 
 ### Check if the transcript is the CCDS and parse CCDS number
 def check_CCDS(boolean_CCDS, CCDS_number):
