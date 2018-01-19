@@ -19,7 +19,6 @@ ARGUMENTS
     -m | --mincount                     The minimum reads count for a transcript to be called (default: 5)
     -n | --no_of_samples                The number of iterations when generating a negative set (default: 30)
     -f | --fdr                          The false discovery rate (default: 0.05)
-    -g | --fdr_type                     Global (g) or local (l) FDR (default: g)
     -s | --default_score                Use the default score threshold (d) or estimate threshold by permutation test (p)
                                             (default: d)
     -v | --cutoff                       The default score threshold (default: 0.1)
@@ -60,8 +59,6 @@ def main():
             no_of_samples = int(a)
         if o in ('-f', '--fdr'):
             fdr = float(a)
-        if o in ('-g', '--fdr_type'):
-            fdr_type = a
         if o in ('-s', '--default_score'):
             default_score = a
         if o in ('-v', '--cutoff'):
@@ -98,19 +95,6 @@ def main():
     except:
         fdr = 0.05
     try:
-        fdr_type
-    except:
-        fdr_type = 'g'
-    fdr_type_print=''
-    if fdr_type!='g' and fdr_type!='l':
-        print "ERROR: FDR type argument should be 'g' or 'l'!"
-        sys.exit()
-    else:
-        if fdr_type=='g':
-            fdr_type_print = 'global'
-        else:
-            fdr_type_print = 'local'
-    try:
         default_score
     except:
         default_score = 'd'
@@ -146,7 +130,6 @@ def main():
     print "Minimum reads count:                                         "+str(mincount)
     print "Number of iterations when generating negative set:           "+str(no_of_samples)
     print "False discovery rate:                                        "+str(fdr)
-    print "FDR type:                                                    "+fdr_type_print
     print "Default score or permutation test:                           "+default_score_print
     print "Default score threshold:                                     "+str(cutoff)
     print "Noise proportion factor alpha:                               "+str(alpha)
@@ -213,7 +196,7 @@ def main():
     #Execute RiboZINB
     command = "perl "+main_script_folder+"/RiboZINB.pl -p "+counts_csv+" -g "+gtf_file+" -e "+exp_name+" -w "\
         +ribozinb_tmp+" -m "+str(mincount)+" -r "+str(mapped_total)+" -d N -t "+str(cores)+" -n "\
-        +str(no_of_samples)+" -s "+R_scripts_folder+" -f "+str(fdr)+" -ft "+fdr_type+" -v "+str(cutoff)+" -dt "\
+        +str(no_of_samples)+" -s "+R_scripts_folder+" -f "+str(fdr)+" -v "+str(cutoff)+" -dt "\
         +default_score_command+" -a "+str(alpha)
     print "\nExecuting RiboZINB"
     print "- - - - - - - - - - - - - "
