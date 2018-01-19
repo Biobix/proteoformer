@@ -277,13 +277,14 @@ def parse_results(result_db, ensDB, ribozinb_tmp, exp_name, coord_system_id):
                 line = line.rstrip() #Remove trailing whitespace
 
                 #Convert the line to a features list needed for the transcript table in the results DB
-                features = convert_to_results_db_list(line, cur_ens, transcript_i, coord_system_id)
+                features, above_cutoff = convert_to_results_db_list(line, cur_ens, transcript_i, coord_system_id)
 
                 #Convert the features to a line for the csv file
                 line_csv = convert_features_to_csv_line(features)
 
-                #Write to csv
-                FW.write(line_csv)
+                #Write to csv if the isoform passed the score cutoff
+                if above_cutoff == 'Y':
+                    FW.write(line_csv)
 
                 #Loop number aug
                 transcript_i += 1
@@ -374,6 +375,7 @@ def convert_to_results_db_list(line, cur_ens, transcript_id, coord_system_id):
 
     #Split the line into the different features (list)
     features_merged_iso = line.split("\t")
+    above_cutoff = features_merged_iso[24]
 
     #transcript id
     features_tr.append(search_ensembl_transcript_id(features_merged_iso[2]), cur_ens)
@@ -411,7 +413,7 @@ def convert_to_results_db_list(line, cur_ens, transcript_id, coord_system_id):
     # Gene stable ID
     features_tr.append(gene_stable_id)
 
-    return features_tr
+    return features_tr, above_cutoff
 
 ### Search Ensembl transcript ID based on transcript stable ID
 def search_ensembl_transcript_id(stable_id, cur_ens):
