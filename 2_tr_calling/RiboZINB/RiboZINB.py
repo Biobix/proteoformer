@@ -499,11 +499,25 @@ def set_scripts(wd):
     main_scripts_folder = wd+"/RiboZINB_scripts"
     R_scripts_folder = wd+"/RiboZINB_scripts/Rscipts"
 
+   #Remove previous versions
+    os.system("rm -rf "+main_scripts_folder)
+
     #Download from GitHub and unpack
     os.system("wget -q --no-check-certificate https://github.com/Biobix/RiboZINB/archive/master.zip")
     os.system("unzip -q master.zip")
-    os.system("mv RiboZINB-master "+main_scripts_folder)
+    os.system("mkdir "+main_scripts_folder)
+    os.system("mv RiboZINB-master/* "+main_scripts_folder)
     os.system("rm -rf master.zip")
+    os.system("rm -rf RiboZINB-master")
+
+    #Check if all scripts are present
+    if (os.path.isfile(main_scripts_folder+"/RiboZINB.pl") and os.path.isfile(R_scripts_folder+"/FDR.R") and \
+        os.path.isfile(R_scripts_folder+"/RiboZINB.R") and os.path.isfile(R_scripts_folder+"/merge.R") and \
+        os.path.isfile(R_scripts_folder+"/s_curve.R")):
+        print "RiboZINB scripts downloaded\n"
+    else:
+        print "Could not found all necessary scripts\n"
+        sys.exit()
 
     return main_scripts_folder, R_scripts_folder
 
