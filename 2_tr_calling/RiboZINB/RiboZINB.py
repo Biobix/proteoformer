@@ -116,7 +116,7 @@ def main():
     try:
         alpha
     except:
-        alpha = 1.0
+        alpha = int(1)
 
     # Print input arguments
     print "PROTEOFORMER: RiboZINB"
