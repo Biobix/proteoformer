@@ -359,7 +359,7 @@ def convert_to_results_db_list(line, cur_ens, transcript_id, coord_system_id):
     features_expressed_iso = line.split("\t")
 
     #transcript id
-    features_tr.append(search_ensembl_transcript_id(features_expressed_iso[2]), cur_ens)
+    features_tr.append(search_ensembl_transcript_id(features_expressed_iso[2], cur_ens))
     #transcript stable id
     features_tr.append(features_expressed_iso[2])
     #Chr and seq_region_id
