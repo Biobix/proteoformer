@@ -217,6 +217,9 @@ def main():
     sys.stdout.flush()
     parse_results(result_db, ensDB, ribozinb_tmp, exp_name, coord_system_id)
 
+    #Update arguments table with latest transcription calling method
+    update_arguments(result_db)
+
     print "Remove RiboZINB scripts\n"
     sys.stdout.flush()
     os.system("rm -rf "+main_script_folder)
@@ -230,6 +233,27 @@ def main():
 ##########
 #  SUBS  #
 ##########
+
+### Update arguments table
+def update_arguments(result_db):
+    
+    #Connect with result db
+    try:
+        con = sqlite.connect(result_db)
+    except:
+        print "ERROR: could not connect to "+result_db+"\n"
+        sys.exit()
+    cur = con.cursor()
+    
+    #Delete previous transcription calling method
+    query = "DELETE FROM arguments WHERE value='tr_calling';"
+    cur.execute(query)
+    
+    #Put in new calling method
+    query = "INSERT INTO arguments (variable, value) VALUES ('tr_calling', 'ribozinb');"
+    cur.execute(query)
+    
+    return
 
 ### Parse results into a transcripts table
 def parse_results(result_db, ensDB, ribozinb_tmp, exp_name, coord_system_id):
