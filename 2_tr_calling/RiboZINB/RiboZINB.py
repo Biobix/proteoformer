@@ -246,7 +246,7 @@ def update_arguments(result_db):
     cur = con.cursor()
     
     #Delete previous transcription calling method
-    query = "DELETE FROM arguments WHERE value='tr_calling';"
+    query = "DELETE FROM arguments WHERE variable='tr_calling';"
     cur.execute(query)
     
     #Put in new calling method
