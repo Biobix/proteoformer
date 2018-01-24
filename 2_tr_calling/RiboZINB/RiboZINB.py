@@ -235,12 +235,12 @@ def main():
 def parse_results(result_db, ensDB, ribozinb_tmp, exp_name, coord_system_id):
 
     #Init
-    merged_isoforms_file = ribozinb_tmp+"/"+exp_name+"_Ribo_merged_expressed_isoforms.txt"
+    expressed_isoforms_file = ribozinb_tmp+"/"+exp_name+"_Ribo_expressed_isoforms.txt"
     transcript_i=1
 
     #Remove header
-    without_header = ribozinb_tmp+"/merged_expressed_isoforms_without_header.txt"
-    os.system("sed '1d' "+merged_isoforms_file+" > "+without_header)
+    without_header = ribozinb_tmp+"/expressed_isoforms_without_header.txt"
+    os.system("sed '1d' "+expressed_isoforms_file+" > "+without_header)
 
     #Establish Ensembl DB connection
     try:
@@ -254,7 +254,7 @@ def parse_results(result_db, ensDB, ribozinb_tmp, exp_name, coord_system_id):
     csv_path = ribozinb_tmp + "/features_tr_" + exp_name + ".csv"
     with open(csv_path, 'w') as FW:
         #Read in results table
-        with open(merged_isoforms_file, 'r') as FR:
+        with open(expressed_isoforms_file, 'r') as FR:
             next(FR)
             for line in FR:
                 line = line.rstrip() #Remove trailing whitespace
@@ -350,28 +350,28 @@ def convert_features_to_csv_line(features):
 
     return line
 
-### Convert the features in the merged isoforms file to the features needed for the transcript table
+### Convert the features in the expressed isoforms file to the features needed for the transcript table
 def convert_to_results_db_list(line, cur_ens, transcript_id, coord_system_id):
 
     #Init desired features list for transcripts table
     features_tr=[]
 
     #Split the line into the different features (list)
-    features_merged_iso = line.split("\t")
-    above_cutoff = features_merged_iso[24]
+    features_expressed_iso = line.split("\t")
+    above_cutoff = features_expressed_iso[24]
 
     #transcript id
-    features_tr.append(search_ensembl_transcript_id(features_merged_iso[2]), cur_ens)
+    features_tr.append(search_ensembl_transcript_id(features_expressed_iso[2]), cur_ens)
     #transcript stable id
-    features_tr.append(features_merged_iso[2])
+    features_tr.append(features_expressed_iso[2])
     #Chr and seq_region_id
     chr, seq_region_id = search_chr_of_transcript(features_tr[1], cur_ens, coord_system_id)
     features_tr.append(chr)
     features_tr.append(seq_region_id)
     #seq_region_strand
-    if features_merged_iso[3]=="+":
+    if features_expressed_iso[3]=="+":
         seq_region_strand="1"
-    elif features_merged_iso[3]=="-":
+    elif features_expressed_iso[3]=="-":
         seq_region_strand="-1"
     else:
         print "Parsing ERROR for "+features_tr[1]+". Strand is not + or -!"
@@ -381,18 +381,18 @@ def convert_to_results_db_list(line, cur_ens, transcript_id, coord_system_id):
     features_tr.append(seq_region_start)
     features_tr.append(seq_region_end)
     #Read counts
-    features_tr.append(int(features_merged_iso[13]))
+    features_tr.append(int(features_expressed_iso[13]))
     #Normalized counts
-    features_tr.append(float(features_tr[7]/float(features_merged_iso[8])))
+    features_tr.append(float(features_tr[7]/float(features_expressed_iso[8])))
     #Biotype
-    features_tr.append(features_merged_iso[6])
+    features_tr.append(features_expressed_iso[6])
     #Exon coverage
     features_tr.append("NA")
     #Canonical
-    gene_stable_id = features_merged_iso[0]
+    gene_stable_id = features_expressed_iso[0]
     features_tr.append(check_if_canonical(features_tr[1], gene_stable_id, cur_ens))
     #CCDS
-    features_tr.append(check_CCDS(features_merged_iso[4], features_merged_iso[5]))
+    features_tr.append(check_CCDS(features_expressed_iso[4], features_expressed_iso[5]))
     # Gene stable ID
     features_tr.append(gene_stable_id)
 
