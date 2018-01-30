@@ -225,7 +225,7 @@ def main():
     os.system("rm -rf "+main_script_folder)
 
     #print "Remove RiboZINB tmp folder\n"
-    os.system("rm -rf "+ribozinb_tmp)
+    #os.system("rm -rf "+ribozinb_tmp)
 
     print "--- DONE ---\n\n"
     sys.stdout.flush()
@@ -337,6 +337,7 @@ def dump_csv(csv_path, result_db):
                 "canonical VARCHAR(5) NOT NULL,"\
                 "ccds VARCHAR(20) NOT NULL,"\
                 "gene_stable_id VARCHAR(100) NOT NULL,"\
+                "FPKM FLOAT NOT NULL,"\
                 "PRIMARY KEY (stable_id, gene_stable_id)"\
                 ");"
     cur.execute(query)
@@ -417,6 +418,8 @@ def convert_to_results_db_list(line, cur_ens, transcript_id, coord_system_id):
     features_tr.append(check_CCDS(features_expressed_iso[4], features_expressed_iso[5]))
     # Gene stable ID
     features_tr.append(gene_stable_id)
+    # FPKM
+    features_tr.append(float(features_expressed_iso[9]))
 
     return features_tr
 

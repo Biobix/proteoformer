@@ -119,6 +119,7 @@ my $transcript_create = "CREATE TABLE IF NOT EXISTS $table_ribo_trans (
 		canonical VARCHAR(5) NOT NULL,
 		ccds VARCHAR(20) NOT NULL,
 		gene_stable_id VARCHAR(100) NOT NULL,
+        FPKM FLOAT NOT NULL,
 		PRIMARY KEY (stable_id,gene_stable_id)
 		)";
 $dbh_create->do($transcript_create);
@@ -134,7 +135,7 @@ $dbh_create->do($transcript_idx2);
 $dbh_create->disconnect();
 
 # Get arguments vars
-my ($species,$version,$IGENOMES_ROOT,$cores) = get_ARG_vars($db_ribo,$user,$pw);
+my ($species,$version,$IGENOMES_ROOT,$cores,$run_name,$mapper,$uniq) = get_ARG_vars($db_ribo,$user,$pw);
 
 # Igenomes
 print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
@@ -171,12 +172,15 @@ $coord_system_id = get_coord_system_id($db_ensembl,$assembly);
 # Store used path of ENSEMBL db in arguments table
 store_ENS_var($db_ribo,$user,$pw,$db_ensembl);
 
+# Construct sample name
+my $sample_name = $run_name."_".$mapper."_".$uniq."_".$version.".fastq1";
+
 ################
 ## BASED ON RIBO-SEQ DATA: GET TRANSLATION-LEVEL FOR EACH GENE AND FOR EACH TRANSCRIPT
 ################
 
 # Translation-info per chr in a file
-translation_per_chr();
+translation_per_chr($sample_name);
 
 # Combine output for all chr in SQLite dumpfile
 make_sqlite_dumpfile();
@@ -276,6 +280,9 @@ sub get_coord_system_id{
 } # Close sub
 
 sub translation_per_chr{
+    #Catch
+    my $sample_name = $_[0];
+    
 	print "Starting translation analysis of transcripts per chromosome using ".$cores." cores...\n";
 	# Init multi core
 	my $processes = $cores; # Nr of processes
@@ -692,6 +699,15 @@ sub translation_per_chr{
 			}
 		}
 		$execute8->finish();
+        
+        #Get the sequencing depth for calculating FPKM
+        my $query9 = "SELECT mapped_T FROM statistics WHERE sample='".$sample_name."' AND type='genomic';";
+        my $execute9 = $dbh2->prepare($query9);
+        $execute9->execute();
+        my $seq_depth = $execute9->fetch()->[0];
+        $execute9->finish();
+        my $seq_depthM = $seq_depth/1000000; #Sequence depth in millions
+        
 		####
 		# NORMALIZE the transcript-counts and write the information for each chr in a separate file
 		####
@@ -705,6 +721,9 @@ sub translation_per_chr{
 				# Transcript_info
 				my $transcount = $transcript_count{$gene}{$transcript};
 				my $length = $transcript_length{$transcript};
+                my $lengthK = $length/1000; #Length in kilobases
+                my $transFPM = $transcount/$seq_depthM; #Fragments per million reads sequence depth
+                my $transFPKM = $transFPM/$lengthK; #Fragments per kilo read length and millions sequence depth
 
 				# Now normalize for each transcript separately -> transcript_count/transcript_length
 				my $norm_transcount = $transcount/$length;
@@ -746,7 +765,7 @@ sub translation_per_chr{
 
 				# Write to csv-file
 				if($transcount > 0){
-					print TMPtrans $transcript.",".$transcript_id{$transcript}[0].",".$chr.",".$seq_region.",".$gene_id{$gene}[1].",".$transcript_id{$transcript}[2].",".$transcript_id{$transcript}[3].",".$transcount.",".$norm_transcount.",".$transcript_id{$transcript}[1].",".$exon_premise.",".$transcript_attributes{$transcript}[0].",".$transcript_attributes{$transcript}[1].",".$gene."\n";
+					print TMPtrans $transcript.",".$transcript_id{$transcript}[0].",".$chr.",".$seq_region.",".$gene_id{$gene}[1].",".$transcript_id{$transcript}[2].",".$transcript_id{$transcript}[3].",".$transcount.",".$norm_transcount.",".$transcript_id{$transcript}[1].",".$exon_premise.",".$transcript_attributes{$transcript}[0].",".$transcript_attributes{$transcript}[1].",".$gene.",".$transFPKM."\n";
 				}
 			}
 		}
@@ -836,11 +855,29 @@ sub get_ARG_vars{
 	$sth->execute();
 	my $cores = $sth->fetch()->[0];
 	$sth->finish();
+    
+    $query = "select value from arguments where variable = \'run_name\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $run_name = $sth->fetch()->[0];
+    $sth->finish();
+    
+    $query = "select value from arguments where variable = \'mapper\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $mapper = $sth->fetch()->[0];
+    $sth->finish();
+    
+    $query = "select value from arguments where variable = \'unique\'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    my $uniq = $sth->fetch()->[0];
+    $sth->finish();
 
 	$dbh_results -> disconnect();
 
 	# Return ARG variables
-	return($species,$version,$IGENOMES_ROOT,$cores);
+	return($species,$version,$IGENOMES_ROOT,$cores,$run_name,$mapper,$uniq);
 } # Close sub
 
 sub store_ENS_var{
