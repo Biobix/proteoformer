@@ -185,7 +185,7 @@ my $start = time;
 
 print "\nGet analysis id...";
 ## Get Analysis ID
-my $id = get_id($dsn_results,$us_results,$pw_results,$local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,$transcriptfilter);
+my $id = get_id($dsn_results,$us_results,$pw_results,$local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,$transcriptfilter,$tr_calling);
 print "                                       : ".$id." \n";
 
 print "Get chromosomes... \n";
@@ -1273,8 +1273,10 @@ sub get_id{
     my $R_CDS               =   $_[9];
     my $min_count_3         =   $_[10];
     my $R_3                 =   $_[11];
-    my $min_count_ntr  =   $_[12];
-    my $R_ntr          =   $_[13];
+    my $min_count_ntr       =   $_[12];
+    my $R_ntr               =   $_[13];
+    my $transcriptfilter    =   $_[14];
+    my $tr_calling          =   $_[15];
 
     # Init
     my $dbh = dbh($dsn,$us,$pw);
@@ -1294,12 +1296,13 @@ sub get_id{
     `min_count_ntr` int(10) NOT NULL default '',
     `R_ntr` decimal(11,8) NOT NULL default '',
     `SNP` varchar(20) default '',
-    `filter` varchar(20) default '')";
+    `filter` varchar(20) default '',
+    `tr_calling` varchar(20) default '')";
     $dbh->do($query);
 
     # Add parameters to overview table and get ID
-    print "INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter')\n";
-    $dbh->do("INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter')");
+    print "INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter,tr_calling) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter','$tr_calling')\n";
+    $dbh->do("INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter,tr_calling) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter','$tr_calling')");
     my $id= $dbh->func('last_insert_rowid');
 
     # Return
