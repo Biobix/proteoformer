@@ -1297,12 +1297,13 @@ sub get_id{
     `R_ntr` decimal(11,8) NOT NULL default '',
     `SNP` varchar(20) default '',
     `filter` varchar(20) default '',
-    `tr_calling` varchar(20) default '')";
+    `tr_calling` varchar(20) default '',
+    `TIS_calling` varchar(20) default '')";
     $dbh->do($query);
 
     # Add parameters to overview table and get ID
-    print "INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter,tr_calling) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter','$tr_calling')\n";
-    $dbh->do("INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter,tr_calling) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter','$tr_calling')");
+    print "INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter,tr_calling,TIS_calling) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter','$tr_calling','Yes')\n";
+    $dbh->do("INSERT INTO `TIS_overview`(local_max,min_count_aTIS,R_aTIS,`min_count_5UTR`,`R_5UTR`,min_count_CDS,R_CDS,`min_count_3UTR`,`R_3UTR`,min_count_ntr,R_ntr,filter,tr_calling,TIS_calling) VALUES($local_max,$min_count_aTIS,$R_aTIS,$min_count_5,$R_5,$min_count_CDS,$R_CDS,$min_count_3,$R_3,$min_count_ntr,$R_ntr,'$transcriptfilter','$tr_calling','Yes')");
     my $id= $dbh->func('last_insert_rowid');
 
     # Return
