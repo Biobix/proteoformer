@@ -1296,6 +1296,7 @@ sub get_id{
     `min_count_ntr` int(10) NOT NULL default '',
     `R_ntr` decimal(11,8) NOT NULL default '',
     `SNP` varchar(20) default '',
+    `indel` varchar(20) default '',
     `filter` varchar(20) default '',
     `tr_calling` varchar(20) default '',
     `TIS_calling` varchar(20) default '')";

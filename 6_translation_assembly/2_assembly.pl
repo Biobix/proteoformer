@@ -733,7 +733,7 @@ sub construct_trans_prod {
                         #Control if first codon is (near-)cognate and replace near-cognate start to cognate methionine.
                         if(substr($tr_seq,0,3) =~ m/[ACTG]TG|A[ACTG]G|AT[ACTG]/){
                             $AA_seq = (substr($AA_seq,0,1) ne 'M') ? 'M'.substr($AA_seq,1) : $AA_seq;
-                            print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",".$tr_seq.",".$AA_seq."\n";
+                            print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",,".$tr_seq.",".$AA_seq."\n";
                         }
 
                     }
@@ -804,6 +804,7 @@ sub store_in_db{
     `coverage` decimal(11,8) NOT NULL default '0',
     `FPKM` decimal(11,8) NOT NULL default '0',
     `SNP` varchar(256) NOT NULL default '0',
+    `INDEL` varchar(256) NOT NULL default '0',
     `tr_seq` TEXT NOT NULL default '',
     `aa_seq` TEXT NOT NULL default '' )"  ;
 
@@ -1348,12 +1349,12 @@ sub combine {
 }
 
 
-### update TIS_OVERVIEW table: add SNP info
+### update TIS_OVERVIEW table: add SNP and indel info
 sub update_TIS_overview {
 
     my ($snp, $analysis_id) = @_;
     my $dbh = dbh($dsn_results,$us_results,$pw_results);
 
-    my $update = "update TIS_OVERVIEW set SNP = '".$snp."' where ID = ".$analysis_id;
+    my $update = "update TIS_OVERVIEW set SNP = '".$snp."' and indel='NO' where ID = ".$analysis_id;
     $dbh->do($update);
 }
