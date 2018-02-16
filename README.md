@@ -3,6 +3,7 @@ Proteoformer
 deep proteome coverage through ribosome profiling and MS integration
 
 Copyright (C) 2014 G. Menschaert, J.Crappé, E. Ndah, A. Koch & S. Steyaert
+
 Later updates: S. Verbruggen, G. Menschaert, E. Ndah
 
 This program is free software: you can redistribute it and/or modify
