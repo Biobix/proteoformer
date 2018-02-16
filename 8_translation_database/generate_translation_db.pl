@@ -797,11 +797,6 @@ sub remove_redundancy {
         
     }
     
-    
-    print "Non redundant transcripts:\n";
-    print Dumper $non_red_trans;
-    print "\n\n";
-    
     return $non_red_trans;
     
 }
@@ -827,8 +822,13 @@ sub get_transcripts_from_resultdb {
  	my $sth = $dbh->prepare($query);
 	$sth->execute();
 	
-	while ( my ($tr_stable_id, $chr, $start, $start_codon, $dist_to_aTIS, $aTIS_call, $annotation, $peak_shift, $snp, $indel, $aa_seq) = $sth->fetchrow()) {
-
+	while ( my @row = $sth->fetchrow()) {
+        
+        #Change undefined values (because of empty SQLite values) to empty strings
+        foreach (@row) {$_ = '' unless defined};
+        my ($tr_stable_id, $chr, $start, $start_codon, $dist_to_aTIS, $aTIS_call, $annotation, $peak_shift, $snp, $indel, $aa_seq) = @row;
+        
+        
 		# if instructed to not keep aTIS with not enough coverage to call TIS
 		if (uc($tis_call) eq "N") {next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE')}
 		$aa_seq =~ s/\*//g;
