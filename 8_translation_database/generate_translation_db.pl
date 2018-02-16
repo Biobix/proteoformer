@@ -34,6 +34,7 @@ use DBI;
 use LWP::UserAgent; 
 use XML::Smart;
 use Parallel::ForkManager;
+use Data::Dumper;
 
 # ---------------------------------------------------------------------
 	##	GLOBAL VARIABLES
@@ -712,52 +713,53 @@ sub id_based_mapping {
 ##------ REMOVE REDUNDANCY -------##
 
 sub remove_redundancy {
-
-	my $transcript = $_[0];
-
+    
+    my $transcript = $_[0];
+    
     my $transcript_seq;
-
+    
     my $count = 0;
-	foreach my $tr (keys %$transcript) {
-
+    foreach my $tr (keys %$transcript) {
+        
         my $seq1 = $transcript->{$tr}->{'seq'};
         $transcript->{$tr}->{'len'} = length($seq1);
-
+        
         if ($transcript_seq) {
             if (exists $transcript_seq->{$seq1}) {
                 $transcript_seq->{$seq1}->{$tr} = 1;
             } else {
-				my $flag = 1;
-        		my $seq1_tmp = substr($seq1, 1);
+                my $flag = 1;
+                my $seq1_tmp = substr($seq1, 1);
                 foreach my $seq2 (keys %$transcript_seq) {
                     my $seq2_tmp = substr($seq2, 1);
-
+                    
                     if (index($seq1_tmp, $seq2_tmp) >= 0) {
                         foreach my $tr_tmp (keys %{$transcript_seq->{$seq2}}) {
                             $transcript_seq->{$seq1}->{$tr_tmp} = 1;
                         }
+                        $transcript_seq->{$seq1}->{$tr} = 1;
                         delete $transcript_seq->{$seq2};
-						$flag = 0;
-						last;
+                        $flag = 0;
+                        last;
                     } elsif (index($seq2_tmp, $seq1_tmp) >= 0) {
                         $transcript_seq->{$seq2}->{$tr} = 1;
-						$flag = 0;
-						last;
-                    }               
+                        $flag = 0;
+                        last;
+                    }
                 }
-
-				# seq not a subseq of any in non redundant hash
-				if ($flag == 1) {
-            		$transcript_seq->{$seq1}->{$tr} = 1;
-				}
+                
+                # seq not a subseq of any in non redundant hash
+                if ($flag == 1) {
+                    $transcript_seq->{$seq1}->{$tr} = 1;
+                }
             }
         } else {
             $transcript_seq->{$seq1}->{$tr} = 1;
         }
     }
-
+    
     # select representative accession for longest non redundant sequence
-	my $non_red_trans;
+    my $non_red_trans;
     foreach my $seq (keys %$transcript_seq) {
         my @acessions = (keys %{$transcript_seq->{$seq}});
         my $selected_acc = pop @acessions;
@@ -766,7 +768,7 @@ sub remove_redundancy {
                 $selected_acc = $tr;
             } elsif ($transcript->{$tr}->{'len'} == $transcript->{$selected_acc}->{'len'}) {
                 if ($transcript->{$selected_acc}->{'snp'} ne "" and $transcript->{$selected_acc}->{'indel'} ne "") {
-                        # Selected acession have SNP and INDEL info hence keep
+                    # Selected acession have SNP and INDEL info hence keep
                 } else {
                     if ($transcript->{$tr}->{'snp'} ne "" and $transcript->{$tr}->{'indel'} ne "") {
                         $selected_acc = $tr;    # current accession has SNP and INDEL  while select doesn't
@@ -784,20 +786,26 @@ sub remove_redundancy {
                 }
             }
         }
-
-		$non_red_trans->{$selected_acc} = $transcript->{$selected_acc};
-
+        
+        $non_red_trans->{$selected_acc} = $transcript->{$selected_acc};
+        
         foreach my $tr (keys %{$transcript_seq->{$seq}}) {
             next if ($selected_acc eq $tr);
             next if ($transcript->{$selected_acc}->{'gene'} eq $transcript->{$tr}->{'gene'});
             push @{$non_red_trans->{$selected_acc}->{'others'}}, $tr;
         }
+        
     }
-
-
-	return $non_red_trans;
-
+    
+    
+    print "Non redundant transcripts:\n";
+    print Dumper $non_red_trans;
+    print "\n\n";
+    
+    return $non_red_trans;
+    
 }
+
 
 
 
