@@ -36,10 +36,10 @@ use Cwd;
 ##############
 ##Command-line
 ##############
-# ./1_mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --firstrankmultimap N --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_bam_untr bam_untr --out_bam_tr bam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP --suite custom)
+# ./mapping.pl --name mESC --species mouse --ensembl 72 --cores 20 --readtype ribo --unique N --inputfile1 file1 --inputfile2 file2 --igenomes_root IGENOMES_ROOT (--mapper STAR --adaptor CTGTAGGCACCATCAAT --readlength 36 --truseq Y --firstrankmultimap N --out_bg_s_untr bg_s_untr --out_bg_as_untr bg_as_untr --out_bg_s_tr bg_s_tr --out_bg_as_tr bg_as_tr --out_sam_untr sam_untr --out_sam_tr sam_tr --out_bam_untr bam_untr --out_bam_tr bam_tr --out_sqlite sqliteDBName --work_dir getcwd --tmpfolder $TMP --suite custom)
 
 #For GALAXY
-#1_mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
+#mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
 my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite,$suite_tools_loc);
@@ -571,18 +571,18 @@ foreach (@loopfastQ) {
 ### Suite options ###
 if($suite eq "standard"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
-    system("perl ".$suite_tools_loc."/1_mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
+    system("perl ".$suite_tools_loc."/mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
 } elsif ($suite eq "plastid"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (UNTREATED)\n\n\n";
-    system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated untreated  --offset_img ".$offset_img_untr);
+    system("perl ".$suite_tools_loc."/mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated untreated  --offset_img ".$offset_img_untr);
     
     if ($readtype eq "ribo"){#Treated sample only for ribo experiment with two sample treatment types
         print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (TREATED)\n\n\n";
-        system("perl ".$suite_tools_loc."/1_mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated treated --offset_img ".$offset_img_tr);
+        system("perl ".$suite_tools_loc."/mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated treated --offset_img ".$offset_img_tr);
     }
     
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
-    system("perl ".$suite_tools_loc."/1_mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
+    system("perl ".$suite_tools_loc."/mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
 }
 
 

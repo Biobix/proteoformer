@@ -3,14 +3,14 @@
 <label text="Biobix Tools" id="biobixtools" />
 
 <section name="PROTEOFORMER pipeline" id="proteoformer">
-      <tool file="proteoformer/1_mapping.xml" />
+      <tool file="proteoformer/mapping.xml" />
       <tool file="proteoformer/mappingQC.xml" />
       <tool file="proteoformer/ribo_translation.xml" />
       <tool file="proteoformer/tis_calling.xml" />
       <tool file="proteoformer/tis_calling_intergenic.xml" />
       <tool file="proteoformer/tis_overview.xml" />
       <tool file="proteoformer/snp_calling.xml" />
-      <tool file="proteoformer/2_assembly.xml" />
+      <tool file="proteoformer/assembly.xml" />
       <tool file="proteoformer/generate_translation_db.xml" />
       <tool file="proteoformer/FlossProteoformer.xml" />
       <tool file="proteoformer/metagenic_classification.xml" />

@@ -4,7 +4,7 @@
 
     <command interpreter="perl">
 
-        1_mapping.pl --name $experimentname --species $organism --ensembl $ensembl --cores $cores --igenomes_root $igenomes_root.fields.path --readtype $readtype.riboSinPair --readlength $readtype.readlength --splicing $splicing --clipper $clipper --unique $MultiUnique.unique --mismatch $mismatch --adaptor $readtype.adaptor --phix $readtype.phix --rRNA $readtype.rrna
+        mapping.pl --name $experimentname --species $organism --ensembl $ensembl --cores $cores --igenomes_root $igenomes_root.fields.path --readtype $readtype.riboSinPair --readlength $readtype.readlength --splicing $splicing --clipper $clipper --unique $MultiUnique.unique --mismatch $mismatch --adaptor $readtype.adaptor --phix $readtype.phix --rRNA $readtype.rrna
 
          --mapper $choose.mapper
          --tr_coord $choose.tr_coord

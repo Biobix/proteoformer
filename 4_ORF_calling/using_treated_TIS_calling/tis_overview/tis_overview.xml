@@ -1,0 +1,48 @@
+<tool id="tis_overview" name="Step 4: TIS overview" version="1.0">
+	
+    <description>Create a tab separated file from the TIS_overview table.</description>
+    
+    <command interpreter="perl">
+        
+        ./TIS_overview.pl --sqlite_db "${sqlite_db}" --out_tis_overview "${tis_overview}"
+        
+    </command>
+	
+    <inputs>
+        <param name="sqlite_db" type="data" format="sqlite" size="30" label="Sqlite DB with RIBO-seq data after transcript translation" />
+    </inputs>
+    
+    <outputs>
+            <data format="tis" name="tis_overview" label="TIScalling parameter overview for ${on_string} (step 4)"/>
+    </outputs>
+    
+    <help>
+        
+.. class:: infomark
+        
+**What it does**
+
+This tool creates a TAB separated file from the TIS_overview table from a Ribosome profiling pipeline results DB after TIScalling.
+        
+    
+-----
+        
+.. class:: infomark
+        
+**Output**
+        
+        A TAB separated file with TIScalling ids and parameters. 
+
+------
+
+**Citation:**
+
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
+
+PROTEOFORMER is licensed under the GPL v3.
+
+For more information visit http://www.biobix.be/PROTEOFORMER.
+
+    </help>
+
+</tool>

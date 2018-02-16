@@ -4,9 +4,9 @@
     
     <command interpreter="perl">
         #if $tisids.assembl == "all"
-            ./2_assembly.pl --sqliteRES "${sqlite_db}" --tis_ids $tisids.all --out_sqlite "${out_sqlite}"
+            ./assembly.pl --sqliteRES "${sqlite_db}" --tis_ids $tisids.all --out_sqlite "${out_sqlite}"
         #else if $tisids.assembl == "specific"
-        ./2_assembly.pl --sqliteRES "${sqlite_db}" --tis_ids $tisids.specific --out_sqlite "${out_sqlite}"
+        ./assembly.pl --sqliteRES "${sqlite_db}" --tis_ids $tisids.specific --out_sqlite "${out_sqlite}"
         #end if
     </command>
 	

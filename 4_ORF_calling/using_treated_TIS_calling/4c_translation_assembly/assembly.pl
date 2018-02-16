@@ -16,11 +16,11 @@ no if $] >= 5.017011, warnings => 'experimental::smartmatch';
 
 ##############
 ##Command-line
-# ./2_assembly.pl  --sqliteRES sqlite_results_DB --tis_ids list_of_analysis_ids (--snp NO --dir /data/RIBO_runs/RIBO_Ingolia_GerbenM/ --tmp /data/RIBO_runs/RIBO_Ingolia_GerbenM/tmp/ --localmax 1 --mincount_aTIS 10 --R_aTIS .05 and the other mincount/R values --out_sqlite $out_sqlite)
+# ./assembly.pl  --sqliteRES sqlite_results_DB --tis_ids list_of_analysis_ids (--snp NO --dir /data/RIBO_runs/RIBO_Ingolia_GerbenM/ --tmp /data/RIBO_runs/RIBO_Ingolia_GerbenM/tmp/ --localmax 1 --mincount_aTIS 10 --R_aTIS .05 and the other mincount/R values --out_sqlite $out_sqlite)
 #  --igenomes_root IGENOMES_ROOT --cores nr_of_cores are taken from the arguments table (SQLiteDB, after mapping script)
 
 # For GALAXY
-# ./2_assembly.pl
+# ./assembly.pl
 
 
 # get the command line arguments
