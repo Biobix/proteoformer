@@ -429,7 +429,7 @@ def get_id(result_db, tr_calling_method):
                         "'indel' varchar(20) default '', " \
                         "'filter' varchar(20) default '', " \
                         "'tr_calling' varchar(20) default '', " \
-                        "'IS_calling' varchar(20) default '');"
+                        "'TIS_calling' varchar(20) default '');"
         cur.execute(query_create)
 
         #Add parameters and get ID
