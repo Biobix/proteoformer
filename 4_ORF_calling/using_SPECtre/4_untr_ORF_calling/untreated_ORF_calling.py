@@ -568,7 +568,7 @@ def construct_seq(coding_parts, strand, BIN_chrom_dir, chr, tr_stable_id, spectr
         if tr_stable_id in secs.keys():
             for sec_id in secs[tr_stable_id].keys():
                 #Check if sec in that coding part
-                if secs[tr_stable_id][sec_id]['start']>coding_parts[exon_part]['start'] and secs[tr_stable_id][sec_id]['end']<coding_parts[exon_part]['stop']:
+                if secs[tr_stable_id][sec_id]['start']>=coding_parts[exon_part]['start'] and secs[tr_stable_id][sec_id]['end']<=coding_parts[exon_part]['stop']:
                     pos_sec = len(tr_seq) + secs[tr_stable_id][sec_id]['start'] - coding_parts[exon_part]['start'] + 1
                     secs_in_seq.append(pos_sec)
         #Add sequence of coding part to tmp tr seq
