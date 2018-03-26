@@ -21,7 +21,6 @@
 ## 	For more (contact) information visit http://www.biobix.be/PROTEOFORMER
 #####################################
 
-
 use strict;
 use warnings;
 use POSIX ":sys_wait_h";
@@ -35,6 +34,7 @@ use LWP::UserAgent;
 use XML::Smart;
 use Parallel::ForkManager;
 use Data::Dumper;
+use File::Which;
 
 # ---------------------------------------------------------------------
 	##	GLOBAL VARIABLES
@@ -63,12 +63,13 @@ my $gapextend;		# Gap extension penalty
 my $matrix;			# Blast search matrix
 my $word_size;		# word size
 my $extra_info;		# Extra refererence
-my $translation_db;	# FASTA file of non redundant derived translation products
+my $translation_db;	# FASTA file of non redundant derived translation products OR name for output PEFF file
 my $var_file;		# File to store SNP and indel info for sequences in protein database
 my $tis_call;		# Allow annotated TIS that do not pass the TIS calling algorithm in the databases [Y or N]
 my $db_config_version; 	# Ensembl databset confirguration version
 my $external_ref;	# External reference in biomart to map transcripts to
-my $tmp;				# temporary folder
+my $tmp;			# temporary folder
+my $peff;           # Generate PEFF instead of FASTA format [Y or N] (default N)
 
 # ---------------------------------------------------------------------
 	##	GET command line arguments
@@ -97,6 +98,7 @@ GetOptions(
 	'translation_db=s'		=> \$translation_db,
 	'var_file=s'			=> \$var_file,
 	'tis_call=s'			=> \$tis_call,
+    'peff=s'                => \$peff,
 );
 
 # ---------------------------------------------------------------------
@@ -279,6 +281,24 @@ if ($mflag) {
     $mflag=4;
 }
 
+if ($peff){
+    if ($peff ne "Y" and $peff ne "N"){
+        print STDOUT "Peff argument should be 'Y' or 'N'!\n";
+        die;
+    } else {
+        if ($peff eq 'N'){
+            print STDOUT "The program will generate : FASTA\n";
+        } elsif ($peff eq 'Y'){
+            print STDOUT "The program will generate : PEFF\n";
+            $mflag = 4;
+            print STDOUT "Mflag automatically turned to '4' as no mapping is yet available for PEFF file generation.\n";
+        }
+    }
+} else {
+    #Default peff: N
+    $peff = 'N';
+    print STDOUT "The program will generate : FASTA\n";
+}
 
 
 	# get arguments from SQLite DB
@@ -316,7 +336,11 @@ STDOUT->flush();
 my @idsref = get_analysis_ids($dbh_results,$tis_ids);  #$tis_ids is input variable
 
 foreach (@idsref) {	# generate translation db for selected tis_ids 
-	generate_trans_db($_);
+    if ($peff eq 'N'){
+        generate_trans_db($_);
+    } else {
+        generate_peff($_, $dsn_results, $user, $password, $TMP);
+    }
 }
 
 
@@ -326,16 +350,960 @@ foreach (@idsref) {	# generate translation db for selected tis_ids
 	#
 #############################################
 
+sub generate_peff {
+    
+    my $tis_id = $_[0];
+    my $dsn = $_[1];
+    my $us = $_[2];
+    my $pw = $_[3];
+    my $TMP = $_[4];
+    
+    my $startRun = time();
+    my $table = "TIS_".$tis_id."_transcripts";
+    my @tis = split('_', $tis_id); #SPLIT TIS id from SNP and INDEL underscore info
+    my $ref_tis = \@tis;
+    
+    #Check if program can find clustalOmega
+    my $tool_name = "clustalo";
+    my $tool_path = which($tool_name);
+    if (!-e $tool_path){
+        print "ERROR: Could not find Clustal Omega installation!\n";
+        print "Please install Clustal Omega or contact admin\n";
+        die;
+    }
+    
+    #Create tmp folder if not exists
+    my $tmp_folder = $TMP."/peff";
+    if (!-d $tmp_folder){
+        system("mkdir ".$tmp_folder);
+    }
+    
+    print "Get underlying info for multiprocessing\n";
+    my ($chr_sizes, $cores, $ens_db, $species) = get_multiprocess_info();
+    
+    #Convert species for PEFF
+    my ($species_peff, $taxid) = convert_species($species, $tmp_folder);
+    
+    # Init multi core
+    my $pm = new Parallel::ForkManager($cores);
+    print "START multiprocessing\n";
+    print "   Using ".$cores." core(s)\n   ---------------\n";
+    
+    for my $chr (keys %{$chr_sizes}){
+        
+        ### Start parallel process
+        $pm->start and next;
+        
+        ### PEFF generation per chr
+        generate_peff_per_chr($table, $ref_tis, $chr, $dsn, $us, $pw, $tmp_folder, $ens_db, $species_peff, $taxid);
+        
+        ### Finish
+        print "* Finished chromosome ".$chr."\n";
+        $pm->finish;
+    }
+    
+    # Finish all subprocesses
+    $pm->wait_all_children;
+    print "\n";
+    
+    #Define output
+    my $output_dir = $work_dir;
+    unless ($translation_db) {
+        unless (-d "$output_dir") { system ("mkdir ".$output_dir)}
+        $translation_db =  path($species."_".$table.".peff",$output_dir);
+    }
+    system("rm -rf ".$translation_db);
+    system("touch ".$translation_db);
+    
+    #Concat all chr tmp files
+    for my $chr (keys %{$chr_sizes}){
+        system("cat ".$translation_db." ".$tmp_folder."/out_".$chr.".peff >> ".$work_dir."/out.peff");
+        system("mv ".$work_dir."/out.peff ".$translation_db);
+        system("rm -rf ".$tmp_folder."/out_".$chr.".peff");
+    }
+    
+    #Calculate the number of entries based on line count and the date
+    my $number_of_entries = (readpipe("wc -l < ".$translation_db))/2;
+    my $ymd = sub{sprintf '%04d-%02d-%02d',$_[5]+1900, $_[4]+1, $_[3]}->(localtime);
+    
+    #Print header into file
+    open(my $FWheader, '>', $tmp_folder."/header.peff");
+    my $header = "# PEFF 1.0.\n# //\n# DbName=genericDB\n# DbSource=http://www.biobix.be/proteoform/\n# DbVersion=".$ymd."\n# HasAnnotationIdentifiers=true \n# ProteoformDb=true\n# Prefix=gen\n# NumberOfEntries=".$number_of_entries."\n# SequenceType=AA\n# GeneralComment=Proteogenomics application to generate protein sequences from RIBO-seq\n# //\n";
+    print $FWheader $header;
+    close($FWheader);
+    
+    #Cat header to rest of peff file
+    system("cat ".$tmp_folder."/header.peff ".$translation_db." > ".$work_dir."/out.peff");
+    system("mv ".$work_dir."/out.peff ".$translation_db);
+    
+    #Remove tmp folder
+    #system("rm -rf ".$TMP."/peff");
+    
+    
+    
+    
+    
+    #### TEST for  (tr_stable_id='ENST00000000412' or tr_stable_id='ENST00000429644');
+    # Delete in get transcripts_with_orfs (2x) and transcript_gene_id_per_chr
+    
+    
+    
+    timer($startRun);
+    print " ---done---\n\n";
+    
+    return;
+}
+
+sub generate_peff_per_chr{
+    
+    my $table = $_[0];
+    my $tis = $_[1];
+    my $chr = $_[2];
+    my $dsn = $_[3];
+    my $us = $_[4];
+    my $pw = $_[5];
+    my $tmp_folder = $_[6];
+    my $ens_db = $_[7];
+    my $species_peff = $_[8];
+    my $taxid = $_[9];
+    
+    #Make dbh
+    my $dbh_results = dbh($dsn, $us, $pw);
+    
+    #Get all transcripts with orfs in out of transcripts table (unique argument in sqlite)
+    my ($orfs_per_transcript, $transcript2geneid) = get_transcripts_with_orfs($dbh_results, $table, ${$tis}[0], $chr, $ens_db);
+    
+    #Group orfs in proteoform structures
+    my $proteoform_structs = group_orfs($orfs_per_transcript);
+    
+    #Search base ORF per proteoform structure (i.e. 'canonical' ORF where other proteoforms will be compared to)
+    my $base_orfs = search_base_orfs($proteoform_structs, $orfs_per_transcript);
+    
+    #Align ORFs and construct proteoform structure
+    my ($simpleVars, $complexVars, $proteoforms, $proteoformGenerals) = construct_proteoforms($proteoform_structs, $base_orfs, $tmp_folder);
+    
+    #Write proteoforms to chr tmp peff file
+    write_chr_tmp_output($proteoforms, $proteoformGenerals, $simpleVars, $complexVars, $chr, $tmp_folder, $species_peff, $transcript2geneid, $proteoform_structs, $taxid);
+    
+    #Remove all tax files again
+    #system("rm -rf ".$tmp_folder."/readme.txt");
+    #system("rm -rf ".$tmp_folder."/gc.prt");
+    #system("rm -rf ".$tmp_folder."/*.dmp");
+    #system("rm -rf ".$tmp_folder."/taxdump.tar");
+    
+    return;
+}
+
+sub write_chr_tmp_output {
+    
+    #Catch
+    my $proteoforms = $_[0];
+    my $proteoformGenerals = $_[1];
+    my $simpleVars = $_[2];
+    my $complexVars = $_[3];
+    my $chr = $_[4];
+    my $tmp_folder = $_[5];
+    my $species_peff = $_[6];
+    my $transcript2geneid = $_[7];
+    my $proteoform_structs = $_[8];
+    my $taxid = $_[9];
+    
+    #Open chromosomal tmp peff file
+    my $chr_tmp_file = $tmp_folder."/out_".$chr.".peff";
+    system("rm -rf ".$chr_tmp_file);
+    open(my $FW, '>', $chr_tmp_file);
+    
+    #Go over all transcript id's
+    for my $transcript_id (keys(%{$proteoforms})){
+        
+        #Get gene name
+        my $gene_name = $transcript2geneid->{$transcript_id}->{'description'};
+        
+        #Go over all structure id's of transcript id (these form the entries for the PEFF
+        for my $struct_id (sort keys(%{$proteoforms->{$transcript_id}})){
+            
+            #Convert gene name to protein name
+            my $pname = get_pname($gene_name, $proteoform_structs, $transcript_id, $struct_id);
+            
+            #Construct variant strings
+            my $simpleVarStr = "";
+            my $complexVarStr = "";
+            my $var_number = 1;
+            my $var_number_hash = {};
+            #Simple variations
+            for my $var_description (sort keys(%{$simpleVars->{$transcript_id}->{$struct_id}})){
+                $simpleVarStr = $simpleVarStr."(".$var_number.":".$var_description.")";
+                $var_number_hash->{$var_description} = $var_number;
+                $var_number++;
+            }
+            if ($simpleVarStr ne ""){
+                $simpleVarStr = "\\VariantSimple=".$simpleVarStr." ";
+            }
+            #Complex variations
+            for my $var_description (sort keys(%{$complexVars->{$transcript_id}->{$struct_id}})){
+                $complexVarStr = $complexVarStr."(".$var_number.":".$var_description.")";
+                $var_number_hash->{$var_description} = $var_number;
+                $var_number++;
+            }
+            if ($complexVarStr ne ""){
+                $complexVarStr = "\\VariantComplex=".$complexVarStr." ";
+            }
+            
+            #Sort orf ids for printing sequence: get minimum var number for each orf
+            my %min_var_number;
+            for my $orf_id (keys %{$proteoforms->{$transcript_id}->{$struct_id}}){
+                my $min=100000;
+                for my $simpleVarDescr (sort keys %{$proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'simpleVars'}}){
+                    if($var_number_hash->{$simpleVarDescr}<$min){
+                        $min = $var_number_hash->{$simpleVarDescr};
+                    }
+                }
+                for my $complexVarDescr (sort keys %{$proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'complexVars'}}){
+                    if($var_number_hash->{$complexVarDescr}<$min){
+                        $min = $var_number_hash->{$complexVarDescr};
+                    }
+                }
+                $min_var_number{$orf_id}=$min;
+            }
+            #Do sorting of proteoforms based on (1) minimum amount of variations (2) minimum var number hash
+            my @sorted_orf_ids = sort {((scalar(keys %{$proteoforms->{$transcript_id}->{$struct_id}->{$a}->{'simpleVars'}})+scalar(keys %{$proteoforms->{$transcript_id}->{$struct_id}->{$a}->{'complexVars'}})) <=> (scalar(keys %{$proteoforms->{$transcript_id}->{$struct_id}->{$b}->{'simpleVars'}})+scalar(keys %{$proteoforms->{$transcript_id}->{$struct_id}->{$b}->{'complexVars'}}))) || $min_var_number{$a} cmp $min_var_number{$b}} keys %{$proteoforms->{$transcript_id}->{$struct_id}};
+            
+            #Construct proteoforms string
+            my $proteoformStr = "";
+            for my $orf_id (@sorted_orf_ids){
+                my $varPartsStr = "";
+                #Add simple variation numbers
+                for my $simpleVarDescr (sort keys %{$proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'simpleVars'}}){
+                    $varPartsStr = $varPartsStr.$var_number_hash->{$simpleVarDescr}.",";
+                }
+                #Add complex variation numbers
+                for my $complexVarDescr (sort keys %{$proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'complexVars'}}){
+                    $varPartsStr = $varPartsStr.$var_number_hash->{$complexVarDescr}.",";
+                }
+                #Cut trailing comma
+                $varPartsStr =~ s/,$//;
+                #Add the canoical form to the beginning of the proteoform string
+                if ($proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} eq "canonical form"){
+                    $proteoformStr = "(".$proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'accession'}."|".$proteoformGenerals->{$transcript_id}->{$struct_id}->{'AZstart'}."-".$proteoformGenerals->{$transcript_id}->{$struct_id}->{'AZstop'}."|".$varPartsStr."|".$proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}.")".$proteoformStr;
+                } else {
+                    #Add proteoform to the end of proteoforms string
+                    $proteoformStr = $proteoformStr."(".$proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'accession'}."|".$proteoformGenerals->{$transcript_id}->{$struct_id}->{'AZstart'}."-".$proteoformGenerals->{$transcript_id}->{$struct_id}->{'AZstop'}."|".$varPartsStr."|".$proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}.")";
+                }
+            }
+            
+            #Build accession string
+            my $accession_string = ">gen:".$transcript_id."-".$struct_id." \\DbUniqueId=".$transcript_id."-".$struct_id." \\PName=".$pname." \\GName=".$gene_name." \\NcbiTaxId=".$taxid." \\TaxName=".$species_peff." \\Length=".length($proteoformGenerals->{$transcript_id}->{$struct_id}->{'main_seq'})." ".$simpleVarStr.$complexVarStr." \\Proteoform=".$proteoformStr;
+            
+            #Write to output
+            print $FW $accession_string."\n";
+            print $FW $proteoformGenerals->{$transcript_id}->{$struct_id}->{'main_seq'}."\n";
+        }
+    }
+    
+    close($FW);
+    
+    return;
+}
+
+sub get_pname {
+    
+    #Catch
+    my $gene_name = $_[0];
+    my $proteoform_structs = $_[1];
+    my $transcript_id = $_[2];
+    my $struct_id = $_[3];
+    
+    #Init
+    my $pname = "";
+    my $aTIS_found='N';
+    my $UTR_found='N';
+    my $only_ntr='Y';
+    my $only_cds='Y';
+    
+    #Search for aTIS in this structure id, then PName=GName.
+    for my $orf (keys %{$proteoform_structs->{$transcript_id}->{$struct_id}}){
+        if ($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf}->{'annotation'} ne 'ntr'){
+            $only_ntr='N';
+        }
+        if ($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf}->{'annotation'} ne 'CDS'){
+            $only_ntr='N';
+        }
+        if ($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf}->{'annotation'} eq 'aTIS'){
+            $pname = $gene_name;
+            $aTIS_found='Y';
+            return $pname;
+        }
+    }
+    #If non aTIS found, search for 5UTR or 3UTR
+    if ($aTIS_found eq 'N'){
+        for my $orf (keys %{$proteoform_structs->{$transcript_id}->{$struct_id}}){
+            if ($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf}->{'annotation'} eq '5UTR'){
+                $pname = "uORF of ".$gene_name;
+                $UTR_found='Y';
+                return $pname;
+            }
+            if ($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf}->{'annotation'} eq '3UTR'){
+                $pname = "3'UTR downstream ORF of ".$gene_name;
+                $UTR_found='Y';
+                return $pname;
+            }
+        }
+    }
+    #search in the other structure id's of the same transcript for the canonical orf
+    if($only_ntr eq 'Y'){
+        for my $other_struct_id (keys %{$proteoform_structs->{$transcript_id}}){
+            if($other_struct_id==$struct_id){
+                next;
+            }
+            for my $orf_id (keys %{$proteoform_structs->{$transcript_id}->{$other_struct_id}}){
+                if($proteoform_structs->{$transcript_id}->{$other_struct_id}->{$orf_id}->{'annotation'} eq 'aTIS'){
+                    $pname = "Product from non-coding part of ".$gene_name;
+                    return $pname;
+                }
+            }
+        }
+    } elsif ($only_cds='Y') {
+        for my $other_struct_id (keys %{$proteoform_structs->{$transcript_id}}){
+            if($other_struct_id==$struct_id){
+                next;
+            }
+            for my $orf_id (keys %{$proteoform_structs->{$transcript_id}->{$other_struct_id}}){
+                if($proteoform_structs->{$transcript_id}->{$other_struct_id}->{$orf_id}->{'annotation'} eq 'aTIS'){
+                    $pname = "Alternative reading frame product of ".$gene_name;
+                    return $pname;
+                }
+            }
+        }
+    }
+    
+    $pname = "Undeterminable but in ".$gene_name;
+    return $pname;
+}
+
+
+sub construct_proteoforms {
+    
+    #Catch
+    my $proteoform_structs = $_[0];
+    my $base_orfs = $_[1];
+    my $tmp_folder = $_[2];
+    
+    #Init
+    my $simpleVars = {};
+    my $complexVars = {};
+    my $proteoforms = {};
+    my $proteoformGenerals = {};
+    
+    #For all transcripts
+    for my $transcript_id (keys %{$proteoform_structs}){
+        #For all proteoform structures
+        for my $struct_id (keys %{$proteoform_structs->{$transcript_id}}){
+            #Run over all orfs in proteoform struct
+            my $var_count=0;
+            my $proteoform_count=1; #Start at 1 as the base orf get number 0
+            for my $orf_id (keys %{$proteoform_structs->{$transcript_id}->{$struct_id}}){
+                #Check if this is the base ORF
+                if ($orf_id == $base_orfs->{$transcript_id}->{$struct_id}){
+                    #Add base orf to proteoforms
+                    #Add proteoform number 1 to accession
+                    $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'accession'} = $proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'tr_id'}."_pf".$struct_id.".0";
+                    $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'simpleVars'} = {};
+                    $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'complexVars'} = {};
+                    $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = 'canonical form';
+                    #All ORFs in the proteoform structure are defined as variations to the base ORF, so coordinates of start and stop of base ORF are needed for all ORFs. Also the sequence of the base ORF is saved as main sequence
+                    $proteoformGenerals->{$transcript_id}->{$struct_id}->{'AZstart'} = 1; #As this is base ORF, these are the reference AZ coordinates
+                    $proteoformGenerals->{$transcript_id}->{$struct_id}->{'AZstop'} = length($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'aa_seq'});
+                    $proteoformGenerals->{$transcript_id}->{$struct_id}->{'main_seq'} =$proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'aa_seq'};
+                } else {
+                    #Prepare input fasta for aligning base ORF with the other ORF
+                    my $input_fasta = prepare_fasta($proteoform_structs, $transcript_id, $struct_id, $orf_id, $base_orfs, $tmp_folder);
+                    #Execute clustalOmega
+                    my $output_fasta = execute_clustalO($input_fasta, $transcript_id, $orf_id, $tmp_folder);
+                    #Parse output
+                    my $simpleVarsInOrf = {};
+                    my $complexVarsInOrf = {};
+                    ($simpleVars, $complexVars, $simpleVarsInOrf, $complexVarsInOrf, $var_count) = parse_clustal($output_fasta, $simpleVars, $complexVars, $transcript_id, $struct_id, $orf_id, $input_fasta, $var_count);
+                    #Add proteoform to proteoform hash based on vars
+                    ($proteoforms, $proteoform_count) = add_proteoform($simpleVars, $complexVars, $transcript_id, $struct_id, $orf_id, $proteoform_count, $simpleVarsInOrf, $complexVarsInOrf, $proteoforms, $proteoform_structs, $base_orfs);
+                }
+            }
+        }
+    }
+    
+    return ($simpleVars, $complexVars, $proteoforms, $proteoformGenerals);
+}
+
+sub add_proteoform {
+    
+    #Catch
+    my $simpleVars = $_[0];
+    my $complexVars = $_[1];
+    my $transcript_id = $_[2];
+    my $struct_id = $_[3];
+    my $orf_id = $_[4];
+    my $proteoform_count = $_[5];
+    my $simpleVarsInOrf = $_[6];
+    my $complexVarsInOrf = $_[7];
+    my $proteoforms = $_[8];
+    my $proteoform_structs = $_[9];
+    my $base_orfs = $_[10];
+    
+    #Add features to proteoforms hash
+    $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'accession'} = $proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'tr_id'}."_pf".$struct_id.".".$proteoform_count;
+    $proteoform_count++;
+    $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'simpleVars'} = $simpleVarsInOrf;
+    $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'complexVars'} = $complexVarsInOrf;
+    
+    #Get end coordinate of base ORF AA sequence
+    my $end_base_orf = length($proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'aa_seq'});
+    
+    #Define a name for the optional tag in \proteoform of PEFF
+    for my $var_descr (keys(%{$complexVarsInOrf})){
+        my ($start_var, $end_var, $alt_seq) = split(/\|/,$var_descr);
+        #Check for N-terminal extension
+        if ($start_var eq '1' && $end_var eq '1' && length($alt_seq)>1){
+            if (exists $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}){
+                $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}.", N-terminal extension";
+            } else {
+                $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = 'N-terminal extension';
+            }
+        } elsif($start_var eq $end_base_orf && $end_var eq $end_base_orf && length($alt_seq)>1){#Check for C-terminal extension
+            if (exists $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}){
+                $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}.", C-terminal extension";
+            } else {
+                $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = 'C-terminal extension';
+            }
+        } elsif($start_var eq '1' && $alt_seq eq 'M'){#Check for N-terminal truncation
+            if (exists $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}){
+                $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}.", N-terminal truncation";
+            } else {
+                $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = 'N-terminal truncation';
+            }
+        } elsif($end_var eq $end_base_orf && $alt_seq eq ""){#Check for C-terminal truncation
+            if (exists $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}){
+                $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}.", C-terminal truncation";
+            } else {
+                $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = 'C-terminal truncation';
+            }
+        }
+    }
+    if (%{$simpleVarsInOrf}){
+        if (exists $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}){
+            $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}.", proteoform with SAV";
+        } else {
+            $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = 'proteoform with SAV';
+        }
+    }
+    #If none of the higher mentioned proteoform classes were found, give optional tag 'other'
+    unless (exists $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'}){
+        $proteoforms->{$transcript_id}->{$struct_id}->{$orf_id}->{'name'} = 'other';
+    }
+    
+    return($proteoforms, $proteoform_count);
+}
+
+sub parse_clustal {
+    
+    #Catch
+    my $output_fasta = $_[0];
+    my $simpleVars = $_[1];
+    my $complexVars = $_[2];
+    my $transcript_id = $_[3];
+    my $struct_id = $_[4];
+    my $orf_id = $_[5];
+    my $input_fasta = $_[6];
+    my $var_count = $_[7];
+    
+    #Init
+    my $simpleVarsInOrf = {};
+    my $complexVarsInOrf = {};
+    
+    #Read in aligned strings
+    open(my $fr, '<', $output_fasta) or die "Could not open ".$output_fasta." ".$!;
+    my $base_header = <$fr>;
+    my $base_aligned_seq = <$fr>;
+    my $other_header = <$fr>;
+    my $other_aligned_seq = <$fr>;
+    close($fr);
+    
+    #Cut string in arrays of separate amino acids
+    chomp($base_aligned_seq);
+    chomp($other_aligned_seq);
+    
+    my @base_AAs = split(//, $base_aligned_seq);
+    my @other_AAs = split(//, $other_aligned_seq);
+    
+    #Init, stat values during run over alignment
+    my $pos_in_ref_seq = 1; #To keep the base position in the canonical sequence
+    my $in_truncation = 'N';
+    my $base_pos_start_truncation=0;
+    my $base_pos_end_truncation=0;
+    my $alt_seq = "";
+    my $org_seq = "";
+    my $last_common_base = "";
+    my $writableAsSimpleVars = 'N';
+    #Go over alignment and construct extensions, truncations, variations
+    for (my $pos_base=0; $pos_base<scalar(@base_AAs); $pos_base++){
+        if ($base_AAs[$pos_base] ne $other_AAs[$pos_base]){
+            if ($in_truncation eq 'N'){
+                #Start new truncation
+                $in_truncation = 'Y';
+                #For the first altered base, if there is a '-' in the base ORF, start from one base earlier, unless we are still at the start of the alignment
+                if($base_AAs[$pos_base] eq '-' && $pos_base!=0){
+                    $base_pos_start_truncation = $pos_in_ref_seq - 1;
+                    $alt_seq = $last_common_base;
+                } else {
+                    $base_pos_start_truncation = $pos_in_ref_seq;
+                }
+                #Prime the paramater that checks if the variation is writable as simpleVars
+                if ($base_AAs[$pos_base] ne '-' && $other_AAs[$pos_base] ne '-'){
+                    $writableAsSimpleVars='Y';
+                }
+            }
+            #Keep track of the altered and original sequence
+            #At the same time, as soon as there is an indel, variation is not writable as a simpleVar (i.e. a combination of SAVs)
+            if ($other_AAs[$pos_base] ne '-'){
+                $alt_seq = $alt_seq.$other_AAs[$pos_base]
+            } else {
+                $writableAsSimpleVars='N';
+            }
+            if ($base_AAs[$pos_base] ne '-'){
+                $org_seq = $org_seq.$base_AAs[$pos_base];
+            } else {
+                $writableAsSimpleVars='N';
+            }
+        } else {
+            #Keep this as last common base
+            $last_common_base = $base_AAs[$pos_base];
+            if ($in_truncation eq 'Y'){
+                #End truncation
+                #If no bases in base ORF over truncation yet, take the first common base as well in the variation seq
+                if($org_seq eq ""){
+                    $base_pos_end_truncation = $pos_in_ref_seq;
+                    if($other_AAs[$pos_base] ne '-'){
+                        $alt_seq = $alt_seq.$other_AAs[$pos_base];
+                    } else {
+                        $writableAsSimpleVars = 'N';
+                    }
+                    if($base_AAs[$pos_base] ne '-'){
+                        $org_seq = $org_seq.$base_AAs[$pos_base];
+                    } else {
+                        $writableAsSimpleVars = 'N';
+                    }
+                } else {
+                    $base_pos_end_truncation = $pos_in_ref_seq-1;#Previous base AA was the last AA with difference
+                }
+                #Check if simple or complex variation
+                if ($base_pos_start_truncation==$base_pos_end_truncation && length($alt_seq)==1 && length($org_seq)==1){
+                    #Construct description
+                    my $description = $base_pos_start_truncation."|".$alt_seq;
+                    #Check if new array needs to be defined, i.e. not seen variation
+                    unless (exists $simpleVars->{$transcript_id}->{$struct_id}->{$description}){
+                        $simpleVars->{$transcript_id}->{$struct_id}->{$description} = [];
+                        $var_count++; #also in the count, define next variation number
+                    }
+                    #Add
+                    push(@{$simpleVars->{$transcript_id}->{$struct_id}->{$description}}, $var_count);
+                    $simpleVarsInOrf->{$description} = $var_count;
+                } else {
+                    #Check if a complex variation is anyhow writable as a combination of simpleVars
+                    if($writableAsSimpleVars eq 'Y'){
+                        for(my $i=0; $i<length($alt_seq); $i++){
+                            #Construct description
+                            my $description = ($base_pos_start_truncation+$i)."|".substr($alt_seq, $i, 1);
+                            #Check if new array needs to be defined, i.e. not seen variation
+                            unless (exists $simpleVars->{$transcript_id}->{$struct_id}->{$description}){
+                                $simpleVars->{$transcript_id}->{$struct_id}->{$description} = [];
+                                $var_count++; #also in the count, define next variation number
+                            }
+                            #Add
+                            push(@{$simpleVars->{$transcript_id}->{$struct_id}->{$description}}, $var_count);
+                            $simpleVarsInOrf->{$description} = $var_count;
+                        }
+                    } else {
+                        #Construct description
+                        my $description = $base_pos_start_truncation."|".$base_pos_end_truncation."|".$alt_seq;
+                        #Check if new array needs to be defined
+                        unless (exists $complexVars->{$transcript_id}->{$struct_id}->{$description}){
+                            $complexVars->{$transcript_id}->{$struct_id}->{$description} = [];
+                            $var_count++;
+                        }
+                        #Add
+                        push(@{$complexVars->{$transcript_id}->{$struct_id}->{$description}}, $var_count);
+                        $complexVarsInOrf->{$description} = $var_count;
+                    }
+                }
+                #Run values back to default
+                $in_truncation = 'N';
+                $base_pos_start_truncation = 0;
+                $base_pos_end_truncation = 0;
+                $alt_seq = "";
+                $org_seq = "";
+            }
+        }
+
+        #End of sequence and still in truncation mode: then this should added as variation as well
+        if($pos_base==(scalar(@base_AAs)-1) && $in_truncation eq 'Y'){
+            #End truncation
+            #The position of the end coordinate in the base sequence depends on if the last base AA is '-' or a real base
+            if($base_AAs[$pos_base] eq '-'){
+                $base_pos_end_truncation = $pos_in_ref_seq-1;
+            } else {
+                $base_pos_end_truncation = $pos_in_ref_seq;
+            }
+            #Check if simple or complex variation
+            if ($base_pos_start_truncation==$base_pos_end_truncation && length($alt_seq)==1){
+                #Construct description
+                my $description = $base_pos_start_truncation."|".$alt_seq;
+                #Check if new array needs to be defined
+                unless (exists $simpleVars->{$transcript_id}->{$struct_id}->{$description}){
+                    $simpleVars->{$transcript_id}->{$struct_id}->{$description} = [];
+                    $var_count++;
+                }
+                #Add
+                push(@{$simpleVars->{$transcript_id}->{$struct_id}->{$description}}, $var_count);
+                $simpleVarsInOrf->{$description} = $var_count;
+            } else {
+                #Check if a complex variation is anyhow writable as a combination of simpleVars
+                if($writableAsSimpleVars eq 'Y'){
+                    for(my $i=0; $i<length($alt_seq); $i++){
+                        #Construct description
+                        my $description = ($base_pos_start_truncation+$i)."|".substr($alt_seq, $i, 1);
+                        #Check if new array needs to be defined, i.e. not seen variation
+                        unless (exists $simpleVars->{$transcript_id}->{$struct_id}->{$description}){
+                            $simpleVars->{$transcript_id}->{$struct_id}->{$description} = [];
+                            $var_count++; #also in the count, define next variation number
+                        }
+                        #Add
+                        push(@{$simpleVars->{$transcript_id}->{$struct_id}->{$description}}, $var_count);
+                        $simpleVarsInOrf->{$description} = $var_count;
+                    }
+                } else {
+                    #Construct description
+                    my $description = $base_pos_start_truncation."|".$base_pos_end_truncation."|".$alt_seq;
+                    #Check if new array needs to be defined
+                    unless (exists $complexVars->{$transcript_id}->{$struct_id}->{$description}){
+                        $complexVars->{$transcript_id}->{$struct_id}->{$description} = [];
+                        $var_count++;
+                    }
+                    #Add
+                    push(@{$complexVars->{$transcript_id}->{$struct_id}->{$description}}, $var_count);
+                    $complexVarsInOrf->{$description} = $var_count;
+                }
+            }
+        }
+        #Keep track of the AA number in the base ORF sequence (i.e. +1 only if not a '-' in the base ORF sequence)
+        if ($base_AAs[$pos_base] ne '-'){
+            $pos_in_ref_seq++;
+        }
+    }
+    #Check if the process ran over the whole alignment file
+    my $filtered_seq = $base_aligned_seq;
+    $filtered_seq =~ s/\-//g;
+    if ($pos_in_ref_seq != length($filtered_seq)+1){
+        print "ERROR in running over alignment for transcript ID ".$transcript_id.". ORF ID ".$orf_id."\n";
+        print "Last seen position is ".$pos_in_ref_seq.", while length of alignment is ".scalar(@base_AAs)."\n";
+        die;
+    }
+    
+    #Clean up
+    system("rm -rf ".$input_fasta);
+    system("rm -rf ".$output_fasta);
+    
+    return($simpleVars, $complexVars, $simpleVarsInOrf, $complexVarsInOrf, $var_count);
+}
+
+sub execute_clustalO{
+    
+    #Catch
+    my $input_fasta = $_[0];
+    my $transcript_id = $_[1];
+    my $orf_id = $_[2];
+    my $tmp_folder = $_[3];
+    
+    #Define output fasta path
+    my $output_fasta = $tmp_folder."/output_".$transcript_id."_".$orf_id.".fa";
+    
+    #Execute
+    my $command = "clustalo -i ".$input_fasta." -o ".$output_fasta." --outfmt fa --force --wrap=1000000000"; #Force to overwrite, output in fasta format
+    #print $command."\n";
+    system($command);
+    
+    return $output_fasta;
+}
+
+sub prepare_fasta{
+    
+    #Catch
+    my $proteoform_structs = $_[0];
+    my $transcript_id = $_[1];
+    my $struct_id = $_[2];
+    my $orf_id = $_[3];
+    my $base_orfs = $_[4];
+    my $tmp_folder = $_[5];
+    
+    #Define path to input fasta file
+    my $input_fasta = $tmp_folder."/input_".$transcript_id."_".$orf_id.".fa";
+    
+    #Open fasta file and write aa seqs of base and other ORF
+    open(my $fw, '>', $input_fasta) or die "Could not open ".$input_fasta." ".$!."\n";
+    print $fw ">base\n";
+    print $fw $proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'aa_seq'}."\n";
+    print $fw ">other\n";
+    print $fw $proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'aa_seq'}."\n";
+    close $fw;
+    
+    return $input_fasta;
+}
+
+
+sub search_base_orfs {
+    
+    #Catch
+    my $proteoform_structs = $_[0];
+    my $orfs_per_transcript = $_[1];
+    
+    #Init
+    my $base_orfs;
+    
+    #For all transcripts
+    for my $transcript_id (keys %{$proteoform_structs}){
+        #For all proteoform structures
+        for my $struct_id (keys %{$proteoform_structs->{$transcript_id}}){
+            #Run over all ORFs present in the proteoform struct
+            for my $orf_id (keys %{$proteoform_structs->{$transcript_id}->{$struct_id}}){
+                #Check if already a tmp base ORF present
+                if (defined $base_orfs->{$transcript_id}->{$struct_id}){
+                    #Check for aTIS annotation in tmp base ORF and considered ORF
+                    if ($proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'annotation'} ne 'aTIS' && $proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'annotation'} eq 'aTIS'){
+                        #tmp base ORF is not aTIS but considered is, change considered aTIS to base ORF
+                        $base_orfs->{$transcript_id}->{$struct_id} = $orf_id;
+                    } elsif ($proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'annotation'} eq 'aTIS' && $proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'annotation'} eq 'aTIS'){
+                        #If both tmp base ORF and considered ORF are aTIS annotated, take the longest sequence as base ORF
+                        if (length($proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'aa_seq'})<length($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'aa_seq'})){
+                            $base_orfs->{$transcript_id}->{$struct_id} = $orf_id;
+                        } elsif (length($proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'aa_seq'})==length($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'aa_seq'})){
+                            #For equal lengths, take the sequence without SNP id
+                            if ($orfs_per_transcript->{$transcript_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'SNP'} ne "" && $orfs_per_transcript->{$transcript_id}->{$orf_id}->{'SNP'} eq ""){
+                                $base_orfs->{$transcript_id}->{$struct_id} = $orf_id;
+                            }
+                        }
+                    } elsif ($proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'annotation'} ne 'aTIS' && $proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'annotation'} ne 'aTIS') {
+                        #Both are not aTIS, take the longest sequence as base ORF
+                        if (length($proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'aa_seq'})<length($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'aa_seq'})){
+                            $base_orfs->{$transcript_id}->{$struct_id} = $orf_id;
+                        } elsif (length($proteoform_structs->{$transcript_id}->{$struct_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'aa_seq'})==length($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'aa_seq'})){
+                            #For equal lengths, take the sequence without SNP id
+                            if ($orfs_per_transcript->{$transcript_id}->{$base_orfs->{$transcript_id}->{$struct_id}}->{'SNP'} ne "" && $orfs_per_transcript->{$transcript_id}->{$orf_id}->{'SNP'} eq ""){
+                                $base_orfs->{$transcript_id}->{$struct_id} = $orf_id;
+                            }
+                        }
+                    } else { #Base ORF is at annotated TIS and considered ORF not
+                        next;
+                    }
+                } else {
+                    #For the first ORF, take this as the tmp base ORF
+                    $base_orfs->{$transcript_id}->{$struct_id} = $orf_id;
+                }
+            }
+        }
+    }
+
+    return $base_orfs;
+}
+
+
+sub group_orfs {
+    
+    #Catch
+    my $orfs_per_transcript = $_[0];
+    
+    #Init
+    my $proteoform_structs = {};
+    
+    #Construct proteoforms per transcript ID
+    for my $transcript_id (keys %{$orfs_per_transcript}){
+        #Init
+        my $struct_count=1;
+        for my $orf_id (keys %{$orfs_per_transcript->{$transcript_id}}){
+            #Check if there is already a proteoform_struct for that transcript ID
+            if ($proteoform_structs->{$transcript_id}){
+                #Init boolean to check if new ORF falls in existing proteoform structure
+                my $in_existing_structure = "N";
+                #Run over existing structures and ORFs already in these structures
+                for my $struct (keys %{$proteoform_structs->{$transcript_id}}){
+                    for my $orf_in_struct (keys %{$proteoform_structs->{$transcript_id}->{$struct}}){
+                        #ORFs in same proteoform struct if they have start or stop coordinate in common (C- or N-terminal truncation or SAV inside)
+                        if ($orfs_per_transcript->{$transcript_id}->{$orf_id}->{'start'}==$proteoform_structs->{$transcript_id}->{$struct}->{$orf_in_struct}->{'start'} || $orfs_per_transcript->{$transcript_id}->{$orf_id}->{'stop'}==$proteoform_structs->{$transcript_id}->{$struct}->{$orf_in_struct}->{'stop'}){
+                            $proteoform_structs->{$transcript_id}->{$struct}->{$orf_id} = $orfs_per_transcript->{$transcript_id}->{$orf_id};
+                            $in_existing_structure = "Y";
+                        }
+                    }
+                }
+                #If not in existing structure, define new proteoform structure
+                if ($in_existing_structure eq "N"){
+                    $proteoform_structs->{$transcript_id}->{$struct_count}->{$orf_id} = $orfs_per_transcript->{$transcript_id}->{$orf_id};
+                    $struct_count++;
+                }
+            } else {
+                #Define first proteoform struct if no struct exist yet
+                $proteoform_structs->{$transcript_id}->{$struct_count}->{$orf_id} = $orfs_per_transcript->{$transcript_id}->{$orf_id};
+                $struct_count++;
+            }
+        }
+        
+        #Make sure the aTIS proteoform structure gets structure id 1
+        my $copy_proteoform_structs={};
+        for my $struct_id (keys %{$proteoform_structs->{$transcript_id}}){
+            my $aTIS_found = 'N';
+            for my $orf_id (keys %{$proteoform_structs->{$transcript_id}->{$struct_id}}){
+                if ($proteoform_structs->{$transcript_id}->{$struct_id}->{$orf_id}->{'annotation'} eq 'aTIS'){
+                    $aTIS_found = 'Y';
+                    last;
+                }
+            }
+            if ($aTIS_found eq 'Y'){
+                #Put aTIS proteoform struct as struct id 1
+                $copy_proteoform_structs->{$transcript_id}->{1} = $proteoform_structs->{$transcript_id}->{1};
+                $proteoform_structs->{$transcript_id}->{1} = $proteoform_structs->{$transcript_id}->{$struct_id};
+                $proteoform_structs->{$transcript_id}->{$struct_id} = $copy_proteoform_structs->{$transcript_id}->{1};
+            }
+        }
+    }
+
+    return $proteoform_structs;
+}
+
+sub get_transcripts_with_orfs{
+    
+    #Catch
+    my ($dbh, $tbl, $tis, $chr, $ens_db) = @_;
+    
+    #Init
+    my $orfs_per_transcript = {};
+    my $var_tracker = {};
+
+    #Get gene ID info of all transcripts and get all annotated aTIS ORFs
+    my ($transcript2geneid,$annotated_tr) = transcript_gene_id_per_chr($dbh,$tbl,$chr,$ens_db);
+    
+    my $query_transcripts = "SELECT DISTINCT tr_stable_id FROM ".$tbl." WHERE chr='".$chr."';";
+    my $sth_transcripts = $dbh->prepare($query_transcripts);
+    $sth_transcripts->execute();
+    my $transcripts = $sth_transcripts->fetchall_arrayref();
+
+    my $query_orfs = "SELECT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, INDEL, aa_seq, stop, strand FROM ".$tbl." WHERE chr='".$chr."';";
+    my $sth_orfs = $dbh->prepare($query_orfs);
+    $sth_orfs->execute();
+    my $orfs = $sth_orfs->fetchall_arrayref();
+    
+    for my $orf (@$orfs) {
+        my $orf_id=scalar(keys(%{$orfs_per_transcript->{$$orf[0]}}));
+        foreach (@$orf) {$_ = '' unless defined}; #Change empty SQLite values to empty strings
+        
+        # if instructed to not keep aTIS with not enough coverage to call TIS
+        if (uc($tis_call) eq "N") {next if (uc($$orf[5]) eq 'NO_DATA' or uc($$orf[5]) eq 'FALSE')}
+        $$orf[10] =~ s/\*//g;
+        next if (length($$orf[10]) < $mslength);	# skip if sequence is less than minimum allowed amino acid length
+        
+        #Skip if exact same sequence already exists for that transcript id
+        my $skip_orf = 'N';
+        for my $other_orf (keys %{$orfs_per_transcript->{$$orf[0]}}){
+            if ($$orf[10] eq $orfs_per_transcript->{$$orf[0]}->{$other_orf}->{'aa_seq'}){
+                $skip_orf = 'Y';
+                last;
+            }
+        }
+        if ($skip_orf eq 'Y'){
+            next;
+        }
+
+        # Skip all non aTIS without SNP or indel information that corresponds to an annotated TIS i.e redundant non annotated TIS
+        my $red_tis = 0;
+        if ($$orf[6] ne 'aTIS' and $$orf[8] eq "" and $$orf[9] eq "") {
+            if ($transcript2geneid->{$$orf[0]}) {
+                my $gene = $transcript2geneid->{$$orf[0]}->{'gene'};
+                foreach my $start1 (keys %{$annotated_tr->{$gene}}) {
+                    if ($start1 == $$orf[2]) {$red_tis = 1}
+                }
+            }
+        }
+        next if ($red_tis == 1);
+        
+        # create unique transcript ID
+        my $tr = $$orf[0]."_".$$orf[1]."_".$$orf[2]."_".$$orf[6];
+        if ($$orf[8] ne "" or $$orf[9] ne "") {		# if snp or indel info exist for current record
+            if ($var_tracker->{$tr}) {
+                $var_tracker->{$tr}++;
+                $tr = $tr."_".$var_tracker->{$tr};
+            } else {
+                $var_tracker->{$tr} = 1;
+                $tr = $tr."_".$var_tracker->{$tr};
+            }
+        }
+
+        #Save in hash
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'tr_stable_id'} = $$orf[0];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'chr'} = $$orf[1];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'start'} = $$orf[2];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'start_codon'} = $$orf[3];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'dist_to_aTIS'} = $$orf[4];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'aTIS_call'} = $$orf[5];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'annotation'} = $$orf[6];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'peak_shift'} = $$orf[7];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'SNP'} = $$orf[8];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'INDEL'} = $$orf[9];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'aa_seq'} = $$orf[10];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'stop'} = $$orf[11];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'strand'} = $$orf[12];
+        $orfs_per_transcript->{$$orf[0]}->{$orf_id}->{'tr_id'} = $tr;
+    }
+    
+    
+    return $orfs_per_transcript, $transcript2geneid;
+}
+
+sub get_multiprocess_info{
+    
+    #Get arguments from arguments table
+    my ($ensemblversion,$ens_db,$species,$IGENOMES_ROOT,$cores) = get_arguments($dbh_results);
+    
+    #Conversion for species terminology
+    my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
+    my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
+    
+    #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
+    my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
+    : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
+    : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
+    : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
+    : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
+    : (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
+    : (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
+    
+    # Get chromosomes and correct coord_system_id
+    my $chromosome_sizes; my $coord_system_id; my @ch;
+    
+    $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
+    ## Get chromosome sizes and cDNA identifiers #############
+    print "Getting chromosome sizes and cDNA to chromosome mappings ...\n";
+    my %chr_sizes = %{get_chr_sizes($chromosome_sizes)};
+    
+    my $ref_to_chr_sizes = \%chr_sizes;
+    $coord_system_id = get_coord_system_id($ens_db,$assembly);
+    
+    return ($ref_to_chr_sizes, $cores, $ens_db, $species);
+}
+
 sub generate_trans_db {
 
 	my $tis_id = shift;
 
 	my $startRun = time();
 	my $table = "TIS_".$tis_id."_transcripts";
-	my @tis = split '_', $tis_id;
+    my @tis = split '_', $tis_id; #SPLIT TIS id from SNP and INDEL underscore info
 	
     print "Get transcript out of results DB\n";
-	my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0]);
+    my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0]); #Use TIS id itself (stored in $tis[0])
 	$total_tr = scalar(keys %$transcript);
 	$total_gene = scalar(keys %$gene_transcript);
 
@@ -818,7 +1786,7 @@ sub get_transcripts_from_resultdb {
 	my ($transcript2geneid,$annotated_tr) = transcript_gene_id($dbh,$tbl);
 		
 	print STDOUT "Extracting transcripts form SQLite database. Please wait ....\n";
-	my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, INDEL, aa_seq FROM ".$tbl;
+	my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, INDEL, aa_seq FROM ".$tbl.";";
  	my $sth = $dbh->prepare($query);
 	$sth->execute();
 	
@@ -880,6 +1848,48 @@ sub get_transcripts_from_resultdb {
 
 }
 
+sub convert_species {
+    
+    #Catch
+    my $species = $_[0];
+    my $tmp_folder = $_[1];
+    
+    #Conversion
+    my $species_peff = (uc($species) eq "MOUSE") ? "Mus musculus"
+    : (uc($species) eq "HUMAN") ? "Homo sapiens"
+    : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis thaliana"
+    : (uc($species) eq "FRUITFLY") ? "Drosophila melanogaster" : "";
+    #Error check
+    if ($species_peff eq ""){
+        print "Error could not convert the species to peff format: ".$species."\n";
+        die;
+    }
+    
+    #Search tax ID
+    #download tax ID lookup file
+    if (!-e $tmp_folder."/names.dmp"){
+        system("wget -q ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdump.tar.gz");
+        system("mv taxdump.tar.gz ".$tmp_folder);
+        #Unpack
+        system("gunzip ".$tmp_folder."/taxdump.tar.gz");
+        system("tar -xf ".$tmp_folder."/taxdump.tar -C ".$tmp_folder);
+    }
+    
+    #Read tax file
+    my $taxid = "";
+    my $file = $tmp_folder."/names.dmp";
+    open(my $FR, '<', $file) or die "Could not find $file file";
+    while (my $line = <$FR>){
+        chomp $line;
+        $line =~ m/^(.*?)\t\|\t(.*?)\t/;
+        if (uc($2) eq uc($species_peff)){
+            $taxid = $1;
+            last;
+        }
+    }
+    
+    return ($species_peff, $taxid);
+}
 
 sub transcript_gene_id {
 
@@ -902,6 +1912,42 @@ sub transcript_gene_id {
 	$sth->finish();
 
 	return $transcript2geneid, $annotated_tr;
+}
+
+sub transcript_gene_id_per_chr {
+    
+    my $dbh = $_[0];
+    my $tbl = $_[1];
+    my $chr = $_[2];
+    my $ens_db = $_[3];
+    
+    my $annotated_tr = {};
+    my $transcript2geneid = {};
+    
+    #Attach ens db to dbh
+    $dbh->do("ATTACH '".$ens_db."' AS ens;");
+    
+    my $query = "SELECT a.stable_id, a.biotype, a.gene_stable_id, b.start, b.annotation, b.aTIS_call, g.description FROM tr_translation AS a JOIN $tbl AS b ON a.stable_id == b.tr_stable_id JOIN ens.gene AS g ON a.gene_stable_id=g.stable_id WHERE a.chr='".$chr."';";
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    while ( my ($stable_id, $biotype, $gene_stable_id, $start, $annotation, $aTIS_call, $description) = $sth->fetchrow()) {
+        #Capture only essential info of description
+        if($description =~ m/(.*?)\[.*\]/){
+            $description=$1;
+        }
+        #Parse
+        unless (exists $transcript2geneid->{$stable_id}){
+            $transcript2geneid->{$stable_id}->{'gene'} = $gene_stable_id;
+            $transcript2geneid->{$stable_id}->{'biotype'} = $biotype;
+            $transcript2geneid->{$stable_id}->{'description'} = $description;
+        }
+            
+        if (uc($tis_call) eq "N") {next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE')}
+        if ($annotation eq 'aTIS') {$annotated_tr->{$gene_stable_id}->{$start} = 1;}
+    }
+    $sth->finish();
+
+    return $transcript2geneid, $annotated_tr;
 }
 
 
@@ -1001,7 +2047,55 @@ sub dbh {
     return($dbh);
 }
 
-sub get_analysis_ids {
+sub get_analysis_ids{
+    
+    # Catch
+    my $dbh    = $_[0];
+    my $ids_in = $_[1]; #Either comma separated list of identifiers or "all"
+    my @idsref;
+    
+    if ($ids_in eq "all") {
+        
+        my $query = "select ID, SNP from TIS_overview";
+        my $sth = $dbh->prepare($query);
+        $sth->execute();
+        
+        while ( my ($id, $snp) = $sth->fetchrow()) {
+            my $add = "";
+            if (uc($snp) eq "NO") {
+                push @idsref, $id;
+            } else {
+                    $add = "_".$snp;
+                push @idsref, $id.$add;
+            }
+        }
+        $sth->finish();
+    } else {
+        
+        my @sel_ids  = split ',', $ids_in;
+        foreach (@sel_ids) {
+            
+            my $query = "select ID, SNP from TIS_overview where ID = $_";
+            my $sth = $dbh->prepare($query);
+            $sth->execute();
+            my ($id, $snp) = $sth->fetchrow();
+            
+            my $add = "";
+            if (uc($snp) eq "NO") {
+                push @idsref, $id;
+            } else {
+                $add = "_".$snp;
+                push @idsref, $id.$add;
+            }
+            $sth->finish();
+        }
+    }
+    
+    return @idsref;
+    
+}
+
+sub get_analysis_ids_indels {
     
 	# Catch
 	my $dbh    = $_[0];
@@ -1123,6 +2217,93 @@ sub get_input_vars {
     return($run_name,$species,$mapper,$nr_of_cores);
 
 }
+
+sub get_arguments{
+    
+    # Catch
+    my $dbh = $_[0];
+    
+    # Get input variables
+    my $query = "select value from `arguments` where variable = \'ensembl_version\'";
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $ensemblversion = $sth->fetch()->[0];
+    
+    $query = "select value from `arguments` where variable = \'species\'";
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $species = $sth->fetch()->[0];
+    
+    $query = "select value from `arguments` where variable = \'igenomes_root\'";
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $igenomes_root = $sth->fetch()->[0];
+    
+    $query = "select value from `arguments` where variable = \'nr_of_cores\'";
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $nr_of_cores = $sth->fetch()->[0];
+    
+    $query = "select value from `arguments` where variable = \'ens_db\'";
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $ens_db = $sth->fetch()->[0];
+    
+    
+    # Return input variables
+    return($ensemblversion,$ens_db,$species,$igenomes_root,$nr_of_cores);
+    
+}
+
+## Get coord system id ##
+sub get_coord_system_id{
+    # Catch
+    my $db_ensembl = $_[0];
+    my $assembly = $_[1];
+    
+    my $user = "";
+    my $pw = "";
+    
+    # Connect to ensembl sqlite database
+    my $dbh  = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
+    { RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
+    
+    # Get correct coord_system_id
+    my $query = "SELECT coord_system_id FROM coord_system WHERE name = 'chromosome' AND version = '$assembly'";
+    my $execute = $dbh->prepare($query);
+    $execute->execute();
+    
+    my $coord_system_id;
+    while(my @result = $execute->fetchrow_array()){
+        $coord_system_id = $result[0];
+    }
+    
+    $execute->finish();
+    
+    # Disconnect
+    $dbh->disconnect();
+    
+    # Return
+    return($coord_system_id);
+} # Close sub
+
+### GET CHR SIZES ###
+sub get_chr_sizes {
+    
+    # Catch
+    my $chromosome_sizes = $_[0];
+    
+    # Work
+    my %chr_sizes;
+    open (Q,"<".$chromosome_sizes) || die "Cannot open chr sizes input\n";
+    while (<Q>){
+        my @a = split(/\s+/,$_);
+        $chr_sizes{$a[0]} = $a[1];
+    }
+    
+    return(\%chr_sizes);
+}
+
 
 ### CHECK REQUIRED PARAMETERS ###
 sub uninitialized_param {
