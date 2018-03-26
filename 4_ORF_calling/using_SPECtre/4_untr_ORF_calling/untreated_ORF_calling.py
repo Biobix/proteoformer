@@ -205,7 +205,7 @@ def main():
     print
     print "[%s]: Parse SPECtre results" % (convert_time(time.time()-starttime))
     sys.stdout.flush()
-    parse_results(args.result_db, spectre_tmp, table_args.ensdb, BIN_chrom_dir, merged_results_file, table_args.tr_calling_method)
+    parse_results(args.result_db, spectre_tmp, table_args.ensdb, BIN_chrom_dir, merged_results_file, table_args.tr_calling_method, gtf_file)
     print "[%s]: COMPLETE: SPECtre results parsing" % (convert_time(time.time() - starttime))
     print
     sys.stdout.flush()
@@ -222,7 +222,7 @@ def main():
     return
 
 ## Parse SPECtre results into assembly table
-def parse_results(results_db, spectre_tmp, ens_db, BIN_chrom_dir, merged_results_file, tr_calling_method):
+def parse_results(results_db, spectre_tmp, ens_db, BIN_chrom_dir, merged_results_file, tr_calling_method, gtf_file):
 
     #Load in log file for statistics
     threshold_translation = load_log_file(spectre_tmp)
@@ -231,7 +231,7 @@ def parse_results(results_db, spectre_tmp, ens_db, BIN_chrom_dir, merged_results
     spectre_results = load_spectre_results(spectre_tmp, merged_results_file)
 
     #Get all needed features
-    tr_features = get_assembly_features(spectre_results, ens_db, results_db, BIN_chrom_dir, threshold_translation)
+    tr_features = get_assembly_features(spectre_results, ens_db, results_db, BIN_chrom_dir, threshold_translation, gtf_file)
 
     print
     print "SPECtre identified "+str(len(spectre_results))+" coding possibilities"
@@ -441,15 +441,23 @@ def get_id(result_db, tr_calling_method):
     return TIS_id
 
 ### Parse results from SPECtre results to assembly table features
-def get_assembly_features(spectre_results, ens_db, results_db, BIN_chrom_dir, threshold_translation):
+def get_assembly_features(spectre_results, ens_db, results_db, BIN_chrom_dir, threshold_translation, gtf_file):
 
     #Init
     tr_features = defaultdict(lambda: defaultdict())
 
     reads_for, reads_rev = get_reads(results_db)
+    
+    #Get all selenocysteines
+    secs = get_secs(gtf_file)
+
 
     for spectre_id in spectre_results.keys():
     #for spectre_id in ['4172']:
+    ##Test selenocysteines:
+    #for spectre_id in ['6583']:
+    #for spectre_id in ['6826']:
+    #for spectre_id in ['352']:
         if spectre_results[spectre_id]['SPEC_score_posterior_CDS']=="NA":
             #SPECtre fails to calculate SPEC score for some ID's. Skip these.
             continue
@@ -478,18 +486,17 @@ def get_assembly_features(spectre_results, ens_db, results_db, BIN_chrom_dir, th
             #Start codon, tr_seq, aa_seq
             tr_features[spectre_id]['start_codon'], tr_features[spectre_id]['tr_seq'], tr_features[spectre_id]['aa_seq'] = \
                 construct_seq(coding_parts, tr_features[spectre_id]['strand'], BIN_chrom_dir, tr_features[spectre_id]['chr'], \
-                                    tr_features[spectre_id]['tr_stable_id'], spectre_id)
+                                    tr_features[spectre_id]['tr_stable_id'], spectre_id, secs)
 
-            # print
-            # print_dict(tr_features)
-            # print
-            #
-            # print "exons:"
-            # print_dict(coding_parts)
-            # print "tr seq: "+tr_features[spectre_id]['tr_seq']
-            # print "aa seq: "+tr_features[spectre_id]['aa_seq']
-            # sys.stdout.flush()
-            # sys.exit()
+            print
+            print_dict(tr_features)
+            print
+            
+            print "exons:"
+            print_dict(coding_parts)
+            print "tr seq: "+tr_features[spectre_id]['tr_seq']
+            print "aa seq: "+tr_features[spectre_id]['aa_seq']
+            sys.stdout.flush()
 
 
             #Check if unvalid start codon, no stop or early stop
@@ -516,21 +523,63 @@ def get_assembly_features(spectre_results, ens_db, results_db, BIN_chrom_dir, th
             tr_features[spectre_id]['SNP'] = ""
             tr_features[spectre_id]['INDEL'] = ""
 
+
+
     return tr_features
 
+## Load all selenocysteines
+def get_secs(gtf_file):
+
+    #Init
+    secs=defaultdict(lambda: defaultdict(lambda: defaultdict()))
+    selenocysteine_id = 1
+
+    with open(gtf_file) as FR:
+        for line in FR:
+            features = line.rsplit("\t")
+            if features[2] == "Selenocysteine":
+                chr = features[0]
+                start = int(features[3])
+                end = int(features[4])
+                m = re.search('transcript_id "(\S+?)";', features[8])
+                if m:
+                    transcript_id = m.group(1)
+                else:
+                    print "Could not find transcript ID for selenocysteine "+chr+"_"+start
+                secs[transcript_id][selenocysteine_id]["start"] = start
+                secs[transcript_id][selenocysteine_id]["end"] = end
+                secs[transcript_id][selenocysteine_id]["chr"] = chr
+
+                selenocysteine_id += 1
+
+    return secs
+
 ## Get sequece of start codon, ORF cDNA
-def construct_seq(coding_parts, strand, BIN_chrom_dir, chr, tr_stable_id, spectre_id):
+def construct_seq(coding_parts, strand, BIN_chrom_dir, chr, tr_stable_id, spectre_id, secs):
 
     #Init
     tr_seq = ""
     aa_seq = ""
+    secs_in_seq = []
     #Go over all coding parts, situated over all exons
     for exon_part in coding_parts:
+        ##If sec in between start and stop of coding part, method to know position of sec in translated coordinates.
+        # Based on the length of the tmp tr_seq you already have, to know the coordinates of the exon parts already built in the translated sequence
+        if tr_stable_id in secs.keys():
+            for sec_id in secs[tr_stable_id].keys():
+                #Check if sec in that coding part
+                if secs[tr_stable_id][sec_id]['start']>coding_parts[exon_part]['start'] and secs[tr_stable_id][sec_id]['end']<coding_parts[exon_part]['stop']:
+                    pos_sec = len(tr_seq) + secs[tr_stable_id][sec_id]['start'] - coding_parts[exon_part]['start'] + 1
+                    secs_in_seq.append(pos_sec)
+        #Add sequence of coding part to tmp tr seq
         tr_seq += get_seq(coding_parts[exon_part]['start'], coding_parts[exon_part]['stop'], chr, BIN_chrom_dir)
     #For reverse strand: take reverse complement in the end
     if strand == "-1":
         tr_seq = reverse_complement(tr_seq)
-
+        converted_pos_secs = []
+        for pos_sec in secs_in_seq:
+            converted_pos_secs.append(len(tr_seq)-pos_sec+1-2) # -2 because the position of the start (T) is 2 positions earlier than the end of the TGA codon (A)
+        secs_in_seq = converted_pos_secs
     #Get start codon
     start_codon = tr_seq[:3]
     # Check start codon for (near-)cognate
@@ -538,12 +587,11 @@ def construct_seq(coding_parts, strand, BIN_chrom_dir, chr, tr_stable_id, spectr
         start_codon = "Unvalid"
     else:
         #Get amino acid sequence
-        aa_seq = translate_seq(tr_seq, tr_stable_id, spectre_id)
-
+        aa_seq = translate_seq(tr_seq, tr_stable_id, spectre_id, secs_in_seq)
     return start_codon, tr_seq, aa_seq
 
 ## Translate sequence to amino acids
-def translate_seq(tr_seq, tr_stable_id, spectre_id):
+def translate_seq(tr_seq, tr_stable_id, spectre_id, secs_in_seq):
 
     #Init
     aa_seq = ""
@@ -570,15 +618,19 @@ def translate_seq(tr_seq, tr_stable_id, spectre_id):
     codon=""
     for pos in range(0, len(tr_seq)-2, 3):
         codon = tr_seq[pos:pos+3]
-        aa_seq+=codonTable[codon]
-        #Control if stop codon is only at the end
-        if codonTable[codon]=='*':
-            if pos!=(len(tr_seq)-3):
-                #print "Error: stop earlier than expected (transcript ID: "+tr_stable_id+", SPECtre ID: "+str(spectre_id)+")"
-                aa_seq = "early_stop,"+aa_seq
-                #print "tr seq: "+tr_seq
-                #print "AA seq: "+aa_seq
-                return aa_seq
+        #Check for selenocysteine
+        if pos+1 in secs_in_seq and codon=="TGA":
+            aa_seq+="U"
+        else:
+            aa_seq+=codonTable[codon]
+            #Control if stop codon is only at the end
+            if codonTable[codon]=='*':
+                if pos!=(len(tr_seq)-3):
+                    #print "Error: stop earlier than expected (transcript ID: "+tr_stable_id+", SPECtre ID: "+str(spectre_id)+")"
+                    aa_seq = "early_stop,"+aa_seq
+                    #print "tr seq: "+tr_seq
+                    #print "AA seq: "+aa_seq
+                    return aa_seq
     #Check if end codon is a STOP codon
     if codon!='TAA' and codon!='TAG' and codon!='TGA':
         #print "Error: no stop codon (TAA, TAG or TGA) found at the end (transcript ID: "+tr_stable_id+", SPECtre ID: "+str(spectre_id)+")"
