@@ -214,6 +214,11 @@ my $assembly = ($species eq "mouse" && $ensemblversion >= 70 ) ? "GRCm38"
 #my $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
 my $BIN_chrom_dir = ($clusterPhoenix eq "Y") ? $HOME."/igenomes_extra/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes_BIN" : $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes_BIN";
 
+#Get selenocysteines from gtf file
+my $gtf_file = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/genes_".$ensemblversion.".gtf";
+my $secs = get_secs($gtf_file);
+store_secs_in_table($dbh_results, $secs, $resultDB);
+
 
 ###################################
 ## ASSEMBLY OF TRANSLATION PRODUCTS
@@ -258,7 +263,7 @@ my $analysis_id;
 #Loop over all selected analysis_ids
 foreach $analysis_id (@$idsref) {
     print "Processing analysis_id $analysis_id ...\n";
-    construct_trans_prod($annot,$fusion,$novel,$snp,$ins,$del,$transl_type,$transl_RF,$readtype,$work_dir,$TMP,$analysis_id);
+    construct_trans_prod($annot,$fusion,$novel,$snp,$ins,$del,$transl_type,$transl_RF,$readtype,$work_dir,$TMP,$analysis_id,$secs);
     #Add snp info in TIS_OVERVIEW records
     update_TIS_overview($snp,$analysis_id);
 }
@@ -482,6 +487,80 @@ sub create_BIN_chromosomes {
 
 }
 
+### GET SELENOCYSTEINES FROM GTF FILE ###
+sub get_secs {
+    
+    #Catch
+    my $gtf = $_[0];
+    
+    #Init
+    my $secs= {};
+    my $sec_id=1;
+    
+    ### TEST ###
+    $gtf = "/data2/steven/proteoformer/HCT116/uniq/secs.gtf";
+    
+    #Read through gtf file
+    open(my $FR, "<", $gtf);
+    while(<$FR>){
+        chomp($_);
+        if ($_ =~ m/^#/) {next;}
+        my @features = split(/\t/, $_);
+        if ($features[2] eq "Selenocysteine"){
+            if ($features[8] =~ m/transcript_id \"(\S+?)\"/){
+                $secs->{$1}->{$sec_id}->{"chr"} = $features[0];
+                if ($features[6] eq "+"){
+                    $secs->{$1}->{$sec_id}->{"strand"} = "1";
+                } elsif ($features[6] eq "-"){
+                    $secs->{$1}->{$sec_id}->{"strand"} = "-1";
+                }
+                $secs->{$1}->{$sec_id}->{"start"} = $features[3];
+                $secs->{$1}->{$sec_id}->{"end"} = $features[4];
+            }
+            $sec_id++;
+        }
+    }
+    close($FR);
+    
+    return $secs;
+}
+
+### STORE SELENOCYSTEINES IN RESULTS DATABASE
+sub store_secs_in_table{
+    
+    #Catch
+    my $dbh_results = $_[0];
+    my $secs = $_[1];
+    my $result_db = $_[2];
+    
+    #Init
+    my $table = "secs";
+    
+    #Drop existing table
+    my $query_drop = "DROP TABLE IF EXISTS '".$table."';";
+    $dbh_results->do($query_drop);
+    
+    #Create table
+    my $query_create = "CREATE TABLE IF NOT EXISTS '".$table."' ('id' int(10) NOT NULL default '', 'tr_stable_id' varchar(128) NOT NULL default '', 'chr' char(5) NOT NULL default '', 'strand' int(2) NOT NULL default '', 'start' int(10) NOT NULL default '', 'stop' int(10) NOT NULL default '');";
+    $dbh_results->do($query_create);
+    
+    #Make csv
+    my $tmp_sec_file = $TMP."/secs_db.csv";
+    open(my $FW, ">", $tmp_sec_file);
+    for my $transcript_id (keys %{$secs}){
+        for my $sec_id (keys %{$secs->{$transcript_id}}){
+            print $FW $sec_id.",".$transcript_id.",".$secs->{$transcript_id}->{$sec_id}->{'chr'}.",".$secs->{$transcript_id}->{$sec_id}->{'strand'}.",".$secs->{$transcript_id}->{$sec_id}->{'start'}.",".$secs->{$transcript_id}->{$sec_id}->{'end'}."\n";
+        }
+    }
+    close($FW);
+    
+    #Dump csv
+    system("sqlite3 -separator , ".$result_db." \".import ".$tmp_sec_file." ".$table."\"")==0 or die "system failed: $?";
+    system("rm -rf ".$tmp_sec_file);
+    
+    return;
+}
+
 ### ASSEMBLY OF TRANS PRODS ###
 sub construct_trans_prod {
 
@@ -498,6 +577,7 @@ sub construct_trans_prod {
     my $work_dir = $_[9];
     my $tmp = $_[10];
     my $analysis_id = $_[11];
+    my $secs = $_[12];
 
     #print "analysis_id = $analysis_id\n";
     # Get chromosomes name,seq_region_id
@@ -510,6 +590,11 @@ sub construct_trans_prod {
     my $pm = new Parallel::ForkManager($cores);
     print "   Using ".$cores." core(s)\n   ---------------\n";
 
+    ### TEST ###
+    #my $chrs_copy = {};
+    #$chrs_copy->{'1'} = $chrs->{'1'};
+    #$chrs = $chrs_copy;
+    
 
     # Open each chromosome in seperate core
     foreach my $chr (sort keys %{$chrs}){
@@ -542,11 +627,13 @@ sub construct_trans_prod {
         #print Dumper($transcript_starts); exit;
         # Init
         my ($cnt, $transcript_start,$tr_id,$TIS,$exons,$strand,$start_codon,$dist_to_transcript_start,$dist_to_aTIS,$annotation,$aTIS_call,$peak_shift,$count,$Rltm_min_Rchx,$exon,$tr_stable_id,$e_rank,$e_start,$e_end,$e_start_phase,$e_end_phase,$e_stable_id,$seq,$tr_seq,$AA_seq,$exon_SNP,$CDS_tmp_length);
-
-        #my @tr = ("440589_118628041");
+        
+        #my @tr = ("440589_118628041"); ##line for TEST purposes
+        #my @tr = ("99752_25811464", "99752_25800231");
         #foreach $transcript_start ( @tr){
         foreach $transcript_start ( keys %{$transcript_starts}){
             my %tr_SNPs;
+            my $tr_secs = {};
             $tr_seq = '';
             $cnt++;
 
@@ -649,7 +736,23 @@ sub construct_trans_prod {
                     $tmp_orf_structure->{$orf_exon_counter}->{'e_stable_id'} = $e_stable_id;
                     $tmp_orf_structure->{$orf_exon_counter}->{'rank'} = $e_rank;
                     $tmp_orf_structure->{$orf_exon_counter}->{'length'} = $e_end - $e_start + 1;
-
+                    
+                    #Check for selenocysteines
+                    my $tr_pos_sec;
+                    if (exists $secs->{$tr_stable_id}){
+                        for my $sec_id (keys %{$secs->{$tr_stable_id}}){
+                            if ($secs->{$tr_stable_id}->{$sec_id}->{'start'}>=$e_start && $secs->{$tr_stable_id}->{$sec_id}->{'end'}<=$e_end){
+                                if ($strand eq "1"){
+                                    $tr_pos_sec = $CDS_tmp_length + $secs->{$tr_stable_id}->{$sec_id}->{'start'} - $e_start + 1;
+                                } elsif ($strand eq "-1"){
+                                    $tr_pos_sec = $CDS_tmp_length + $e_end - $secs->{$tr_stable_id}->{$sec_id}->{'end'} + 1;
+                                }
+                                #Save to orf structure
+                                $tr_secs->{$tr_pos_sec} = $sec_id;
+                            }
+                        }
+                    }
+                    
                     # Build the temporary CDS length
                     my $l = length($seq);
                     $CDS_tmp_length = $CDS_tmp_length + ($e_end - $e_start + 1);
@@ -658,12 +761,14 @@ sub construct_trans_prod {
                 }
             }
             #print Dumper ('tr_SNPs',\%tr_SNPs);
+            #print Dumper $tmp_orf_structure;
+            #print Dumper $tr_secs;
 
             #Only output transcripts where TIS is in exonic regions. The transcripts missing the exon that overspans the TIS are excluded
             if ($start_exon_check) {
                 #print "DNA  $tr_seq\n";
                 #translate
-                my $tr_seqs_all = translate($tr_seq,\%tr_SNPs);
+                my $tr_seqs_all = translate($tr_seq,\%tr_SNPs, $tr_secs);
                 #print Dumper ('seqs_all',$tr_seqs_all);
 
                 #Loop over all entries in AoH_tr_seqs_all
@@ -733,7 +838,7 @@ sub construct_trans_prod {
                         #Control if first codon is (near-)cognate and replace near-cognate start to cognate methionine.
                         if(substr($tr_seq,0,3) =~ m/[ACTG]TG|A[ACTG]G|AT[ACTG]/){
                             $AA_seq = (substr($AA_seq,0,1) ne 'M') ? 'M'.substr($AA_seq,1) : $AA_seq;
-                            print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",,".$tr_seq.",".$AA_seq."\n";
+                            print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",,".$_->{'SEC_NS'}.",".$tr_seq.",".$AA_seq."\n";
                         }
 
                     }
@@ -805,6 +910,7 @@ sub store_in_db{
     `FPKM` decimal(11,8) NOT NULL default '0',
     `SNP` varchar(256) NOT NULL default '0',
     `INDEL` varchar(256) NOT NULL default '0',
+    `secs` varchar(256) NOT NULL default '',
     `tr_seq` TEXT NOT NULL default '',
     `aa_seq` TEXT NOT NULL default '' )"  ;
 
@@ -1000,6 +1106,7 @@ sub translate {
     #Catch
     my $seq = $_[0];
     my %tr_SNPs = %{$_[1]};
+    my $tr_secs = $_[2];
     my (@AoH_tr_seqs,$href_tr_seq,$pos,$alt,$seq_tmp,@split_ALT,@AoH_tr_seqs_extra);
 
     my %AA1 = (
@@ -1215,12 +1322,14 @@ sub translate {
         }
     }
     #print Dumper('final AoH',\@AoH_tr_seqs);
+    my @AoH_tr_seq_extra; #For storing Selenocysteine variants
 
     for $href_tr_seq ( @AoH_tr_seqs ) {
         my $AAseq='';
         my ($i,$triplet,$AA);
         my (@snp_pos,@snp_ref,@snp_alt,@snp_af);
         my $SNP_NS = '';
+        my $SEC_NS = '';
         $AA='';
         #print Dumper("sequence",$href_tr_seq);
         if ($href_tr_seq->{'SNP'} ne '') {
@@ -1249,7 +1358,6 @@ sub translate {
             if (length($triplet) < 3) { last; }
             $AA=$AA1{uc($triplet)};
             $AAseq = $AAseq . $AA;
-            if ($AA eq '*') { last; }
 
             #Check the snp-inclusive triplets
             my ($AAREF,$tripletREF);
@@ -1272,14 +1380,44 @@ sub translate {
                     #print "$i, start=$cds_start,stop=$cds_end,tripletALT=$tripletALT,AAALT=$AA,tripletREF=$tripletREF,AAREF=$AAREF\n";
                 }
             }
+            
+            if ($AA eq '*') {
+                #Check for Selenocysteine
+                if ($triplet eq "TGA" && exists $tr_secs->{$i+1}){
+                    #We want to save two versions of the product: one with STOP, one with Sec that runs through
+                    #Put the tmp AA product with STOP already in the AoH
+                    my $extra_tr_seq = {};
+                    $extra_tr_seq->{'seq'} = substr($href_tr_seq->{'seq'},0,length($AAseq)*3);
+                    $extra_tr_seq->{'AAseq'} = $AAseq;
+                    my $tmp_SNP_NS = $SNP_NS;
+                    $tmp_SNP_NS =~ s/:$//;
+                    $extra_tr_seq->{'SNP_NS'} = $tmp_SNP_NS;
+                    $extra_tr_seq->{'SNP'} = $href_tr_seq->{'SNP'};
+                    $extra_tr_seq->{'offset'} = $href_tr_seq->{'offset'};
+                    my $tmp_SEC_NS = $SEC_NS;
+                    $tmp_SEC_NS =~ s/_$//;
+                    $extra_tr_seq->{'SEC_NS'} = $tmp_SEC_NS;
+                    push(@AoH_tr_seqs_extra, $extra_tr_seq);
+                    #Change the stop in the AA seq for a selenocysteine and go through on this sequence, and keep this in the sec numbers string
+                    $AAseq =~ s/\*$/U/;
+                    $SEC_NS = $SEC_NS.$tr_secs->{$i+1}."_";
+                } else { #Real stop
+                    last;
+                }
+            }
         }
         $SNP_NS =~ s/:$//;
         $href_tr_seq->{'seq'} = substr($href_tr_seq->{'seq'},0,length($AAseq)*3);
         $href_tr_seq->{'AAseq'} = $AAseq;
         $href_tr_seq->{'SNP_NS'} = $SNP_NS;
+        $SEC_NS =~ s/_$//;
+        $href_tr_seq->{'SEC_NS'} = $SEC_NS;
     }
-
-    #print Dumper('final AoH_with_AA',\@AoH_tr_seqs);
+    
+    #Add selenocysteine variants where the STOP codon was built in instead of the Sec
+    push(@AoH_tr_seqs, @AoH_tr_seqs_extra);
+    
+    #print Dumper('final AoH_with_AA',\@AoH_tr_seqs); print "\n\n\n";
     return \@AoH_tr_seqs;
 }
 
