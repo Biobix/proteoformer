@@ -84,7 +84,7 @@ def main():
                                          "offsets already stored in the database during mapping. Caution: SPECtre is not "
                                          "yet built for handling bigger offsets list like in PROTEOFOMER -> Use most-"
                                          "abundant RPF lengths until further notice.")
-    opt_args.add_argument("--cores", "-c", action="store", required=False, nargs="?", metavar="INTEGER", default="",
+    opt_args.add_argument("--cores", "-c", action="store", required=False, nargs="?", metavar="INTEGER", default=0,
                           type=int, help="Defaultly, the program takes the amount of cores suggested during mapping,"
                                          " but you can suggest a different number of cores for this part here")
     opt_args.add_argument("--threads_per_chrom", "-x", action="store", required=False, nargs="?", metavar="INTEGER",
@@ -107,7 +107,7 @@ def main():
         args.untr_bam = get_bam_from_arguments(args.result_db)
     if args.offsets == "":
         args.offsets = get_offsets_as_list(args.result_db)
-    if args.cores == "":
+    if args.cores == 0:
         args.cores = get_cores(args.result_db)
 
     #Get parameters from arguments table
