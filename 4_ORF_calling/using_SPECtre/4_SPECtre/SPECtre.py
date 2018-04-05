@@ -15,15 +15,15 @@ __author__ = 'Steven Verbruggen'
 
 
 '''
-UNTREATED ORF CALLING
+UNTREATED ORF CALLING WITH SPECtre
 
-usage: untreated_ORF_calling.py --result_db [DB] [--help] [--workdir [FOLDER]]
+usage: SPECtre.py --result_db [DB] [--help] [--workdir [FOLDER]]
                                 [--tmp [FOLDER]] [--untr_bam [BAM]]
                                 [--offsets [LIST]] [--cores [INTEGER]]
                                 [--threads_per_chrom [INTEGER]]
 
 This tool is part of the PROTEOFORMER pipeline. It calls translatedORFs
-without the use of LTM/HARR treated samples and TIS calling.
+without the use of LTM/HARR treated samples and TIS calling, but with the help of SPECtre.
 
 Mandatory parameters:
   --result_db [DB], -r [DB]
