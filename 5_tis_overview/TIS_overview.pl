@@ -90,37 +90,24 @@ sub create_tab_file{
     
     #Print to TIS_overview
     while (my $row = $sth->fetchrow_hashref) {
-        if($row->{"SNP"}){#Check for SNP calling info
-            print TempTIS $row->{"ID"}."\t".
-            $row->{"local_max"}."\t".
-            $row->{"min_count_aTIS"}."\t".
-            $row->{"R_aTis"}."\t".
-            $row->{"min_count_5UTR"}."\t".
-            $row->{"R_5UTR"}."\t".
-            $row->{"min_count_CDS"}."\t".
-            $row->{"R_CDS"}."\t".
-            $row->{"min_count_3UTR"}."\t".
-            $row->{"R_3UTR"}."\t".
-            $row->{"min_count_ntr"}."\t".
-            $row->{"R_ntr"}."\t".
-            $row->{"SNP"}."\t".
-            $row->{"filter"}."\n";
-        } else {
-            print TempTIS $row->{"ID"}."\t".
-            $row->{"local_max"}."\t".
-            $row->{"min_count_aTIS"}."\t".
-            $row->{"R_aTis"}."\t".
-            $row->{"min_count_5UTR"}."\t".
-            $row->{"R_5UTR"}."\t".
-            $row->{"min_count_CDS"}."\t".
-            $row->{"R_CDS"}."\t".
-            $row->{"min_count_3UTR"}."\t".
-            $row->{"R_3UTR"}."\t".
-            $row->{"min_count_ntr"}."\t".
-            $row->{"R_ntr"}."\t".
-            "\t".
-            $row->{"filter"}."\n";
-        }
+        print TempTIS $row->{"ID"}."\t".
+        $row->{"local_max"}."\t".
+        $row->{"min_count_aTIS"}."\t".
+        $row->{"R_aTis"}."\t".
+        $row->{"min_count_5UTR"}."\t".
+        $row->{"R_5UTR"}."\t".
+        $row->{"min_count_CDS"}."\t".
+        $row->{"R_CDS"}."\t".
+        $row->{"min_count_3UTR"}."\t".
+        $row->{"R_3UTR"}."\t".
+        $row->{"min_count_ntr"}."\t".
+        $row->{"R_ntr"}."\t".
+        $row->{"PRICE_FDR"}."\t".
+        $row->{"SNP"}."\t".
+        $row->{"indel"}."\t".
+        $row->{"filter"}."\t".
+        $row->{"tr_calling"}."\t".
+        $row->{"TIS_calling"}."\n";
     }
     system("mv ".$temp_tis_overview." ".$tis_overview);
     #system("rm -rf ".$temp_tis_overview);

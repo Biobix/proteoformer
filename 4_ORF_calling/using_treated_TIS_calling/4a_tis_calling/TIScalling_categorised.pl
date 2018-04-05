@@ -1295,6 +1295,7 @@ sub get_id{
     `R_3UTR` decimal(11,8) NOT NULL default '',
     `min_count_ntr` int(10) NOT NULL default '',
     `R_ntr` decimal(11,8) NOT NULL default '',
+    `PRICE_FDR` decimal(11,8) NOT NULL default '',
     `SNP` varchar(20) default '',
     `indel` varchar(20) default '',
     `filter` varchar(20) default '',
