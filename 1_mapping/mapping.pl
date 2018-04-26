@@ -332,13 +332,13 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
             print "Mapping suite tools folder                                       : $suite_tools_loc\n";
         }
         if($suite eq "standard"){
-            if(!-e $suite_tools_loc."/1_mapping_parsing.pl"){
+            if(!-e $suite_tools_loc."/mapping_parsing.pl"){
                 die "Parsing script not found!!!";
             }
         } elsif ($suite eq "plastid"){
-            if(!-e $suite_tools_loc."/1_mapping_parsing.pl"){
+            if(!-e $suite_tools_loc."/mapping_parsing.pl"){
                 die "Parsing script not found!!!";
-            } elsif(!-e $suite_tools_loc."/1_mapping_plastid.pl"){
+            } elsif(!-e $suite_tools_loc."/mapping_plastid.pl"){
                 die "Plastid script not found!!!";
             }
         }
