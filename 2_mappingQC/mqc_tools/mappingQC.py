@@ -248,7 +248,7 @@ def main():
         os.system("mkdir -p "+outfolder)
 
     #Download biobix image
-    os.system("wget --quiet \"http://www.nxtgnt.ugent.be/images/img/logos/BIOBIX_logo.png\"")
+    os.system("wget --quiet \"http://galaxy.ugent.be/static/BIOBIX_logo.png\"")
     os.system("mv BIOBIX_logo.png "+outfolder)
 
     #Get plot data out of results DB
