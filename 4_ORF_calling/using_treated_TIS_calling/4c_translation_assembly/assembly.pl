@@ -1492,7 +1492,7 @@ sub update_TIS_overview {
 
     my ($snp, $analysis_id) = @_;
     my $dbh = dbh($dsn_results,$us_results,$pw_results);
-
-    my $update = "update TIS_OVERVIEW set SNP = '".$snp."' and indel='NO' where ID = ".$analysis_id;
+    
+    my $update = "update TIS_OVERVIEW set SNP = '".$snp."', indel='NO' where ID = ".$analysis_id;
     $dbh->do($update);
 }
