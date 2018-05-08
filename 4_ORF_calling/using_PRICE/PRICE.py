@@ -192,7 +192,7 @@ def main():
     print
     print "[%s]: Convert to assembly table features" % (convert_time(time.time() - starttime))
     sys.stdout.flush()
-    tr_features = construct_tr_features(orfs, table_args.ensdb, gtf_file, BIN_chrom_dir, args.result_db, price_tmp, table_args.tr_calling_method)
+    tr_features = construct_tr_features(orfs, table_args.ensdb, gtf_file, BIN_chrom_dir, args.result_db, price_tmp)
     print "[%s]: COMPLETE: assembly table features" % (convert_time(time.time() - starttime))
     sys.stdout.flush()
 
@@ -250,54 +250,53 @@ def construct_csv(csv_name, filtered_out_csv, tr_features):
     with open(csv_name, 'w') as FW:
         FiltFW = open(filtered_out_csv, 'w')
         for price_id in tr_features:
-            if tr_features[price_id]['tr_stable_id']!="Unfound":
-                if tr_features[price_id]['start_codon']!="Unmatching_start_codon" and tr_features[price_id]['aa_seq'].split(',')[0]!="early_stop" and \
-                        tr_features[price_id]['aa_seq'] != "no_stop":
-                    line = tr_features[price_id]['tr_stable_id']+","+\
-                        tr_features[price_id]['chr']+","+\
-                        str(tr_features[price_id]['strand'])+","+\
-                        str(tr_features[price_id]['start'])+","+\
-                        tr_features[price_id]['start_codon']+","+\
-                        str(tr_features[price_id]['stop'])+","+\
-                        tr_features[price_id]['starts_list']+","+\
-                        tr_features[price_id]['ends_list']+","+\
-                        str(tr_features[price_id]['dist_to_transcript_start'])+","+\
-                        str(tr_features[price_id]['dist_to_aTIS'])+","+\
-                        tr_features[price_id]['annotation']+","+\
-                        tr_features[price_id]['biotype']+","+\
-                        tr_features[price_id]['aTIS_call']+","+\
-                        str(tr_features[price_id]['peak_shift'])+","+\
-                        str(tr_features[price_id]['count'])+","+\
-                        str(tr_features[price_id]['Rltm_min_Rchx'])+","+\
-                        str(tr_features[price_id]['coverage'])+","+\
-                        str(tr_features[price_id]['FPKM'])+","+\
-                        tr_features[price_id]['SNP']+","+\
-                        tr_features[price_id]['INDEL']+","+\
-                        tr_features[price_id]['secs']+","+\
-                        tr_features[price_id]['tr_seq']+","+\
-                        tr_features[price_id]['aa_seq']+","+\
-                        str(price_id)+","+\
-                        tr_features[price_id]['price_annotation']+","+\
-                        tr_features[price_id]['price_pval']+"\n"
-                    counter+=1
-                    FW.write(line)
-                else:
-                    line = tr_features[price_id]['tr_stable_id']+","+ \
-                        tr_features[price_id]['chr'] + "," + \
-                        str(tr_features[price_id]['strand']) + "," + \
-                        str(tr_features[price_id]['start']) + "," + \
-                        tr_features[price_id]['start_codon'] + "," + \
-                        str(tr_features[price_id]['stop']) + "," + \
-                        tr_features[price_id]['starts_list'] + "," + \
-                        tr_features[price_id]['ends_list'] + "," + \
-                        tr_features[price_id]['annotation'] + "," + \
-                        str(tr_features[price_id]['dist_to_transcript_start']) + "," + \
-                        str(tr_features[price_id]['dist_to_aTIS']) + "," + \
-                        tr_features[price_id]['tr_seq'] + "," + \
-                        tr_features[price_id]['aa_seq'] + "," + \
-                        tr_features[price_id]['secs'] + "," + \
-                        str(price_id)+"\n"
-                    FiltFW.write(line)
+            if tr_features[price_id]['start_codon']!="Unmatching_start_codon" and tr_features[price_id]['aa_seq'].split(',')[0]!="early_stop" and \
+                    tr_features[price_id]['aa_seq'] != "no_stop":
+                line = tr_features[price_id]['tr_stable_id']+","+\
+                    tr_features[price_id]['chr']+","+\
+                    str(tr_features[price_id]['strand'])+","+\
+                    str(tr_features[price_id]['start'])+","+\
+                    tr_features[price_id]['start_codon']+","+\
+                    str(tr_features[price_id]['stop'])+","+\
+                    tr_features[price_id]['starts_list']+","+\
+                    tr_features[price_id]['ends_list']+","+\
+                    str(tr_features[price_id]['dist_to_transcript_start'])+","+\
+                    str(tr_features[price_id]['dist_to_aTIS'])+","+\
+                    tr_features[price_id]['annotation']+","+\
+                    tr_features[price_id]['biotype']+","+\
+                    tr_features[price_id]['aTIS_call']+","+\
+                    str(tr_features[price_id]['peak_shift'])+","+\
+                    str(tr_features[price_id]['count'])+","+\
+                    str(tr_features[price_id]['Rltm_min_Rchx'])+","+\
+                    str(tr_features[price_id]['coverage'])+","+\
+                    str(tr_features[price_id]['FPKM'])+","+\
+                    tr_features[price_id]['SNP']+","+\
+                    tr_features[price_id]['INDEL']+","+\
+                    tr_features[price_id]['secs']+","+\
+                    tr_features[price_id]['tr_seq']+","+\
+                    tr_features[price_id]['aa_seq']+","+\
+                    str(price_id)+","+\
+                    tr_features[price_id]['price_annotation']+","+\
+                    tr_features[price_id]['price_pval']+"\n"
+                counter+=1
+                FW.write(line)
+            else:
+                line = tr_features[price_id]['tr_stable_id']+","+ \
+                    tr_features[price_id]['chr'] + "," + \
+                    str(tr_features[price_id]['strand']) + "," + \
+                    str(tr_features[price_id]['start']) + "," + \
+                    tr_features[price_id]['start_codon'] + "," + \
+                    str(tr_features[price_id]['stop']) + "," + \
+                    tr_features[price_id]['starts_list'] + "," + \
+                    tr_features[price_id]['ends_list'] + "," + \
+                    tr_features[price_id]['annotation'] + "," + \
+                    str(tr_features[price_id]['dist_to_transcript_start']) + "," + \
+                    str(tr_features[price_id]['dist_to_aTIS']) + "," + \
+                    tr_features[price_id]['tr_seq'] + "," + \
+                    tr_features[price_id]['aa_seq'] + "," + \
+                    tr_features[price_id]['secs'] + "," + \
+                    str(price_id)+"\n"
+                FiltFW.write(line)
         FiltFW.close()
 
     return counter
@@ -391,7 +390,7 @@ def get_id(result_db, tr_calling_method,fdr):
     return TIS_id
 
 ## Construct all necessary translation features for orf table
-def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, price_tmp, tr_calling_method):
+def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, price_tmp):
 
     #Init
     tr_features = defaultdict(lambda: defaultdict())
@@ -401,15 +400,10 @@ def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, pric
     store_secs_in_results_db(result_db, secs, price_tmp)
     biotypes = get_biotypes(ens_db)
     reads_for, reads_rev = get_reads(result_db)
-    tr_transcripts = get_tr_transcripts(result_db, tr_calling_method)
 
     for price_id in orfs:
         #Get some easy to obtain values
         tr_features[price_id]['tr_stable_id'] = orfs[price_id]['tr_stable_id']
-        #Check if ORF is in translated transcript
-        if tr_features[price_id]['tr_stable_id'] not in tr_transcripts:
-            tr_features[price_id]['tr_stable_id'] = "Unfound"
-            continue
         tr_features[price_id]['chr'] = orfs[price_id]['chr']
         tr_features[price_id]['strand'] = orfs[price_id]['strand']
         tr_features[price_id]['start_codon'] = orfs[price_id]['start_codon']
@@ -457,37 +451,6 @@ def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, pric
         tr_features[price_id]['price_annotation'] = orfs[price_id]['price_annotation']
 
     return tr_features
-
-## Get the translated transcripts
-def get_tr_transcripts(result_db, tr_calling_method):
-    
-    #Init
-    tr_transcripts = []
-    
-    try:
-        conn = sqlite.connect(result_db)
-    except:
-        print "ERROR: could not connect to "+result_db
-        sys.exit()
-
-    with conn:
-        cur = conn.cursor()
-
-        tbl = ""
-        if tr_calling_method=='rule_based':
-            tbl = "tr_translation"
-        else:
-            tbl = "tr_translation_ribozinb"
-
-        query = "SELECT stable_id FROM "+tbl+";"
-        cur.execute(query)
-
-        output = cur.fetchall()
-
-        for i in range(0, len(output)):
-            tr_transcripts.append(output[i][0])
-    
-    return tr_transcripts
 
 ## Determine coverage
 def calc_coverage(reads, coding_parts, chr):
