@@ -1,3 +1,4 @@
+$|=1;
 #!/usr/bin/perl -w
 
 #####################################
@@ -1294,6 +1295,12 @@ sub get_multiprocess_info{
     return ($ref_to_chr_sizes, $cores, $ens_db, $species);
 }
 
+
+########################
+# GENERATE FASTA SUBS  #
+########################
+
+
 sub generate_trans_db {
 
 	my $tis_id = shift;
@@ -1301,9 +1308,18 @@ sub generate_trans_db {
 	my $startRun = time();
 	my $table = "TIS_".$tis_id."_transcripts";
     my @tis = split '_', $tis_id; #SPLIT TIS id from SNP and INDEL underscore info
+    
+    #Get TIS calling method for TIS ID
+    my $TIS_calling_method = get_TIS_calling_method($dbh_results, $tis_id);
+    my $ens_db;
+    
+    #Get ens_db for PRICE and SPECtre
+    if($TIS_calling_method ne "Yes"){
+        $ens_db = get_ens_db($dbh_results);
+    }
 	
     print "Get transcript out of results DB\n";
-    my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0]); #Use TIS id itself (stored in $tis[0])
+    my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0], $TIS_calling_method, $ens_db); #Use TIS id itself (stored in $tis[0])
 	$total_tr = scalar(keys %$transcript);
 	$total_gene = scalar(keys %$gene_transcript);
 
@@ -1341,6 +1357,39 @@ sub generate_trans_db {
 	
 	timer($startRun);	# Get Run time
 	print STDOUT "-- Done --\n";
+}
+
+##Get ens db
+sub get_ens_db{
+    
+    #Catch
+    my $dbh = $_[0];
+    
+    my $query = "SELECT value FROM arguments WHERE variable='ens_db';";
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    
+    my @result = $sth->fetchrow_array();
+    my $ens_db = $result[0];
+
+    return $ens_db;
+}
+
+##Get transcript calling method from arguments table
+sub get_TIS_calling_method{
+    
+    #Catch
+    my $dbh = $_[0];
+    my $tis_id = $_[1];
+    
+    my $query = "SELECT TIS_calling FROM TIS_overview WHERE ID=".$tis_id.";";
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    
+    my @results = $sth->fetchrow_array();
+    my $TIS_calling_method = $results[0];
+    
+    return $TIS_calling_method;
 }
 
 
@@ -1777,7 +1826,7 @@ sub get_transcripts_from_resultdb {
 
 	# sub routine to extract Ribo-seq information from SQlite result database
 
-	my ($dbh,$tbl,$tis) = @_;
+    my ($dbh,$tbl,$tis,$TIS_calling_method,$ens_db) = @_;
 
 	my $var_tracker = {};
 	my $transcript = {};
@@ -1812,7 +1861,18 @@ sub get_transcripts_from_resultdb {
 				}
 			}
 		}
-		next if ($red_tis == 1);	
+		next if ($red_tis == 1);
+        
+        #Check for ORFs present in the ORF table but also in transcripts not in the translated transcripts table
+        #PRICE and SPECtre call ORFs based on the gtf transcript annotation, so they can call ORFs in uncalled transcripts
+        #These transcripts are not present in the tr_translation table and thus, not present in the transcript2geneid hash
+        #For these transcripts, include gene id and biotype info from ensembl
+        
+        #if stable id not present in transcript2geneid:
+        #   search in ensembl for gene id and biotype
+        unless(defined($transcript2geneid->{$tr_stable_id})){
+            ($transcript2geneid->{$tr_stable_id}->{'gene'}, $transcript2geneid->{$tr_stable_id}->{'biotype'}) = search_gene_ensembl($tr_stable_id, $ens_db);
+        }
 
 		# create unique transcript ID
 		my $tr = $tr_stable_id."_".$chr."_".$start."_".$annotation;
@@ -1846,6 +1906,43 @@ sub get_transcripts_from_resultdb {
 	
 	return $transcript,$gene_transcript;
 
+}
+
+#PRICE and SPECtre call ORFs based on the gtf transcript annotation, so they can call ORFs in uncalled transcripts
+#These transcripts are not present in the tr_translation table and thus, not present in the transcript2geneid hash
+#For these transcripts, include gene id and biotype info from ensembl
+sub search_gene_ensembl {
+    
+    #Catch
+    my $tr_stable_id = $_[0];
+    my $ens_db = $_[1];
+    
+    #Init
+    my $gene_id;
+    my $biotype;
+    
+    #Connect to ens_db
+    my $user = "";
+    my $pw = "";
+    
+    # Connect to ensembl sqlite database
+    my $dbh  = DBI->connect('DBI:SQLite:'.$ens_db,$user,$pw,
+    { RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
+    
+    my $query = "SELECT g.stable_id, g.biotype FROM gene AS g JOIN transcript AS t ON g.gene_id=t.gene_id WHERE t.stable_id='".$tr_stable_id."';";
+    my $execute = $dbh->prepare($query);
+    $execute->execute();
+    while(my @result = $execute->fetchrow()){
+        $gene_id = $result[0];
+        $biotype = $result[1];
+    }
+    
+    $execute->finish();
+    
+    #Disconnect
+    $dbh->disconnect();
+    
+    return ($gene_id, $biotype);
 }
 
 sub convert_species {
@@ -1903,11 +2000,11 @@ sub transcript_gene_id {
  	my $sth = $dbh->prepare($query);
 	$sth->execute();
 	while ( my ($stable_id, $biotype, $gene_stable_id, $start, $annotation, $aTIS_call) = $sth->fetchrow()) {
-		$transcript2geneid->{$stable_id}->{'gene'} = $gene_stable_id;
-		$transcript2geneid->{$stable_id}->{'biotype'} = $gene_stable_id;
-
-		if (uc($tis_call) eq "N") {next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE')}
-		if ($annotation eq 'aTIS') {$annotated_tr->{$gene_stable_id}->{$start} = 1;}
+        $transcript2geneid->{$stable_id}->{'gene'} = $gene_stable_id;
+        $transcript2geneid->{$stable_id}->{'biotype'} = $gene_stable_id;
+        
+        if (uc($tis_call) eq "N") {next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE')}
+        if ($annotation eq 'aTIS') {$annotated_tr->{$gene_stable_id}->{$start} = 1;}
 	}
 	$sth->finish();
 
