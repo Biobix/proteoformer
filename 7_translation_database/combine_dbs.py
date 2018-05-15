@@ -7,6 +7,10 @@ import argparse
 import re
 from collections import defaultdict
 import itertools
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib_venn import venn2, venn3
 #from print_collection import print_dict
 
 __author__ = 'Steven Verbruggen'
@@ -46,6 +50,9 @@ def main():
                                                                             "the input files and the database combinations "
                                                                               "with their binary codes will be stored "
                                                                               "(default: fasta_file_overview.txt)")
+    opt_args.add_argument("--venn_file", "-v", action="store", required=False, nargs="?", metavar="PATH",
+                          default="venn_diagram.png", type=str, help="Path to a png file where the Venn diagram will "
+                                                                     "be stored (default: venn_diagram.png)")
 
     args = parser.parse_args()
 
@@ -94,6 +101,9 @@ def main():
     #Add counts per bin code to the overview file
     add_counts_to_overview_file(counts_per_bincode, comb_dict, args.overview_file)
 
+    #Make Venn diagram
+    construct_venn(counts_per_bincode, args.venn_file, input_file_dict)
+
     #End of program message
     print
     print "-----------------------"
@@ -108,6 +118,47 @@ def main():
 ##########
 #  SUBS  #
 ##########
+
+#Construct Venn diagram of counts per bincode
+def construct_venn(counts, venn_file, input_file_dict):
+
+    #2group venn
+    if(len(counts.keys())==3):
+        subsets = (counts['10'], counts['01'], counts['11'])
+        set_labels = tuple(input_file_dict.keys())
+        textstr = ""
+        for i in input_file_dict.keys():
+            textstr = textstr+str(i)+": "+input_file_dict[i]+"\n"
+
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        v = venn2(subsets=subsets, set_labels=set_labels, ax=ax)
+
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        ax.text(-0.07, 0.15, textstr, transform=ax.transAxes, fontsize=14, verticalalignment='top', bbox=props)
+        plt.tight_layout()
+
+        fig.savefig(venn_file)
+        plt.close(fig)
+
+    #3group venn
+    if(len(counts.keys())==7):
+        subsets = (counts['100'], counts['010'], counts['110'], counts['001'], counts['101'], counts['011'], counts['111'])
+        set_labels = tuple(input_file_dict.keys())
+        textstr = ""
+        for i in input_file_dict.keys():
+            textstr = textstr+str(i)+": "+input_file_dict[i]+"\n"
+
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        v = venn3(subsets=subsets, set_labels=set_labels, ax=ax)
+
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        ax.text(-0.07, 0.15, textstr, transform=ax.transAxes, fontsize=14, verticalalignment='top', bbox=props)
+        plt.tight_layout()
+
+        fig.savefig(venn_file)
+        plt.close(fig)
+
+    return
 
 #Add count to overview file
 def add_counts_to_overview_file(counts, comb_dict, overview_file):
