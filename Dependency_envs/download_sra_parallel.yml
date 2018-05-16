@@ -1,0 +1,22 @@
+name: download_sra_parallel
+channels:
+- bioconda
+- conda-forge
+- defaults
+- r
+dependencies:
+- parallel-fastq-dump=0.6.3=py35_0
+- sra-tools=2.8.2=0
+- ca-certificates=2018.4.16=0
+- certifi=2018.4.16=py35_0
+- ncurses=5.9=10
+- openssl=1.0.2o=0
+- pip=9.0.3=py35_0
+- python=3.5.5=1
+- readline=7.0=0
+- setuptools=39.1.0=py35_0
+- sqlite=3.20.1=2
+- tk=8.6.7=0
+- wheel=0.31.0=py35_0
+- xz=5.2.3=0
+- zlib=1.2.11=0
