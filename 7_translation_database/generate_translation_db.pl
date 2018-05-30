@@ -1807,8 +1807,8 @@ sub remove_redundancy {
         $non_red_trans->{$selected_acc} = $transcript->{$selected_acc};
         
         foreach my $tr (keys %{$transcript_seq->{$seq}}) {
-            next if ($selected_acc eq $tr);
-            next if ($transcript->{$selected_acc}->{'gene'} eq $transcript->{$tr}->{'gene'});
+            #next if ($selected_acc eq $tr); #Not necessary to throw this info away
+            #next if ($transcript->{$selected_acc}->{'gene'} eq $transcript->{$tr}->{'gene'});
             push @{$non_red_trans->{$selected_acc}->{'others'}}, $tr;
         }
         
