@@ -1770,7 +1770,6 @@ sub remove_redundancy {
                         $transcript_seq->{$seq1}->{$tr} = 1;
                         delete $transcript_seq->{$seq2};
                         $flag = 0;
-                        last;
                     } elsif (index($seq2_tmp, $seq1_tmp) >= 0) {
                         $transcript_seq->{$seq2}->{$tr} = 1;
                         $flag = 0;
@@ -1820,7 +1819,7 @@ sub remove_redundancy {
         $non_red_trans->{$selected_acc} = $transcript->{$selected_acc};
         
         foreach my $tr (keys %{$transcript_seq->{$seq}}) {
-            #next if ($selected_acc eq $tr); #Not necessary to throw this info away
+            next if ($selected_acc eq $tr); #Not necessary to throw this info away
             #next if ($transcript->{$selected_acc}->{'gene'} eq $transcript->{$tr}->{'gene'});
             push @{$non_red_trans->{$selected_acc}->{'others'}}, $tr;
         }
