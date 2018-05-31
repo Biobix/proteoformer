@@ -51,7 +51,7 @@ my $blastdb;		# Usearch/blastp formatted database
 my $result_db;		# SQLite source database
 my $tis_ids;		# TIS ID to generate table from
 my $mapping;		# Ensembl database name to download biomart mapped transcripts 
-my $mflag;			# Flag for biomart mappings, 1 = remote download, 2 = local file, 3 = sequence based mapping, 4 = no mapping.
+my $mflag;			# Flag for biomart mappings, 1 = remote download, 2 = local file, 3 = sequence based mapping, 4 = no mapping but remove redundancy, 5 = no mapping and no redundancy removal.
 my $work_dir;		# Working directory
 my $blast_pgm;		# The program to use for search, Default program = blastp [NB: Not valid when mflag = 4]
 my $min_blast_length;	# minimum sequence length to perform blast
@@ -270,12 +270,14 @@ if ($mflag) {
         if ($blastdb) {
             print STDOUT "The blast database is : $blastdb\n";
         } else {
-            print STDOUT "No blast database supplied. Ensure you have choose the no blast search option.\n"
+            print STDOUT "No blast database supplied. Ensure you have choose the no blast search option.\n";
         }
 		
 	} elsif ($mflag == 4) {
-		print STDOUT "Derived translation product  database will not be mapped to any canonical information.\n"
-	}
+		print STDOUT "Derived translation product  database will not be mapped to any canonical information. Redundancy will be removed. \n";
+    } elsif ($mflag == 5) {
+        print STDOUT "Derived translation product database will not be mapped to any canonical information. Redundancy will not be removed. \n";
+    }
 
 } else {
 	print STDOUT "Derived translation product database will not be mapped to any canonical information.\n";
@@ -291,8 +293,8 @@ if ($peff){
             print STDOUT "The program will generate : FASTA\n";
         } elsif ($peff eq 'Y'){
             print STDOUT "The program will generate : PEFF\n";
-            $mflag = 4;
-            print STDOUT "Mflag automatically turned to '4' as no mapping is yet available for PEFF file generation.\n";
+            $mflag = 5;
+            print STDOUT "Mflag automatically turned to '5' as no mapping is yet available for PEFF file generation.\n";
         }
     }
 } else {
@@ -1322,10 +1324,13 @@ sub generate_trans_db {
     my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0], $TIS_calling_method, $ens_db); #Use TIS id itself (stored in $tis[0])
 	$total_tr = scalar(keys %$transcript);
 	$total_gene = scalar(keys %$gene_transcript);
-
-    print "Removin redundant sequences from TIS fasta database\n";
-	my $non_redundant_transcript = remove_redundancy($transcript);
-	my $total_non_red_tr = scalar(keys %$non_redundant_transcript);
+    
+    my $non_redundant_transcript;
+    if($mflag!=5){
+        print "Removin redundant sequences from TIS fasta database\n";
+        $non_redundant_transcript = remove_redundancy($transcript);
+        my $total_non_red_tr = scalar(keys %$non_redundant_transcript);
+    }
 	
 	# 1 = remote download, 2 = local file, 3 = sequence based mapping, 4 = no mapping.
 	if ($mflag == 1 or $mflag == 2) {		#  ID based mapping
@@ -1353,7 +1358,11 @@ sub generate_trans_db {
 	}
     
     print "Write output\n";
-	write_output($non_redundant_transcript,$translation_db,$var_file);
+    if ($mflag==5){
+        write_output($transcript, $translation_db, $var_file);
+    } else {
+        write_output($non_redundant_transcript,$translation_db,$var_file);
+    }
 	
 	timer($startRun);	# Get Run time
 	print STDOUT "-- Done --\n";
@@ -1443,7 +1452,11 @@ sub write_output {
 
 	print STDOUT "Total number of genes with at least one TIS called ", $total_gene, "\n";
 	print STDOUT "Total number of possible TIS predicted ", $total_tr, "\n";
-	print STDOUT "Total number of non redundant sequence in fasta db ",$nonRedundantTrans," ($percent%)\n";
+    if($mflag==5){
+        print STDOUT "Total number of sequences in redundant fasta db ",$nonRedundantTrans,"\n";
+    } else {
+        print STDOUT "Total number of non redundant sequence in fasta db ",$nonRedundantTrans," ($percent%)\n";
+    }
 
 	if ($mflag == 1 or $mflag == 2 or $mflag == 2) {
 		print STDOUT "Number of transcripts mapped to external refernece: $count_mapped ($percent_mapped%)\n\n";
