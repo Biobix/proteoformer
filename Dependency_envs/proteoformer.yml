@@ -25,7 +25,7 @@ dependencies:
 - perl-threaded=5.22.0=pl5.22.0_12
 - plastid=0.4.7=py27_0
 - pysam=0.11.2.2=py27_1
-- python-dateutil=2.3=py27_0
+- python-dateutil
 - samtools=1.5=1
 - twobitreader=3.1.4=py27_0
 - ucsc-bedtobigbed=357=0
@@ -103,3 +103,4 @@ dependencies:
 - tk=8.6.7=hc745277_3
 - wheel=0.29.0=py27h411dd7b_1
 - zlib=1.2.11=ha838bed_2
+- perl-bioperl
