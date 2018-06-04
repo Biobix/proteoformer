@@ -19,6 +19,13 @@ system("tar -xvf XML-Smart-1.79.tar");
 system("rm -rf XML-Smart-1.79.tar");
 system("mv XML-Smart-1.79 ".$install_dir);
 
+#system("wget http://search.cpan.org/CPAN/authors/id/O/OA/OALDERS/libwww-perl-6.33.tar.gz");
+#system("gunzip libwww-perl-6.33.tar.gz");
+#system("tar -xvf libwww-perl-6.33.tar");
+#system("rm -rf libwww-perl-6.33.tar");
+#system("mv libwww-perl-6.33 ".$install_dir);
+
+
 chdir $install_dir."/Object-MultiType-0.05";
 system("perl Makefile.PL");
 system("make");
@@ -30,3 +37,9 @@ system("perl Makefile.PL");
 system("make");
 system("make test");
 system("make install");
+
+#chdir $install_dir."/libwww-perl-6.33";
+#system("perl Makefile.PL");
+#system("make");
+#system("make test");
+#system("make install");

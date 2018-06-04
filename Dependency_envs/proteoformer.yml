@@ -104,3 +104,7 @@ dependencies:
 - wheel=0.29.0=py27h411dd7b_1
 - zlib=1.2.11=ha838bed_2
 - perl-bioperl
+- perl-http-message
+- perl-try-tiny
+- perl-file-which
+- perl-lwp-protocol-https
