@@ -50,9 +50,13 @@ def main():
                                                                             "the input files and the database combinations "
                                                                               "with their binary codes will be stored "
                                                                               "(default: fasta_file_overview.txt)")
-    opt_args.add_argument("--venn_file", "-v", action="store", required=False, nargs="?", metavar="PATH",
+    opt_args.add_argument("--venn_diagram", "-d", action="store", required=False, nargs="?", metavar="PATH",
                           default="venn_diagram.png", type=str, help="Path to a png file where the Venn diagram will "
                                                                      "be stored (default: venn_diagram.png)")
+    opt_args.add_argument("--verbose_output", "-v", action="store", required=False, nargs="?", metavar="Y/N",
+                          default="Y", type=str, help="Whether the output fasta should give the full list of accessions per "
+                                                      "combination. If not, redundant accessions between input files, will be "
+                                                      "omitted (default: Y)")
 
     args = parser.parse_args()
 
@@ -62,6 +66,9 @@ def main():
     #Check mandatory input
     if args.in_files == "":
         print "Do not forget to specify all input fasta files!"
+        sys.exit()
+    if(args.verbose_output!='Y' and args.verbose_output!='N'):
+        print "Verbose output argument should be Y or N!"
         sys.exit()
 
     #List parameters
@@ -93,7 +100,7 @@ def main():
     comb_dict = construct_combinations(input_file_dict, args.overview_file)
 
     #Put together based on sequence
-    (comb_data, counts_per_bincode) = combine_data_on_seq_level(input_data, comb_dict, input_file_dict)
+    (comb_data, counts_per_bincode) = combine_data_on_seq_level(input_data, comb_dict, input_file_dict, args.verbose_output)
 
     #Print to output fasta file
     print_to_output(comb_data, args.output_file)
@@ -102,7 +109,7 @@ def main():
     add_counts_to_overview_file(counts_per_bincode, comb_dict, args.overview_file)
 
     #Make Venn diagram
-    construct_venn(counts_per_bincode, args.venn_file, input_file_dict)
+    construct_venn(counts_per_bincode, args.venn_diagram, input_file_dict)
 
     #End of program message
     print
@@ -193,7 +200,7 @@ def print_to_output(comb_data, output_file):
     return
 
 #Combine the data of all fasta files. We want to combine on sequence level so that this results in unique sequences.
-def combine_data_on_seq_level(input_data, comb_dict, input_file_dict):
+def combine_data_on_seq_level(input_data, comb_dict, input_file_dict, verbose_output):
 
     #Init
     #Structure comb_data:
@@ -247,7 +254,7 @@ def combine_data_on_seq_level(input_data, comb_dict, input_file_dict):
                 m_main = re.search('^>generic\|(.+?)\|', comb_data_per_file[sequence][file_number])
                 if m_main:
                     new_side_accession = m_main.group(1)
-                    if (new_side_accession!=main_accession) and not (new_side_accession in side_accession):
+                    if ((new_side_accession!=main_accession) and not (new_side_accession in side_accession) or verbose_output=='Y'):
                         side_accession.append(new_side_accession)
                         side_suffix.append(file_number)
             # Other accessions as side accessions
@@ -255,7 +262,7 @@ def combine_data_on_seq_level(input_data, comb_dict, input_file_dict):
             if m_side:
                 new_side_accessions = m_side.group(1).split('#')
                 for new_side_accession in new_side_accessions:
-                    if (new_side_accession!=main_accession) and not (new_side_accession in side_accession):
+                    if ((new_side_accession!=main_accession) and not (new_side_accession in side_accession) or verbose_output=='Y'):
                         side_accession.append(new_side_accession)
                         side_suffix.append(file_number)
 
