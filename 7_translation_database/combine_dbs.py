@@ -335,9 +335,10 @@ def read_input_files(input_file_dict):
             lines = map(lambda x: x.rstrip("\n"), lines)
             for i in range(0, len(lines)):
                 #Check if accession -> new entry
-                if((re.search('^>', lines[i])) and i!=0):
-                    #Save previous entry
-                    input_data[file_number][accession] = sequence
+                if((re.search('^>', lines[i]))):
+                    if(i!=0):
+                        #Save previous entry
+                        input_data[file_number][accession] = sequence
                     #Get new entry accession and empty sequence
                     accession = lines[i]
                     sequence = ""
