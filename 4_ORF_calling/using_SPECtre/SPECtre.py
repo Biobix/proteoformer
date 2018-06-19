@@ -89,7 +89,9 @@ def main():
                                          " but you can suggest a different number of cores for this part here")
     opt_args.add_argument("--threads_per_chrom", "-x", action="store", required=False, nargs="?", metavar="INTEGER",
                           default=1, type=int, help="The number of threads used per chromosome to run chromosomal "
-                                                    "SPECTRE runs with")
+                                                    "SPECTRE runs with (default: 1)")
+    opt_args.add_argument("--fdr", "-f", action="store", required=True, nargs="?", metavar="float",
+                          default=0.05, type=float, help="FDR used in SPECTRE (default: 0,05)")
 
     args = parser.parse_args()
 
@@ -193,7 +195,7 @@ def main():
     print "[%s]: Run SPECtre" % (convert_time(time.time()-starttime))
     sys.stdout.flush()
     merged_results_file = run_spectre(installation_dir, args.untr_bam, spectre_tmp, isoform_file, gtf_file, args.offsets, chrs,
-                args.cores, args.threads_per_chrom, starttime)
+                args.cores, args.threads_per_chrom, starttime, args.fdr)
     print "[%s]: COMPLETE: SPECtre run" % (convert_time(time.time() - starttime))
     print
     sys.stdout.flush()
@@ -205,7 +207,7 @@ def main():
     print
     print "[%s]: Parse SPECtre results" % (convert_time(time.time()-starttime))
     sys.stdout.flush()
-    parse_results(args.result_db, spectre_tmp, table_args.ensdb, BIN_chrom_dir, merged_results_file, table_args.tr_calling_method, gtf_file)
+    parse_results(args.result_db, spectre_tmp, table_args.ensdb, BIN_chrom_dir, merged_results_file, table_args.tr_calling_method, gtf_file, args.fdr)
     print "[%s]: COMPLETE: SPECtre results parsing" % (convert_time(time.time() - starttime))
     print
     sys.stdout.flush()
@@ -222,7 +224,7 @@ def main():
     return
 
 ## Parse SPECtre results into assembly table
-def parse_results(results_db, spectre_tmp, ens_db, BIN_chrom_dir, merged_results_file, tr_calling_method, gtf_file):
+def parse_results(results_db, spectre_tmp, ens_db, BIN_chrom_dir, merged_results_file, tr_calling_method, gtf_file, fdr):
 
     #Load in log file for statistics
     threshold_translation = load_log_file(spectre_tmp)
@@ -240,7 +242,7 @@ def parse_results(results_db, spectre_tmp, ens_db, BIN_chrom_dir, merged_results
 
 
     #Drop possible existing table and initiate new table
-    tis_id = get_id(results_db, tr_calling_method)
+    tis_id = get_id(results_db, tr_calling_method, fdr)
     table_name = "TIS_"+str(tis_id)+"_transcripts"
     create_new_table(results_db, table_name)
 
@@ -401,7 +403,7 @@ def create_new_table(results_db, table_name):
     return
 
 ## Get TIS ID
-def get_id(result_db, tr_calling_method):
+def get_id(result_db, tr_calling_method, fdr):
 
     #Connect to db
     try:
@@ -428,6 +430,7 @@ def get_id(result_db, tr_calling_method):
                         "'min_count_ntr' int(10) NOT NULL default '', " \
                         "'R_ntr' decimal(11,8) NOT NULL default '', " \
                         "'PRICE_FDR' decimal(11,8) NOT NULL default ''," \
+                        "'SPECTRE_FDR' decimal(11,8) NOT NULL default ''," \
                         "'SNP' varchar(20) default '', " \
                         "'indel' varchar(20) default '', " \
                         "'filter' varchar(20) default '', " \
@@ -436,8 +439,8 @@ def get_id(result_db, tr_calling_method):
         cur.execute(query_create)
 
         #Add parameters and get ID
-        query_add = "INSERT INTO 'TIS_overview'(filter,tr_calling,TIS_calling,SNP,indel) "\
-                    "VALUES('none','"+tr_calling_method+"','SPECtre','NO','NO');"
+        query_add = "INSERT INTO 'TIS_overview'(filter,tr_calling,SPECTRE_FDR,TIS_calling,SNP,indel) "\
+                    "VALUES('none','"+tr_calling_method+"','"+str(fdr)+"','SPECtre','NO','NO');"
         cur.execute(query_add)
         TIS_id = int(cur.lastrowid)
 
@@ -1072,7 +1075,7 @@ def load_spectre_results(spectre_tmp, merged_results_file_with_header):
     return results
 
 ## Run SPECtre
-def run_spectre(installation_dir, bam, spectre_tmp, isoform_file, gtf, offsets, chrs, cores, threads_per_chromosome, starttime):
+def run_spectre(installation_dir, bam, spectre_tmp, isoform_file, gtf, offsets, chrs, cores, threads_per_chromosome, starttime, fdr):
 
     if not os.path.isfile(bam+".bai"):
         #Index bam file
@@ -1096,7 +1099,7 @@ def run_spectre(installation_dir, bam, spectre_tmp, isoform_file, gtf, offsets, 
     sys.stdout.flush()
 
     pool = Pool(processes=nr_of_parallel_chrs)
-    [pool.apply_async(run_spectre_chr, args=(chrm, installation_dir, bam, spectre_tmp, isoform_file, gtf, offsets, threads_per_chromosome, starttime)) for chrm in chrs.keys()]
+    [pool.apply_async(run_spectre_chr, args=(chrm, installation_dir, bam, spectre_tmp, isoform_file, gtf, offsets, threads_per_chromosome, fdr, starttime)) for chrm in chrs.keys()]
     pool.close()
     pool.join()
 
@@ -1118,12 +1121,12 @@ def run_spectre(installation_dir, bam, spectre_tmp, isoform_file, gtf, offsets, 
     return merged_results_file
 
 ## Run SPECtre (chromosomal)
-def run_spectre_chr(chrm, installation_dir, bam, spectre_tmp, isoform_file, gtf, offsets, threads_per_chromosome, starttime):
+def run_spectre_chr(chrm, installation_dir, bam, spectre_tmp, isoform_file, gtf, offsets, threads_per_chromosome, fdr, starttime):
     try:
         if not os.path.isfile(spectre_tmp+"/spectre_results/spectre_results_"+chrm+".txt"):
             command_spectre = "python " + installation_dir + "/SPECtre.py --input " + bam + " --output " + spectre_tmp + \
                               "/spectre_results/spectre_results_" + chrm + ".txt --fpkm " + isoform_file + " --gtf " + gtf + " --log " + \
-                              spectre_tmp + "/spectre_" + chrm + ".log --target " + chrm + " --offsets " + offsets + " --nt " + \
+                              spectre_tmp + "/spectre_" + chrm + ".log --fdr "+str(fdr)+" --target " + chrm + " --offsets " + offsets + " --nt " + \
                               str(threads_per_chromosome) + " --floss --orfscore --full"
             print "\t\t[%s]: Run SPECtre for chromosome %s" % ((convert_time(time.time() - starttime)), chrm)
             print "\t\t"+command_spectre
