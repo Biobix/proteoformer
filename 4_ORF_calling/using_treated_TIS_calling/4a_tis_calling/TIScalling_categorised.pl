@@ -1056,7 +1056,7 @@ sub store_in_db{
     `aTIS_call` varchar(128) NOT NULL default 'NA',
     `start_codon` varchar(128) NOT NULL default '',
     `peak_shift` int(2) NOT NULL default '',
-    `count` float default NULL,
+    `count_TIS` float default NULL,
     `Rltm_min_Rchx` decimal(11,8) NOT NULL default '0')"  ;
     $dbh->do($query);
 
