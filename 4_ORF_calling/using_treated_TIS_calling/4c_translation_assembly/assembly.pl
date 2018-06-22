@@ -263,7 +263,7 @@ my $analysis_id;
 #Loop over all selected analysis_ids
 foreach $analysis_id (@$idsref) {
     print "Processing analysis_id $analysis_id ...\n";
-    construct_trans_prod($annot,$fusion,$novel,$snp,$ins,$del,$transl_type,$transl_RF,$readtype,$work_dir,$TMP,$analysis_id,$secs);
+    construct_trans_prod($annot,$fusion,$novel,$snp,$ins,$del,$transl_type,$transl_RF,$readtype,$work_dir,$TMP,$analysis_id,$secs,$run_name,$mapper,$ensemblversion,$unique);
     #Add snp info in TIS_OVERVIEW records
     update_TIS_overview($snp,$analysis_id);
 }
@@ -578,7 +578,16 @@ sub construct_trans_prod {
     my $tmp = $_[10];
     my $analysis_id = $_[11];
     my $secs = $_[12];
-
+    my $run_name = $_[13];
+    my $mapper = $_[14];
+    my $version = $_[15];
+    my $uniq = $_[16];
+    
+    #Calculate Seq depth
+    my $sample_name = $run_name."_".$mapper."_".$uniq."_".$version.".fastq1";
+    my $seq_depth = get_mapped_total($dsn_results, $us_results, $pw_results, $sample_name);
+    my $seq_depthM = $seq_depth/1000000;
+    
     #print "analysis_id = $analysis_id\n";
     # Get chromosomes name,seq_region_id
     my $dbh_ENS = dbh($dsn_ENS,$us_ENS,$pw_ENS);
@@ -624,9 +633,11 @@ sub construct_trans_prod {
 
         ## Get transcript_ids per chr from transcript calling
         my $transcript_starts = get_transcripts_per_chromosome($dbh_results,$chr,$analysis_id);
+        ## Get reads per chr
+        my ($reads_FOR,$reads_REV) = get_reads($dbh_results, $chr);
         #print Dumper($transcript_starts); exit;
         # Init
-        my ($cnt, $transcript_start,$tr_id,$TIS,$exons,$strand,$start_codon,$dist_to_transcript_start,$dist_to_aTIS,$annotation,$aTIS_call,$peak_shift,$count,$Rltm_min_Rchx,$exon,$tr_stable_id,$e_rank,$e_start,$e_end,$e_start_phase,$e_end_phase,$e_stable_id,$seq,$tr_seq,$AA_seq,$exon_SNP,$CDS_tmp_length);
+        my ($cnt, $transcript_start,$tr_id,$TIS,$exons,$strand,$start_codon,$dist_to_transcript_start,$dist_to_aTIS,$annotation,$aTIS_call,$peak_shift,$count_TIS,$Rltm_min_Rchx,$exon,$tr_stable_id,$e_rank,$e_start,$e_end,$e_start_phase,$e_end_phase,$e_stable_id,$seq,$tr_seq,$AA_seq,$exon_SNP,$CDS_tmp_length);
         
         #my @tr = ("440589_118628041"); ##line for TEST purposes
         #my @tr = ("99752_25811464", "99752_25800231");
@@ -647,11 +658,11 @@ sub construct_trans_prod {
             $annotation                     = $transcript_starts->{$transcript_start}{'annotation'};
             $aTIS_call                      = $transcript_starts->{$transcript_start}{'aTIS_call'};
             $peak_shift                     = $transcript_starts->{$transcript_start}{'peak_shift'};
-            $count                          = $transcript_starts->{$transcript_start}{'count'};
+            $count_TIS                      = $transcript_starts->{$transcript_start}{'count_TIS'};
             $Rltm_min_Rchx                  = $transcript_starts->{$transcript_start}{'Rltm_min_Rchx'};
 
 
-            #print "$tr_id,$TIS,$strand,$start_codon,$dist_to_transcript_start,$dist_to_aTIS,$annotation,$peak_shift,$count,$Rltm_min_Rchx\n";
+            #print "$tr_id,$TIS,$strand,$start_codon,$dist_to_transcript_start,$dist_to_aTIS,$annotation,$peak_shift,$count_TIS,$Rltm_min_Rchx\n";
 
             # Get exons of transcript and their chrom positions
             $exons = get_exons_for_tr($dbh_ENS,$tr_id);
@@ -659,7 +670,6 @@ sub construct_trans_prod {
             $CDS_tmp_length = 0;
             # Hash will be needed to include positions of genomic positions of the ORF -> needed for ORF based counts
             my $tmp_orf_structure = {};
-            my $orf_structure = {};
             my $orf_exon_counter = 0;
             my $stop_coord;
 
@@ -777,6 +787,7 @@ sub construct_trans_prod {
                     $out_cnt++;
                     $AA_seq = ($_->{'AAseq'}) ? $_->{'AAseq'} : '';
                     $tr_seq = $_->{'seq'};
+                    my $orf_structure = {};
 
                     #Only output transcripts that actually terminate with a STOP-codon (transcript forms with missing 3' exons resulting in missing STOP-codon are excluded)
                     if ($AA_seq =~ /\*$/ && $AA_seq ne '') {
@@ -810,9 +821,11 @@ sub construct_trans_prod {
                             $orf_structure->{$i}->{'length'} = $orf_length;
                         }
 
-                        #Make underscore seperated sequences of start and stop coordinates
+                        #Make underscore seperated sequences of start and stop coordinates and determine total count over the ORF
                         my $starts_seq="";
                         my $ends_seq="";
+                        my $count = 0;
+                        my $covered_positions = 0;
                         if($strand eq '1'){
                             for(my $i=1;$i<=scalar(keys(%{$orf_structure}));$i++){
                                 if($i==1){
@@ -821,6 +834,13 @@ sub construct_trans_prod {
                                 } elsif ($i>1) {
                                     $starts_seq = $starts_seq."_".$orf_structure->{$i}->{'start'};
                                     $ends_seq = $ends_seq."_".$orf_structure->{$i}->{'end'};
+                                }
+                                #Go over all coordinates of the exon and add the counts for these positions
+                                for(my $pos=$orf_structure->{$i}->{'start'}; $pos<=$orf_structure->{$i}->{'end'}; $pos++){
+                                    if(exists $reads_FOR->{$pos}){
+                                        $count = $count + $reads_FOR->{$pos}->{'count'};
+                                        $covered_positions++;
+                                    }
                                 }
                             }
                         } elsif ($strand eq '-1'){
@@ -832,13 +852,27 @@ sub construct_trans_prod {
                                     $starts_seq = $starts_seq."_".$orf_structure->{$i}->{'start'};
                                     $ends_seq = $ends_seq."_".$orf_structure->{$i}->{'end'};
                                 }
+                                #Go over all coordinates of the exon and add the counts for these positions
+                                for(my $pos=$orf_structure->{$i}->{'start'};$pos<=$orf_structure->{$i}->{'end'};$pos++){
+                                    if(exists $reads_REV->{$pos}){
+                                        $count = $count + $reads_REV->{$pos}->{'count'};
+                                        $covered_positions++;
+                                    }
+                                }
                             }
                         }
-
+                        
+                        #Calculate FPKM and coverage
+                        my $length_orf = length($AA_seq) * 3;
+                        my $length_orfK = $length_orf/1000;
+                        my $FPM = $count/$seq_depthM;
+                        my $FPKM = $FPM/$length_orfK;
+                        my $coverage = $covered_positions/$length_orf;
+                        
                         #Control if first codon is (near-)cognate and replace near-cognate start to cognate methionine.
                         if(substr($tr_seq,0,3) =~ m/[ACTG]TG|A[ACTG]G|AT[ACTG]/){
                             $AA_seq = (substr($AA_seq,0,1) ne 'M') ? 'M'.substr($AA_seq,1) : $AA_seq;
-                            print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",,,".$_->{'SNP_NS'}.",,".$_->{'SEC_NS'}.",".$tr_seq.",".$AA_seq."\n";
+                            print TMP_db $tr_stable_id.",".$chr.",".$strand.",".$TIS.",".$start_codon.",".$stop_coord.",".$starts_seq.",".$ends_seq.",".$dist_to_transcript_start.",".$dist_to_aTIS.",".$annotation.",".$aTIS_call.",".$peak_shift.",".$count.",".$Rltm_min_Rchx.",".$coverage.",".$FPKM.",".$_->{'SNP_NS'}.",,".$_->{'SEC_NS'}.",".$tr_seq.",".$AA_seq."\n";
                         }
 
                     }
@@ -867,6 +901,58 @@ sub construct_trans_prod {
 
 
 }
+
+## Get reads per chr ##
+sub get_reads{
+    
+    #Catch
+    my $dbh_results = $_[0];
+    my $chr = $_[1];
+    
+    #Init
+    my $reads_FOR = {};
+    my $reads_REV = {};
+    
+    # Get Untreated Reads
+    my $query = "SELECT * FROM count_fastq1 WHERE chr = '$chr' and strand = '1'";
+    my $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    $reads_FOR = $sth->fetchall_hashref('start');
+    
+    $query = "SELECT * FROM count_fastq1 WHERE chr = '$chr' and strand = '-1'";
+    $sth = $dbh_results->prepare($query);
+    $sth->execute();
+    $reads_REV = $sth->fetchall_hashref('start');
+    
+    return($reads_FOR,$reads_REV);
+}
+
+## Get total mapped reads
+sub get_mapped_total{
+    
+    #Catch
+    my $dsn_results = $_[0];
+    my $us_results = $_[1];
+    my $pw_results = $_[2];
+    my $sample_name = $_[3];
+    
+    #Database connection
+    my $dbh = dbh($dsn_results, $us_results, $pw_results);
+    
+    my $query = "SELECT mapped_T FROM statistics WHERE sample='".$sample_name."' AND type='genomic';";
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    
+    my $mapped_total = $sth->fetch()->[0];
+    
+    $sth->finish();
+    
+    #Disconnect
+    $dbh->disconnect();
+    
+    return $mapped_total
+}
+
 
 ### Store in DB ##
 sub store_in_db{
@@ -1059,9 +1145,9 @@ sub get_transcripts_per_chromosome {
     my $transcript_starts = {};
 
     #print "chr_name = $chr_name\n";
-    my $query = "SELECT transcript_id||'_'||start as transcript_start,transcript_id,biotype,chr,strand,start,dist_to_transcript_start,dist_to_aTIS,annotation,aTIS_call,start_codon,peak_shift,count,Rltm_min_Rchx FROM TIS_".$analysis_id." WHERE chr = '".$chr_name."'";
+    my $query = "SELECT transcript_id||'_'||start as transcript_start,transcript_id,biotype,chr,strand,start,dist_to_transcript_start,dist_to_aTIS,annotation,aTIS_call,start_codon,peak_shift,count_TIS,Rltm_min_Rchx FROM TIS_".$analysis_id." WHERE chr = '".$chr_name."';";
     ##Test for annotation='aTIS' and aTIS_call='True'
-    #my $query = "SELECT transcript_id||'_'||start as transcript_start,transcript_id,biotype,chr,strand,start,dist_to_transcript_start,dist_to_aTIS,annotation,aTIS_call,start_codon,peak_shift,count,Rltm_min_Rchx FROM TIS_".$analysis_id." WHERE chr = '".$chr_name."' (";
+    #my $query = "SELECT transcript_id||'_'||start as transcript_start,transcript_id,biotype,chr,strand,start,dist_to_transcript_start,dist_to_aTIS,annotation,aTIS_call,start_codon,peak_shift,count_TIS,Rltm_min_Rchx FROM TIS_".$analysis_id." WHERE chr = '".$chr_name."' (";
     #print "$query\n";
     my $sth = $dbh->prepare($query);
     $sth->execute();
