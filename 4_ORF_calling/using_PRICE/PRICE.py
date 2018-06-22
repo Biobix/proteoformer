@@ -64,7 +64,8 @@ def main():
     #Get parameters from arguments table
     table_args = argparse.Namespace()
     table_args.igenomes_root, table_args.species, table_args.ens_v, table_args.ensdb, table_args.readtype, \
-        table_args.bam_untr, table_args.bam_tr, table_args.cores, table_args.tr_calling_method = get_arguments(args.result_db)
+        table_args.bam_untr, table_args.bam_tr, table_args.cores, table_args.tr_calling_method, table_args.run_name, \
+        table_args.mapper, table_args.uniq = get_arguments(args.result_db)
 
     # Conversion of species terminology
     speciesLatin = "Mus_musculus" if table_args.species == "mouse" else \
@@ -192,7 +193,8 @@ def main():
     print
     print "[%s]: Convert to assembly table features" % (convert_time(time.time() - starttime))
     sys.stdout.flush()
-    tr_features = construct_tr_features(orfs, table_args.ensdb, gtf_file, BIN_chrom_dir, args.result_db, price_tmp)
+    tr_features = construct_tr_features(orfs, table_args.ensdb, gtf_file, BIN_chrom_dir, args.result_db, price_tmp,
+                                        table_args.run_name, table_args.mapper, table_args.uniq, table_args.ens_v)
     print "[%s]: COMPLETE: assembly table features" % (convert_time(time.time() - starttime))
     sys.stdout.flush()
 
@@ -391,7 +393,7 @@ def get_id(result_db, tr_calling_method,fdr):
     return TIS_id
 
 ## Construct all necessary translation features for orf table
-def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, price_tmp):
+def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, price_tmp, run_name, mapper, uniq, ensversion):
 
     #Init
     tr_features = defaultdict(lambda: defaultdict())
@@ -401,6 +403,9 @@ def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, pric
     store_secs_in_results_db(result_db, secs, price_tmp)
     biotypes = get_biotypes(ens_db)
     reads_for, reads_rev = get_reads(result_db)
+    sample_name = run_name+"_"+mapper+"_"+uniq+"_"+str(ensversion)+".fastq1"
+    seq_depth = get_seq_depth(result_db, sample_name)
+    seq_depthM = seq_depth/1000000
 
     for price_id in orfs:
         #Get some easy to obtain values
@@ -420,6 +425,7 @@ def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, pric
             calc_dists(tr_features[price_id]['start'], aTIS, exons, tr_features[price_id]['strand'])
         tr_features[price_id]['annotation'] = get_annotation(tr_features[price_id]['start'], aTIS, stop,
                                                              tr_features[price_id]['strand'])
+        #Construct sequence features
         (tr_features[price_id]['start_codon'], tr_features[price_id]['tr_seq'], tr_features[price_id]['aa_seq'],
             tr_features[price_id]['secs']) = construct_seq(coding_parts, tr_features[price_id]['strand'], BIN_chrom_dir,
             tr_features[price_id]['chr'], tr_features[price_id]['tr_stable_id'], price_id, secs,
@@ -435,15 +441,15 @@ def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, pric
         tr_features[price_id]['peak_shift'] = "NA"
         #Calc coverage based on read table info
         if(tr_features[price_id]['strand']=="1"):
-            tr_features[price_id]['coverage'] = calc_coverage(reads_for, coding_parts, tr_features[price_id]['chr'])
+            (tr_features[price_id]['coverage'], tr_features[price_id]['count'], tr_features[price_id]['FPKM']) = \
+                calc_coverage_count_fpkm(reads_for, coding_parts, tr_features[price_id]['chr'],
+                                         len(tr_features[price_id]['tr_seq'])*1.0/1000, seq_depthM)
         elif(tr_features[price_id]['strand']=="-1"):
-            tr_features[price_id]['coverage'] = calc_coverage(reads_rev, coding_parts, tr_features[price_id]['chr'])
-        #Save the count of the untreated sample in the ORF table
-        tr_features[price_id]['count'] = orfs[price_id]['count_untr']
+            (tr_features[price_id]['coverage'], tr_features[price_id]['count'], tr_features[price_id]['FPKM']) = \
+                calc_coverage_count_fpkm(reads_rev, coding_parts, tr_features[price_id]['chr'],
+                                         len(tr_features[price_id]['tr_seq'])*1.0/1000, seq_depthM)
         #We do not need the Rltm-Rchx value, as the filtering is done by PRICE itself
         tr_features[price_id]['Rltm_min_Rchx'] = "NA"
-        #FPKM: can be empty like in assembly.pl (FPKM is calculated on transcript level earlier)
-        tr_features[price_id]['FPKM'] = ""
         #SNP and indel empty for the moment
         tr_features[price_id]['SNP'] = ""
         tr_features[price_id]['INDEL'] = ""
@@ -453,26 +459,34 @@ def construct_tr_features(orfs, ens_db, gtf_file, BIN_chrom_dir, result_db, pric
 
     return tr_features
 
+
 ## Determine coverage
-def calc_coverage(reads, coding_parts, chr):
+def calc_coverage_count_fpkm(reads, coding_parts, chr, length_orfK, seq_depthM):
 
     #Init
     covered = 0
     not_covered = 0
     coverage = 0
+    count = 0
 
     #Go over exon positions and find covered positions
     for exon_part in range(1, len(coding_parts)+1):
         for pos in range(coding_parts[exon_part]['start'], coding_parts[exon_part]['end']+1):
-            if pos in reads[chr]:
+            if pos in reads[chr].keys():
                 covered+=1
+                count+=reads[chr][pos]
             else:
                 not_covered+=1
 
+    #Calc coverage
     if covered!=0 or not_covered!=0:
         coverage = float(covered) / (float(covered) + float(not_covered))
 
-    return coverage
+    #Calc fpkm
+    fpm = count*1.0/seq_depthM
+    fpkm = fpm*1.0/length_orfK
+
+    return (coverage, count, fpkm)
 
 ## Get untr reads
 def get_reads(result_db):
@@ -963,7 +977,6 @@ def combine_data(all, filtered):
         id = all[orf]['id']
         orfs[id]['start_codon'] = all[orf]['start_codon']
         orfs[id]['price_annotation'] = all[orf]['price_annotation']
-        orfs[id]['count_untr'] = all[orf]['count_untr']
         orfs[id]['pval'] = filtered[orf]['pval']
         orfs[id]['tr_stable_id'] = id.split('_')[0]
         #Parse location string
@@ -1034,7 +1047,6 @@ def read_tsv(tsv):
             all_orfs[prior_location]['id'] = orf_features[1]
             all_orfs[prior_location]['start_codon'] = orf_features[4]
             all_orfs[prior_location]['price_annotation'] = orf_features[5]
-            all_orfs[prior_location]['count_untr'] = orf_features[6] #Take the count of the first condition (i.e. untreated)
 
     return all_orfs
 
@@ -1205,6 +1217,28 @@ def create_BIN_chrom_chr(chr, BIN_chrom_dir, igenomes_root, speciesLatin, assemb
 
     return
 
+##Get total mapped reads
+def get_seq_depth(result_db, sample_name):
+
+    #Init
+    seq_depth=""
+
+    #Make database connection
+    try:
+        con = sqlite.connect(result_db)
+    except:
+        print "ERROR: could not connect to "+result_db
+        sys.exit()
+
+    with con:
+        cur = con.cursor()
+
+        query = "SELECT mapped_T FROM statistics WHERE sample='"+sample_name+"' AND type='genomic';";
+        if cur.execute(query):
+            seq_depth = float(cur.fetchone()[0])
+
+    return seq_depth
+
 ## Get arguments from arguments table
 def get_arguments(db):
 
@@ -1294,7 +1328,31 @@ def get_arguments(db):
             print query
             sys.exit()
 
-    return igenomes_root, species, version, ens_db, readtype, bam_untr, bam_tr, cores, tr_calling_method
+        query = "SELECT value FROM arguments WHERE variable='run_name';"
+        if cur.execute(query):
+            run_name = str(cur.fetchone()[0])
+        else:
+            print "ERROR: could not fetch the run_name argument in "+db
+            print query
+            sys.exit()
+
+        query = "SELECT value FROM arguments WHERE variable='mapper';"
+        if cur.execute(query):
+            mapper = str(cur.fetchone()[0])
+        else:
+            print "ERROR: could not fetch the mapper argument in "+db
+            print query
+            sys.exit()
+
+        query = "SELECT value FROM arguments WHERE variable='unique';"
+        if cur.execute(query):
+            uniq = str(cur.fetchone()[0])
+        else:
+            print "ERROR: could not fetch the unique argument in "+db
+            print query
+            sys.exit()
+
+    return igenomes_root, species, version, ens_db, readtype, bam_untr, bam_tr, cores, tr_calling_method, run_name, mapper, uniq
 
 def convert_time(seconds):
     m, s = divmod(seconds, 60)
