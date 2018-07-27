@@ -7,7 +7,7 @@ channels:
 dependencies:
 - bcftools=1.6=0
 - bowtie=1.2.1.1=py27pl5.22.0_0
-- fastqc=0.11.7=pl5.22.0_1
+- fastqc
 - fastx_toolkit=0.0.14=0
 - htslib=1.6=0
 - libgtextutils=0.7=3
