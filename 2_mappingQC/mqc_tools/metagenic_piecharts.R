@@ -48,7 +48,7 @@ lbls_c <- paste(pct_c,"%",sep="") # add % to labels
 png(file=out_c, width=2600, height=2600, res=384)
 colors <- c("orangered2","olivedrab1","limegreen","blue","orchid4","yellow")
 pie(slices_c,labels = lbls_c, col=colors,radius=0.9,main="Metagenic classification",cex=0.8)
-legend("topleft", c("Intergenic", "Exon", "5'UTR", "3'UTR", "Intron", "Other biotypes"), cex=0.7, fill=colors)
+legend("topleft", c("Intergenic", "Coding region", "5'UTR", "3'UTR", "Intron", "Other biotypes"), cex=0.7, fill=colors)
 dev.off()
 
 # PIE CHART FOR READS IN NON-PROTEIN (=non-coding) TRANSCRIPTS
