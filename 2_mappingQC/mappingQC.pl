@@ -535,6 +535,7 @@ my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$s
 if ($offset_option eq "plastid"){
     $python_command = $python_command." -i ".$offset_img;
 }
+print $python_command."\n";
 system($python_command);
 
 #Clean up
