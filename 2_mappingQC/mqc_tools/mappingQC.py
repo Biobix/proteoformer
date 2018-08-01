@@ -775,10 +775,13 @@ def phase_position_distr(tmpfolder, outfolder, treated):
 
     #Plot data
     fig, ax = plt.subplots(1, 1)
-    bar1 = ax.bar(bin_edges0[:-1]+0.00625, freq0, 0.0125)
-    bar2 = ax.bar(bin_edges1[:-1]+0.0125+0.00625, freq1, 0.0125)
-    bar3 = ax.bar(bin_edges2[:-1]+0.025+0.00625, freq2, 0.0125)
-    ax.set_facecolor("#f2f2f2")
+    bar1 = ax.bar(bin_edges0[:-1]+0.00625, freq0, 0.0125, color='#228EDA')
+    bar2 = ax.bar(bin_edges1[:-1]+0.0125+0.00625, freq1, 0.0125, color='#3BBE71')
+    bar3 = ax.bar(bin_edges2[:-1]+0.025+0.00625, freq2, 0.0125, color='#B7E397')
+    try:
+        ax.set_facecolor("#f2f2f2")
+    except:
+        ax.set_axis_bgcolor("#f2f2f2")
     lgd = ax.legend((bar1[0], bar2[0], bar3[0]),('Phase 0','Phase 1', 'Phase 2'), loc='center left', bbox_to_anchor=(1, 0.5))
 
     #Axis info
@@ -823,7 +826,10 @@ def plot_total_phase(distr, outfile):
     sns.despine()
 
     #Face color
-    ax.set_facecolor("#f2f2f2")
+    try:
+        ax.set_facecolor("#f2f2f2")
+    except:
+        ax.set_axis_bgcolor("#f2f2f2")
 
     #Finish plot
     plt.tight_layout()
@@ -860,7 +866,10 @@ def plot_rpf_phase_grouped2D(phase_distr, outfile):
     fig, ax = plt.subplots(1, 1)
 
     # Background color
-    ax.set_facecolor("#f2f2f2")
+    try:
+        ax.set_facecolor("#f2f2f2")
+    except:
+        ax.set_axis_bgcolor("#f2f2f2")
 
     # Plot
     sns.factorplot(x='RPF length', y='Count', hue='Phase', data=df, ax=ax, kind="bar")
