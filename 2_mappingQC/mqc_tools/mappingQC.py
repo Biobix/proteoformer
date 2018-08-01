@@ -877,7 +877,7 @@ def triplet_plots(data, outputfolder):
         df = df.sort_index(axis=0)
         labels_list = df[0].values.tolist()
         labels_list = map(format_thousands, labels_list)
-        df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax, legend=None, labels=labels_list)
+        df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax, legend=None, labels=labels_list, pctdistance=0.7, fontsize=16, textprops={'fontsize':16})
         #Individual legends off, subplots="True" for evading selecting y column error, autopercentage
         ax.set(ylabel='') #Do not plot y column label
         if triplet=="ATG":
@@ -886,9 +886,9 @@ def triplet_plots(data, outputfolder):
             title_color=hex2color("#ff0000")
         else:
             title_color="k"
-        ax.set_title(triplet+": "+get_AA(triplet), {'fontsize': 36}, color=title_color) #Put triplet in title
+        ax.set_title(triplet+": "+get_AA(triplet), {'fontsize': 38}, color=title_color) #Put triplet in title
     handles, labels = ax.get_legend_handles_labels() #Get legend information of last ax object
-    leg = fig.legend(handles, ["Phase 0", "Phase 1", "Phase 2"], bbox_to_anchor=(1, 0.53), fontsize=36)#Define legend
+    leg = fig.legend(handles, ["Phase 0", "Phase 1", "Phase 2"], bbox_to_anchor=(1, 0.53), fontsize=38)#Define legend
     leg.get_frame().set_edgecolor('b')
     plt.tight_layout() #Prevent overlapping elements
     fig.savefig(outfile)
