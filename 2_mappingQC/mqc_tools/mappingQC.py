@@ -253,6 +253,17 @@ def main():
     os.system("wget --no-check-certificate --quiet \"https://github.com/Biobix/mQC/raw/master/mqc_tools/logo_mqc2_whitebg.png\"")
     os.system("mv logo_mqc2_whitebg.png " + outfolder)
 
+    #Download codon refs for human or mouse
+    codon_ref_file = ""
+    if species == 'human':
+        os.system("wget --quiet --no-check-certificate \"https://raw.githubusercontent.com/Biobix/mQC/master/mqc_tools/codon_refs/codon_reference_human.csv\"")
+        os.system("mv codon_reference_human.csv "+tmpfolder+"/mappingqc_"+treated)
+        codon_ref_file = tmpfolder+"/mappingqc_"+treated+"/codon_reference_human.csv"
+    if species == 'mouse':
+        os.system("wget --quiet --no-check-certificate \"https://raw.githubusercontent.com/Biobix/mQC/master/mqc_tools/codon_refs/codon_reference_mouse.csv\"")
+        os.system("mv codon_reference_mouse.csv " + tmpfolder + "/mappingqc_"+treated)
+        codon_ref_file = tmpfolder + "/mappingqc_"+treated+"/codon_reference_mouse.csv"
+
     #Get plot data out of results DB
     phase_distr, total_phase_distr, triplet_distr, run_name, totmaps, prefix_gene_distr, ensembl_version, species = get_plot_data(result_db, treated)
 
@@ -274,6 +285,10 @@ def main():
 
     #Make triplet identity plots
     triplet_plots(triplet_distr, outfolder)
+
+    #Make codon usage plot
+    if species=='human' or species=='mouse':
+        codon_usage_plot(tmpfolder, codon_ref_file, outfolder, run_name, treated)
 
     #Write to output html file
     offsets_file = tmpfolder+"/mappingqc_"+treated+"/mappingqc_offsets_"+treated+".csv"
@@ -371,6 +386,21 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
                 </table>
                 </p>
                 """
+
+    #Prepare additional pieces for codon usage plot
+    codon_usage_nav = ""
+    codon_usage_part = ""
+    if species=='human' or species=='mouse':
+        codon_usage_nav = """<li><a href="#section9">Codon usage plot</a></li>\n"""
+        codon_usage_part = """
+        <span class="anchor" id="section9"></span>
+        <h2 id="codon_usage">Codon usage plot</h2>
+        <p>
+            <div class="img">
+            <img src=\"codon_usage.png" alt="codon_usage_plot" id="codon_usage_img">
+            </div>
+        </p>
+        """
 
     #Structure of html file
     html_string = """<!DOCTYPE html>
@@ -573,6 +603,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
             <li><a href="#section6">RPF phase distribution</a></li>
             <li><a href="#section7">Phase - relative position distribution</a></li>
             <li><a href="#section8">Triplet identity plots</a></li>
+            """+codon_usage_nav+"""
         </ul>
     </nav>
 
@@ -700,6 +731,9 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
             <img src=\"triplet_id.png" alt="triplet identity plots" id="triplet_id_img">
             </div>
         </p>
+
+        """+codon_usage_part+"""
+
         <br><br>
     </div>
 
@@ -718,6 +752,111 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
 
     return
 
+## Codon usage plot
+def codon_usage_plot(tmpfolder, codon_ref_file, outfolder, exp_name, treated):
+
+    #Output file
+    output_file = outfolder + "/codon_usage.png"
+
+    # Read reference
+    reference = read_ref(codon_ref_file)
+
+    # Read input codon
+    input_file = tmpfolder + "/mappingqc_"+treated+"/total_triplet.csv"
+    name = exp_name
+    codon_perc = read_codon_count(input_file)
+
+    # Sort triplets based on reference percentages
+    sorted_triplets = []
+    for i in sorted(reference, key=lambda k: reference[k], reverse=True):
+        sorted_triplets.append(i)
+
+    # Plot
+    plot_codon_perc(output_file, sorted_triplets, reference, codon_perc, name)
+
+    return
+
+#Plot codon percentages
+def plot_codon_perc(output_file, sorted_triplets, reference, codon_percs, name):
+
+    #Parse data
+    sorted_ref_values = []
+    for i in sorted_triplets:
+        sorted_ref_values.append(reference[i])
+    xpos = range(1, len(sorted_ref_values)+1)
+
+    sorted_codon_values = []
+    for i in sorted_triplets:
+        sorted_codon_values.append(codon_percs[i])
+
+    #Labels
+    labels=[]
+    codontable = get_codontable()
+    for i in sorted_triplets:
+        labels.append(i+" ("+codontable[i]+")")
+
+    #Plot
+    fig = plt.figure(figsize=(36,32))
+    ax = plt.axes()
+    points = ax.plot(xpos, sorted_ref_values, marker='o', linewidth=15, color='#3BBE71', markersize=20, alpha=0.7, label='Reference')
+    bars = ax.bar(xpos, sorted_codon_values, color='#228EDA', label=name)
+    plt.xlim([0,len(sorted_ref_values)+1])
+    [y1, y2] = ax.get_ylim()
+    plt.ylim([0, y2])
+    ax.set_ylabel('Percentage codon usage [in %]', fontsize=40)
+    ax.set_xlabel('Triplet (amino acid)', fontsize=40)
+    plt.yticks(fontsize=30)
+    ax.set_xticks(xpos)
+    ax.set_xticklabels(labels, rotation='vertical', fontsize=30)
+    ax.set_title('Codon usage', fontsize=80)
+    plt.legend(fontsize=40)
+
+    plt.tight_layout()
+
+    fig.savefig(output_file)
+
+    return
+
+#Read codon count
+def read_codon_count(input_codon_count):
+
+    #Init
+    codon_perc = defaultdict()
+    counts=defaultdict(lambda: defaultdict())
+    counts_per_triplet = defaultdict()
+    total_sum=0
+
+    with open(input_codon_count, 'r') as FR:
+        lines=FR.readlines()
+        for line in lines:
+            line.rstrip("\n")
+            (triplet, phase, count) = re.split(',', line)
+            counts[triplet][phase] = int(count)
+            total_sum = total_sum + int(count)
+
+    #Parse
+    for triplet in counts.keys():
+        counts_per_triplet[triplet]=0
+        for phase in counts[triplet].keys():
+            counts_per_triplet[triplet] = counts_per_triplet[triplet] + counts[triplet][phase]
+        codon_perc[triplet] = float(counts_per_triplet[triplet])/total_sum*100
+
+    return codon_perc
+
+#Read reference codon usage
+def read_ref(input_ref):
+
+    #Init
+    ref = defaultdict()
+
+    with open(input_ref, 'r') as FR:
+        lines = FR.readlines()
+        for line in lines:
+            line.rstrip("\n")
+            (triplet, perc) = re.split(',', line)
+            ref[triplet] = float(perc)*100
+
+    return ref
 
 ## Plot triplet identity data
 def triplet_plots(data, outputfolder):
