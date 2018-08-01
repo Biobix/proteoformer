@@ -247,9 +247,11 @@ def main():
     if not os.path.exists(outfolder):
         os.system("mkdir -p "+outfolder)
 
-    #Download biobix image
+    #Download biobix image and mappingqc images
     os.system("wget --quiet \"http://galaxy.ugent.be/static/BIOBIX_logo.png\"")
     os.system("mv BIOBIX_logo.png "+outfolder)
+    os.system("wget --no-check-certificate --quiet \"https://github.com/Biobix/mQC/raw/master/mqc_tools/logo_mqc2_whitebg.png\"")
+    os.system("mv logo_mqc2_whitebg.png " + outfolder)
 
     #Get plot data out of results DB
     phase_distr, total_phase_distr, triplet_distr, run_name, totmaps, prefix_gene_distr, ensembl_version, species = get_plot_data(result_db, treated)
@@ -449,16 +451,23 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
         #mappingqc{
             font-family: 'Indie Flower', cursive;
             font-size: 44px;
-            padding-left: 10px;
+            padding-left: 120px;
             position: relative;
             z-index: 4;
         }
         #run_name{
-            padding-left: 43px;
-            position: relative;
+            position:relative;
             z-index: 4;
+            display:table;
+            margin:0 auto;
+            margin-top:-50px;
         }
-
+        #mqc_logo{
+            height: 60%;
+            position: absolute;
+            left: 20px;
+            top: 30px;
+        }
         #biobix_logo{
             height:60%;
             position: absolute;
@@ -549,6 +558,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
 
 <body>
     <div id="header">
+        <img src="logo_mqc2_whitebg.png" alt="mqc_logo" id="mqc_logo">
         <h1><span id="mappingqc">Mapping QC</span><span id="run_name">"""+run_name+"""</span></h1>
         <img src=\"BIOBIX_logo.png\" alt="biobix_logo" id="biobix_logo">
     </div>
@@ -759,13 +769,17 @@ def phase_position_distr(tmpfolder, outfolder, treated):
     data2 = inputdata[inputdata["phase"] == 2]["rel_position"]
 
     #Define 20 bins
-    bins = np.linspace(0,1,21)
+    freq0, bin_edges0 = np.histogram(data0, bins=20, range=(0,1))
+    freq1, bin_edges1 = np.histogram(data1, bins=20, range=(0,1))
+    freq2, bin_edges2 = np.histogram(data2, bins=20, range=(0,1))
 
     #Plot data
     fig, ax = plt.subplots(1, 1)
-    ax.hist([data0,data1,data2], bins, label=["Phase 0", "Phase 1", "Phase 2"])
+    bar1 = ax.bar(bin_edges0[:-1]+0.00625, freq0, 0.0125)
+    bar2 = ax.bar(bin_edges1[:-1]+0.0125+0.00625, freq1, 0.0125)
+    bar3 = ax.bar(bin_edges2[:-1]+0.025+0.00625, freq2, 0.0125)
     ax.set_facecolor("#f2f2f2")
-    lgd = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    lgd = ax.legend((bar1[0], bar2[0], bar3[0]),('Phase 0','Phase 1', 'Phase 2'), loc='center left', bbox_to_anchor=(1, 0.5))
 
     #Axis info
     plt.ylabel("Counts")
