@@ -2352,7 +2352,7 @@ sub print_help_text {
     Input parameters:
     --help                          this helpful screen
     --work_dir                      working directory to run the script in (default: current working directory)
-    --samfile                       customly chosen experiment name for the mappingQC run (mandatory)
+    --samfile                       the samfile to do the analysis on (mandatory)
     --treated                       wheter the samfile is from the treated or untreated sample (untreated/treated, default untreated)
     --cores                         the amount of cores to use (integer, default: 5)
     --result_db                     the result db with mapping results (mandatory)
