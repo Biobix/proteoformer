@@ -290,7 +290,7 @@ def main():
 
     #Make codon usage plot
     if species=='human' or species=='mouse':
-        codon_usage_plot(tmpfolder, codon_ref_file, outfolder, run_name, treated)
+        codon_usage_plot(tmpfolder, codon_ref_file, outfolder, run_name, treated, triplet_distr)
 
     #Write to output html file
     offsets_file = tmpfolder+"/mappingqc_"+treated+"/mappingqc_offsets_"+treated+".csv"
@@ -935,7 +935,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
     return
 
 ## Codon usage plot
-def codon_usage_plot(tmpfolder, codon_ref_file, outfolder, exp_name, treated):
+def codon_usage_plot(tmpfolder, codon_ref_file, outfolder, exp_name, treated, triplet_distr):
 
     #Output file
     output_file = outfolder + "/codon_usage.png"
@@ -944,9 +944,8 @@ def codon_usage_plot(tmpfolder, codon_ref_file, outfolder, exp_name, treated):
     reference = read_ref(codon_ref_file)
 
     # Read input codon
-    input_file = tmpfolder + "/mappingqc_"+treated+"/total_triplet.csv"
     name = exp_name
-    codon_perc = read_codon_count(input_file)
+    codon_perc = read_codon_count(triplet_distr)
 
     # Sort triplets based on reference percentages
     sorted_triplets = []
@@ -1000,27 +999,23 @@ def plot_codon_perc(output_file, sorted_triplets, reference, codon_percs, name):
     return
 
 #Read codon count
-def read_codon_count(input_codon_count):
+def read_codon_count(triplet_distr):
 
     #Init
     codon_perc = defaultdict()
-    counts=defaultdict(lambda: defaultdict())
     counts_per_triplet = defaultdict()
     total_sum=0
 
-    with open(input_codon_count, 'r') as FR:
-        lines=FR.readlines()
-        for line in lines:
-            line.rstrip("\n")
-            (triplet, phase, count) = re.split(',', line)
-            counts[triplet][phase] = int(count)
-            total_sum = total_sum + int(count)
+    #Total sum
+    for triplet in triplet_distr.keys():
+        for phase in triplet_distr[triplet].keys():
+            total_sum = total_sum + int(triplet_distr[triplet][phase])
 
     #Parse
-    for triplet in counts.keys():
+    for triplet in triplet_distr.keys():
         counts_per_triplet[triplet]=0
-        for phase in counts[triplet].keys():
-            counts_per_triplet[triplet] = counts_per_triplet[triplet] + counts[triplet][phase]
+        for phase in triplet_distr[triplet].keys():
+            counts_per_triplet[triplet] = counts_per_triplet[triplet] + int(triplet_distr[triplet][phase])
         codon_perc[triplet] = float(counts_per_triplet[triplet])/total_sum*100
 
     return codon_perc
