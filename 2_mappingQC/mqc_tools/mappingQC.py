@@ -239,6 +239,8 @@ def main():
         print "ERROR: do not forget to mention the Ensembl db!"
         sys.exit()
 
+    species = get_species(result_db)
+
     ########
     # MAIN #
     ########
@@ -1551,6 +1553,23 @@ def get_AA(item):
 
     return AA
 
+
+def get_species(result_db):
+
+    try:
+        conn = sqlite3.connect(result_db)
+    except:
+        print "Could not connect to "+result_db
+        sys.exit()
+
+    with conn:
+        cur = conn.cursor()
+
+        query = "SELECT value FROM arguments WHERE variable='species';"
+        cur.execute(query)
+        species = cur.fetchone()[0]
+
+    return species
 
 def get_codontable():
 
