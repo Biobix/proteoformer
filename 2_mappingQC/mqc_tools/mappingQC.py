@@ -1134,6 +1134,7 @@ def plot_total_phase(distr, outfile):
     #Set exponent base of y ticks
     majorFormatter = FixedOrderFormatter(6)
     ax.yaxis.set_major_formatter(majorFormatter)
+    ax.yaxis.offsetText.set_fontsize(36)
 
     #Make plot
     sns.barplot(x, y, ax=ax, edgecolor='none')
