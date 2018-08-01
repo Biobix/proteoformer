@@ -410,7 +410,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
    <meta charset="utf-8"></meta>
    <meta name="description" content="Overview HTML of all mappingQC results"></meta>
    <link href="https://fonts.googleapis.com/css?family=Indie+Flower" rel="stylesheet">
-   <style>
+   <style media="screen">
         *{
             box-sizing: border-box;
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -547,6 +547,10 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
           width: auto\9; /* ie8 */
         }
 
+        #phase_relpos_distr_img {
+          width:98%
+        }
+
         #ranked_genes, #cumulative, #genes_density, #annotation_coding, #annotation_noncoding {
             width: 20cm;
         }
@@ -584,6 +588,182 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
             bottom: -0.3cm;
         }
    </style>
+
+   <style media="print">
+       *{
+           box-sizing: border-box;
+           font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+       }
+
+
+       nav{
+           visibility: hidden;
+           float:left;
+           padding: 15px;
+           width: 17%;
+           position: fixed;
+           height: 100%;
+           overflow: auto;
+           border-right: ridge;
+           border-color: lightgrey;
+           margin-top: 60px;
+           margin-left: -20px;
+           padding-left: 20px;
+           background-color: white;
+           z-index:1;
+       }
+
+       nav ul {
+           list-style-type: none;
+           margin: 0px;
+           padding: 5px;
+           padding-top: 15px;
+    }
+
+       nav li{
+           padding: 8px;
+           margin-bottom: 8px;
+           background-color: #33b5e5;
+           color: #ffffff;
+       }
+
+       nav li:hover {
+           background-color: #0099cc;
+       }
+
+       #content{
+           margin-top: 70px;
+           position: absolute;
+           margin-left:0%;
+           height: 76%;
+       }
+
+       #rpf_phase{
+           width:100%;
+       }
+
+       #header{
+           visibility: hidden;
+           background-color: grey;
+           color: white;
+           position:fixed;
+           height: 2.7cm;
+           width:110%;
+           padding: 15px;
+           padding-top: 10px;
+           margin-left: -10px;
+           margin-top: -30px;
+           margin-right: -10px;
+           margin-bottom: 10px;
+           overflow: visible;
+           z-index: 2;
+       }
+
+       #mappingqc{
+           font-family: 'Indie Flower', cursive;
+           font-size: 44px;
+           padding-left: 10px;
+           position: relative;
+           z-index: 4;
+       }
+       #run_name{
+           padding-left: 43px;
+           position: relative;
+           z-index: 4;
+       }
+
+       #biobix_logo{
+           height:60%;
+           position: absolute;
+           right: 200px;
+           top: 30px;
+       }
+
+       a {
+           color: inherit;
+           text-decoration: none;
+       }
+
+       .anchor{
+           display: block;
+           height: 14%; /*same height as header*/
+           margin-top: -10px; /*same height as header*/
+           visibility: hidden;
+       }
+
+       #analysis_info_table{
+           border-style: none;
+           border-width: 0px;
+       }
+
+       th {
+           border-style: solid;
+           border-width: 0px;
+           border-color: white;
+           border-collapse: collapse;
+           padding: 5px;
+           background-color: #33b5e5;
+           color: #ffffff;
+       }
+
+   td {
+       border-style: solid;
+       border-width: 0px;
+       border-color: white;
+       border-collapse: collapse;
+       background-color: #f2f2f2;
+       padding: 5px;
+   }
+
+   img {
+       max-width: 98%;
+       height: auto;
+       width: auto\9; /* ie8 */
+   }
+
+       #phase_relpos_distr_img {
+          width:98%
+       }
+
+       #ranked_genes, #cumulative, #genes_density, #annotation_coding, #annotation_noncoding {
+           width: 20cm;
+       }
+
+       #offset_table {
+           float: left;
+           display: block;
+           margin-right: 120px;
+       }
+
+       #plastid_img {
+           float: left;
+           display: block;
+           max-width: 600px;
+       }
+
+       #section3 {
+           clear: left;
+       }
+
+
+       #footer{
+           visibility: hidden;
+           background-color: grey;
+           color: white;
+           position: fixed;
+           bottom: 0cm;
+           padding-left: 30px;
+           margin-left: -30px;
+           height: 0.7cm;
+           width: 110%;
+           z-index: 2;
+       }
+       #footer_content{
+           position: fixed;
+           bottom: -0.3cm;
+       }
+   </style>
+
 </head>
 
 <body>
@@ -913,20 +1093,21 @@ def phase_position_distr(tmpfolder, outfolder, treated):
     freq2, bin_edges2 = np.histogram(data2, bins=20, range=(0,1))
 
     #Plot data
-    fig, ax = plt.subplots(1, 1)
-    bar1 = ax.bar(bin_edges0[:-1]+0.00625, freq0, 0.0125, color='#228EDA')
-    bar2 = ax.bar(bin_edges1[:-1]+0.0125+0.00625, freq1, 0.0125, color='#3BBE71')
-    bar3 = ax.bar(bin_edges2[:-1]+0.025+0.00625, freq2, 0.0125, color='#B7E397')
+    fig, ax = plt.subplots(1, 1, figsize=(36,32))
+    bar1 = ax.bar(bin_edges0[:-1]+0.00625, freq0, 0.0125, color='#228EDA', edgecolor='none')
+    bar2 = ax.bar(bin_edges1[:-1]+0.0125+0.00625, freq1, 0.0125, color='#3BBE71', edgecolor='none')
+    bar3 = ax.bar(bin_edges2[:-1]+0.025+0.00625, freq2, 0.0125, color='#B7E397', edgecolor='none')
     try:
         ax.set_facecolor("#f2f2f2")
     except:
         ax.set_axis_bgcolor("#f2f2f2")
-    lgd = ax.legend((bar1[0], bar2[0], bar3[0]),('Phase 0','Phase 1', 'Phase 2'), loc='center left', bbox_to_anchor=(1, 0.5))
+    lgd = ax.legend((bar1[0], bar2[0], bar3[0]),('Phase 0','Phase 1', 'Phase 2'), loc='center left', bbox_to_anchor=(1, 0.5), fontsize=38)
 
     #Axis info
-    plt.ylabel("Counts")
-    plt.xlabel("Relative position in sequence")
+    plt.ylabel("Counts", fontsize=38)
+    plt.xlabel("Relative position in sequence", fontsize=38)
     plt.xlim([0, 1])
+    ax.tick_params(labelsize=34)
 
     #Save output
     plt.tight_layout()
@@ -944,7 +1125,7 @@ def plot_total_phase(distr, outfile):
     #Define figure and axes
     sns.set_style(style="whitegrid")
     sns.set_palette("terrain")
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, figsize=(36,32))
 
     #Parse data into arrays
     x = [0, 1, 2]
@@ -955,11 +1136,12 @@ def plot_total_phase(distr, outfile):
     ax.yaxis.set_major_formatter(majorFormatter)
 
     #Make plot
-    sns.barplot(x, y, ax=ax)
+    sns.barplot(x, y, ax=ax, edgecolor='none')
 
     #Axis labels
-    plt.xlabel('Phase')
-    plt.ylabel('Counts')
+    plt.xlabel('Phase', fontsize=38)
+    plt.ylabel('Counts', fontsize=38)
+    ax.tick_params(labelsize=34)
 
     #Remove box lines around plot
     sns.despine()
