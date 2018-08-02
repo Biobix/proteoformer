@@ -1044,7 +1044,7 @@ def triplet_plots(data, outputfolder):
     grid = GridSpec(8, 9) #Construct grid for subplots
     grid_i = -1 #Grid coordinates
     grid_j = 0
-    for triplet in sorted(data.keys(), key=get_AA):
+    for triplet in sorted(data.keys(), key=lambda e: (get_AA(e), e)):
         grid_i += 1
         if grid_i == 8:
             grid_i = 0
@@ -1067,7 +1067,7 @@ def triplet_plots(data, outputfolder):
     handles, labels = ax.get_legend_handles_labels() #Get legend information of last ax object
     leg = fig.legend(handles, ["Phase 0", "Phase 1", "Phase 2"], bbox_to_anchor=(1, 0.53), fontsize=38)#Define legend
     leg.get_frame().set_edgecolor('b')
-    plt.tight_layout() #Prevent overlapping elements
+    plt.tight_layout(rect=(0.013,0,1,1)) #Prevent overlapping elements
     fig.savefig(outfile)
 
     return
