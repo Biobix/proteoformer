@@ -1090,7 +1090,7 @@ def run_price(price_operatable, price_prefix, gref, readtype, bam_untr, bam_tr, 
 
     #Execute
     command = price_operatable+" -Dsmile.threads=1 -e Price -reads "+reads+" -genomic "+gref+" -prefix "+price_prefix+\
-                " -nthreads "+str(cores)+" -fdr "+str(fdr)+" -percond"
+                " -nthreads "+str(cores)+" -fdr "+str(fdr)
     if readtype=="ribo":
         command = command+" -percond"
     print command
