@@ -28,7 +28,7 @@ def main():
     #Parse arguments from command line
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS,
                                      description="This tool is part of the PROTEOFORMER pipeline. It calls translated "
-                                                 "ORFs with the use of the PRICE tool."
+                                                 "ORFs with the use of the PRICE tool.\n"
                                                  "!! PRICE only works in combination with STAR mapping. Generate PRICE "
                                                  "specific alignment files during mapping.",
                                      add_help=False)
@@ -46,7 +46,7 @@ def main():
     opt_args.add_argument("--fdr", "-f", action="store", required=False, nargs="?", metavar="float", default=0.1,
                           type=float, help="FDR value for running PRICE (default: 0.1)")
     opt_args.add_argument("--max_ram", "-m", action="store", required=False, nargs="?", metavar="integer", default=0,
-                           type=int, help="Maximum amount of gigabytes available for PRICE (default: Price default)")
+                          type=int, help="Maximum amount of gigabytes available for PRICE (default: Price default)")
 
     args = parser.parse_args()
 
