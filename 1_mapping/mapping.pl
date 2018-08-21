@@ -42,7 +42,7 @@ use Cwd;
 #mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$suite,$suite_tools_loc);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$pricefiles,$suite,$suite_tools_loc);
 
 GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
@@ -88,6 +88,7 @@ GetOptions(
 "splicing=s" =>\$splicing,                # Allow splicing for genome alignment for eukaryotic species (Y or N)         optional argument (default = Y)
 "firstrankmultimap=s" =>\$FirstRankMultiMap,  # Only retain the first ranked alignment of multimapper (Y or N)           optional argument (default = N)
 "rpf_split=s" =>\$rpf_split,                 #If the program needs to construct RPF specific bedgraph files (Y or N)     optional argument (default = N)
+"pricefiles=s" =>\$price_files,              #If the program needs to generate sam files specifically for PRICE (Y or N)    optional argument (default = N)
 "suite=s" =>\$suite,                       #Option to execute different mapping modules all together for ribo data ('custom', 'standard', 'plastid')     optional argument (default = custom)
                                                         #Custom: only mapping, other modules manually afterwards
                                                         #Standard: mapping + parsing with standard offset
@@ -322,6 +323,23 @@ if ($tr_coord){
     $tr_coord = 'N';
     print "generate alignment file based on transcriptome coord     : $tr_coord\n";
 }
+if ($mapper eq "STAR"){
+    if ($pricefiles){
+        print "Generate alignment files specifically for PRICE           : $pricefiles\n";
+    } else {
+        #default
+        $pricefiles = 'N';
+        print "Generate alignment files specifically for PRICE           : $pricefiles\n";
+    }
+} else {
+    #default
+    $pricefiles = 'N';
+    print "Generate alignment files specifically for PRICE           : $pricefiles\n";
+}
+if ($pricefiles ne 'Y' && $pricefiles ne 'N'){
+    print "Price file generation option should be Y or N!\n";
+    die;
+}
 if($readtype eq "ribo" || $readtype eq "ribo_untr"){
     if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid"){
         print "Mapping suite                                               : $suite\n";
@@ -373,6 +391,18 @@ if (!defined($out_bam_tr))     		{$out_bam_tr        = $work_dir."/".$mapper."/f
 if (!defined($out_bam_tr_untr)) 	{$out_bam_tr_untr    = $work_dir."/".$mapper."/fastq1/untreat_tr.bam";}
 if (!defined($out_bam_tr_tr))		{$out_bam_tr_tr     = $work_dir."/".$mapper."/fastq2/treat_tr.bam";}
 if (!defined($out_sqlite))     		{$out_sqlite        = $work_dir."/SQLite/results.db";}
+if ($pricefiles eq 'Y'){
+    $price_sam_untr    = $work_dir."/".$mapper."/fastq1/price_untreat.sam";
+    $price_bam_untr    = $work_dir."/".$mapper."/fastq1/price_untreat.bam";
+    $price_sam_tr    = $work_dir."/".$mapper."/fastq1/price_treat.sam";
+    $price_bam_tr    = $work_dir."/".$mapper."/fastq1/price_treat.bam";
+} else {
+    $price_sam_untr    = "";
+    $price_bam_untr    = "";
+    $price_sam_tr    = "";
+    $price_bam_tr    = "";
+}
+
 print "SQLite database                                          : $out_sqlite\n";
 
 #ADDED FOR TEST ISSUES
@@ -472,7 +502,7 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Store input arguments
-store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing);
+store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr, $pricefiles);
 
 
 ############
@@ -1075,6 +1105,38 @@ sub map_STAR {
     # Bam file depends on what fastq file is processed (fastq1 = untreated, fastq2 = treaeted; that is for RIBO-seq experiments)
     my $bamf = ($seqFileName  eq 'fastq1') ? $out_sam_untr : $out_sam_tr;
 	system("mv ".$directory."Aligned.sorted.sam ".$bamf);
+    
+    #Redo mapping in order to generate PRICE specific alignment files
+    if ($pricefiles eq 'Y' && (uc($readtype) eq 'RIBO' || $readtype eq 'ribo_untr')){
+        print "     Mapping against genomic $seqFileName for PRICE specific alignment files"."\n";
+        
+        if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
+        $ref_loc = get_ref_loc($mapper);
+        $command = $STAR_loc." --outSAMattributes MD NH --alignEndsType EndToEnd --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outMultimapperOrder Random --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta;
+        if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Output transcriptome coordinate to bam file
+        if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
+        if ($FirstRankMultiMap eq 'Y') {$command .= " --outSAMmultNmax 1 "}   # To ensure to output only first hit to SAM (either the best scoring one or a random chosen one from a list of equally scoring hits)
+    
+        print "     ".$command."\n";
+        system($command);
+        systemError("STAR",$?,$!);
+        
+        # # Output bamfile
+        my $price_outbam = ($seqFileName eq 'fastq1') ? $price_bam_untr : $price_bam_tr;
+        system("cp ".$directory."Aligned.sortedByCoord.out.bam ".$price_outbam);
+        
+        # #  convert BAM back to SAM file
+        print "converting BAM back to SAM for PRICE...\n";
+        system($samtools_loc." view -h -o ".$directory."Aligned.sorted.sam ".$directory."Aligned.sortedByCoord.out.bam > /dev/null 2>&1");
+        systemError("Samtools view",$?,$!);
+        
+        # rename SAM output file
+        print "renaming SAM output file for PRICE...\n";
+        
+        # Bam file depends on what fastq file is processed (fastq1 = untreated, fastq2 = treaeted; that is for RIBO-seq experiments)
+        my $bamf_price = ($seqFileName  eq 'fastq1') ? $price_sam_untr : $price_sam_tr;
+        system("mv ".$directory."Aligned.sorted.sam ".$bamf_price);
+    }
 
 	# remove redundant files
 	system("rm ".$directory."Aligned.out.bam > /dev/null 2>&1");
@@ -1636,6 +1698,11 @@ sub store_input_vars {
     my $max_l_plastid = $_[28];
     my $min_l_parsing = $_[29];
     my $max_l_parsing = $_[30];
+    my $price_sam_untr = $_[31];
+    my $price_bam_untr = $_[32];
+    my $price_sam_tr = $_[33];
+    my $price_bam_tr = $_[34];
+    my $pricefiles = $_[35];
 
     my $dbh_sqlite_results = dbh($dsn,$us,$pw);
 
@@ -1731,6 +1798,20 @@ sub store_input_vars {
     
     $query = "INSERT INTO arguments (variable,value) VALUES (\'max_l_parsing\',\'".$max_l_parsing."\')";
     $dbh_sqlite_results->do($query);
+    
+    if($pricefiles eq 'Y'){
+        $query = "INSERT INTO arguments (variable,value) VALUES (\'price_sam_untr\',\'".$price_sam_untr."\')";
+        $dbh_sqlite_results->do($query);
+        
+        $query = "INSERT INTO arguments (variable,value) VALUES (\'price_bam_untr\',\'".$price_bam_untr."\')";
+        $dbh_sqlite_results->do($query);
+        
+        $query = "INSERT INTO arguments (variable,value) VALUES (\'price_sam_tr\',\'".$price_sam_tr."\')";
+        $dbh_sqlite_results->do($query);
+        
+        $query = "INSERT INTO arguments (variable,value) VALUES (\'price_bam_tr\',\'".$price_bam_tr."\')";
+        $dbh_sqlite_results->do($query);
+    }
 }
 
 ### GET INDEX LOCATION ###

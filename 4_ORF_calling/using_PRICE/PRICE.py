@@ -1294,7 +1294,7 @@ def get_arguments(db):
             print query
             sys.exit()
 
-        query = "SELECT value FROM arguments WHERE variable='out_bam_untr';"
+        query = "SELECT value FROM arguments WHERE variable='price_bam_untr';"
         if cur.execute(query):
             bam_untr = str(cur.fetchone()[0])
         else:
@@ -1304,7 +1304,7 @@ def get_arguments(db):
 
         bam_tr = ""
         if readtype=="ribo":
-            query = "SELECT value FROM arguments WHERE variable='out_bam_tr';"
+            query = "SELECT value FROM arguments WHERE variable='price_bam_tr';"
             if cur.execute(query):
                 bam_tr = str(cur.fetchone()[0])
             else:
