@@ -394,8 +394,8 @@ if (!defined($out_sqlite))     		{$out_sqlite        = $work_dir."/SQLite/result
 if ($pricefiles eq 'Y'){
     $price_sam_untr    = $work_dir."/".$mapper."/fastq1/price_untreat.sam";
     $price_bam_untr    = $work_dir."/".$mapper."/fastq1/price_untreat.bam";
-    $price_sam_tr    = $work_dir."/".$mapper."/fastq1/price_treat.sam";
-    $price_bam_tr    = $work_dir."/".$mapper."/fastq1/price_treat.bam";
+    $price_sam_tr    = $work_dir."/".$mapper."/fastq2/price_treat.sam";
+    $price_bam_tr    = $work_dir."/".$mapper."/fastq2/price_treat.bam";
 } else {
     $price_sam_untr    = "";
     $price_bam_untr    = "";
