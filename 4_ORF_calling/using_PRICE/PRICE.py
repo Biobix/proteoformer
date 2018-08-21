@@ -27,8 +27,10 @@ def main():
 
     #Parse arguments from command line
     parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS,
-                                     description="This tool is part of the PROTEOFORMER pipeline. It calls translated"
-                                                 "ORFs with the use of the PRICE tool.",
+                                     description="This tool is part of the PROTEOFORMER pipeline. It calls translated "
+                                                 "ORFs with the use of the PRICE tool."
+                                                 "!! PRICE only works in combination with STAR mapping. Generate PRICE "
+                                                 "specific alignment files during mapping.",
                                      add_help=False)
 
     man_args = parser.add_argument_group("Mandatory parameters")
