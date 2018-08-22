@@ -1364,7 +1364,7 @@ def index_bams(bam_untr, bam_tr):
 
     for bam in [bam_untr, bam_tr]:
         #Check if indexed file already exists
-        if not os.path.isfile(bam):
+        if not os.path.isfile(bam+".bai"):
             #If not: index bam file with samtools
             os.system("samtools index "+bam)
 
