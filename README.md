@@ -10,8 +10,8 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
 3. [Prepations](#preparations)
     1. [iGenomes reference information download](#igenomes)
     2. [Ensembl download](#ensembl)
-    3. UTR simulation for Prokaryotes
-    4. SRA parallel download
+    3. [UTR simulation for Prokaryotes](#prokaryotutr)
+    4. [SRA parallel download](#sra)
 4. Main pipeline
     1. General quality check: fastQC
     2. Mapping
@@ -54,6 +54,9 @@ The pipeline
 * constructs counts for different feature levels and calculates FLOSS scores
 * constructs fasta files which allow mass spectrometry validation
 
+Most modules of this pipeline are provided with a built-in help message. Execute the script of choice with the `-h` or 
+`--help` to get the full help message printed in the command line.
+
 PROTEOFORMER is also available in galaxy: http://galaxy.ugent.be
 
 ## Dependencies <a name="dependencies"></a>
@@ -86,27 +89,28 @@ Some Perl packages are not included in Conda, so afterwards execute following sc
 
 ### Additional environments for RiboZINB, SPECtre and SRA download
 
-For some tools, we needed to construct separate environments with different versions of the underlying tools.
+For some tools, we needed to construct separate environments with different versions of the underlying tools. For all 
+the other tools, the proteoformer environment is used.
 
 #### RiboZINB
 
 ```
-conda env create -f Dependency_envs/ribozinb.yml
-source activate ribozinb
+cconda env create -f Dependency_envs/ribozinb.yml
+ssource activate ribozinb
 ```
 
 #### SPECtre
 
 ```
-conda env create -f Dependency_envs/spectre.yml
-source activate spectre
+cconda env create -f Dependency_envs/spectre.yml
+ssource activate spectre
 ```
 
 #### SRA download
 
 ```
-conda env create -f Dependency_envs/download_sra_parallel.yml
-source activate download_sra_parallel
+cconda env create -f Dependency_envs/download_sra_parallel.yml
+ssource activate download_sra_parallel
 ```
 
 ## Preparations <a name="preparations"></a>
@@ -148,9 +152,62 @@ The tool currently supports following species:
 
 ### Ensembl download <a name="ensembl"></a>
 
+After mapping, mostly reference annotation is used from Ensembl (exons, splicing, canonical translation initiation,...). 
+This information is available as an SQLite database and is downloadable by using the ENS_db.py script of the 'Additional_tools'
+ folder. For example:
+ 
+```
+python ENS_db.py -v 82 -s human
+```
 
+Input arguments:
 
+| Argument       | Default   | Description                                                                      |
+|----------------|-----------|----------------------------------------------------------------------------------|
+| -v / --version | Mandatory | Ensembl annotation version to download (supported versions: from 74)             |
+| -s / --species | Mandatory | Specify the desired species for which gene annotation files should be downloaded |
+| -h / --help    |           | Print this useful help message                                                   |
 
+Currently supported species:
+
+| Species                  | Input value species argument |
+|--------------------------|------------------------------|
+| Homo sapiens             | human                        |
+| Mus musculus             | mouse                        |
+| Drosophila melanogaster  | fruitfly                     |
+| Saccharomyces cerevisiae | yeast                        |
+| Caenorhabditis elegans   | c.elegans                    |
+
+The Ensembl database for SL1344 (Salmonella) is available under request.
+
+### UTR simulation for Prokaryotes <a name="prokaryotutr"></a>
+
+For Prokaryotes, no untranslated upstream regions (UTRs) exist. Although, offset callers, used during mapping, need these
+regions in order to calculate P-site offsets. Therefore, for Prokaryotes, these UTRs need to be simulated with the 
+simulate_utr_for_prokaryotes.py script in the 'Additional_tools' folder. For example:
+
+```
+python simulate_utr_for_prokaryotes.py igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82.gtf > igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82_with_utr.gtf
+# Move and copy GTFs
+mv igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82.gtf igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82_without_utr.gtf
+cp igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82_with_utr.gtf igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82.gtf
+```
+
+This outputs a new GTF file. Best to rename the old GTF file and copy the new one under the name of the original GTF file 
+as shown in the example.
+
+Additional documentation can be found in the help message of the module.
+
+### SRA parallel download
+
+If you download the raw data (FASTQ) from SRA, you can use the [SRA toolkit](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=toolkit_doc&f=std).
+However, we made a module to speed up this downloading process by using multiple cores of your system. Use the specific 
+conda environment for this tool, if using this module. For example:
+
+```
+source activate download_sra_parallel
+./download_sra_parallel.sh -c 20 -f 3034567 -l 3034572 #This downloads all fastq data  from SRR3034572 up until SRR3034572 on 20 cores
+```
 
 ## Copyright <a name="copyright"></a>
 
