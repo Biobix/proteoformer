@@ -12,9 +12,9 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
     2. [Ensembl download](#ensembl)
     3. [UTR simulation for Prokaryotes](#prokaryotutr)
     4. [SRA parallel download](#sra)
-4. Main pipeline
-    1. General quality check: fastQC
-    2. Mapping
+4. [Main pipeline](#main)
+    1. [General quality check: fastQC](#fastqc1)
+    2. [Mapping](#mapping)
         norm bedgraphs
     3. General quality check: fastQC
     4. Specific ribosome profiling check: mappingQC
@@ -61,7 +61,7 @@ PROTEOFORMER is also available in galaxy: http://galaxy.ugent.be
 
 ## Dependencies <a name="dependencies"></a>
 
-Proteoformer is built in Perl 5 and Python 2.7. All necessary scripts are included in this GitHub repository.
+Proteoformer is built in Perl 5, Python 2.7 and Bash. All necessary scripts are included in this GitHub repository.
 
 To prevent problems with missing dependencies, we included all necessary dependencies in a [Conda](https://conda.io/docs/) environment.
 For more information about Conda installation, click [here](https://conda.io/docs/user-guide/install/index.html).
@@ -79,13 +79,20 @@ Then you can install all dependencies based on the yml file in the dependency_en
 
 ```conda env create -f Dependency_envs/proteoformer.yml```
 
-To activate this new Conda environment:
+This installs a new Conda environment in which all needed Conda dependencies are installed and available, including Perl
+and Python. If not mentioned otherwise, all tools of the PROTEOFORMER pipeline should be executed in this environment.
+ To activate this new Conda environment:
 
 ```source activate proteoformer```
 
-Some Perl packages are not included in Conda, so afterwards execute following script:
+Some Perl packages are not included in Conda, so after installation and first activation of the new environment,
+ execute following script:
 
 ```perl install_add_perl_tools.pl```
+
+If you want to exit the proteoformer Conda environment:
+
+```source deactivate```
 
 ### Additional environments for RiboZINB, SPECtre and SRA download
 
@@ -198,16 +205,59 @@ as shown in the example.
 
 Additional documentation can be found in the help message of the module.
 
-### SRA parallel download
+### SRA parallel download <a name="sra"></a>
 
 If you download the raw data (FASTQ) from SRA, you can use the [SRA toolkit](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=toolkit_doc&f=std).
-However, we made a module to speed up this downloading process by using multiple cores of your system. Use the specific 
-conda environment for this tool, if using this module. For example:
+However, we made a module to speed up this downloading process by using multiple cores of your system for multiple files
+at once. Use the specific environment for this tool, if using this module. For example:
 
 ```
 source activate download_sra_parallel
 ./download_sra_parallel.sh -c 20 -f 3034567 -l 3034572 #This downloads all fastq data  from SRR3034572 up until SRR3034572 on 20 cores
 ```
+
+## Main pipeline <a name="main"></a>
+
+### General quality check: fastQC <a name="fastqc1"></a>
+
+Before starting off the analysis, we believe it is useful to check the general features and quality of the raw data.
+This can be done by running [FastQC](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/). FastQC is included in 
+the proteoformer conda environment, so you do not need to download it separately.
+
+For example, to run it on 20 cores:
+
+```fastqc yourdata.fastq -t 20```
+
+This generates an HTML output report with figures for assessing the quality and general features and a ZIP file 
+(for exporting the results to another system). More information about the tool can be found on the [help page](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/)
+ of FastQC. A tutorial video of what to expect of the figures can be found [here](https://www.youtube.com/watch?v=bz93ReOv87Y).
+
+### Mapping <a name="mapping"></a>
+
+The first big task is mapping the raw data on the reference genome. All reference data should be downloaded as an 
+[iGenomes folder](#igenomes).
+
+First, some prefiltering of bad and low-quality reads is done by using the [FastX toolkit](http://hannonlab.cshl.edu/fastx_toolkit/).
+ Also, the adapters are eventually clipped off using the [FastQ Clipper](http://hannonlab.cshl.edu/fastx_toolkit/commandline.html#fastx_clipper_usage)
+ or the clipper included in [STAR](https://github.com/alexdobin/STAR).
+ 
+Mapping can be done by using [STAR](https://github.com/alexdobin/STAR), [TopHat](https://ccb.jhu.edu/software/tophat/index.shtml) or [BowTie](http://bowtie-bio.sourceforge.net/bowtie2/manual.shtml). BowTie is less preferable as this not
+include splicing. Before mapping against the genome, it is possible to filter out contaminants of PhiX, rRNA, sn(o)RNA 
+and tRNA with the same mapping tools.
+
+After mapping, you got SAM and BAM files with aligned data. [Plastid](https://plastid.readthedocs.io/en/latest/examples/p_site.html)
+ can be used to determine the P site offsets per RPF length. These offsets allow to pinpoint all reads to an exact base position 
+ as explained [here](https://plastid.readthedocs.io/en/latest/examples/p_site.html).
+ 
+Next, these offsets are used to parse the alignment files into count tables. These count tables will be placed inside a 
+ results SQLite database in which also the mapping statistics and the arguments will be put. During all following steps 
+ of the pipeline, all results will be stored in this database and are available for consultation. We recommend to use the
+ [sqlite3](https://www.sqlite.org/cli.html) command line shell for easy consultation. More information can be found on
+ their [website](https://www.sqlite.org/cli.html). Use the following command for startup:
+ 
+```sqlite3 SQLite/results.db```
+
+For visualization, BedGraph files are generated. These can be used on different genome browsers like [UCSC](https://genome.ucsc.edu)
 
 ## Copyright <a name="copyright"></a>
 
