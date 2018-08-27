@@ -1,9 +1,0 @@
-# This is a sample file distributed with Galaxy that is used to define a
-# list of igenomes, using four columns tab separated
-# (longer whitespace are TAB characters):
-
-# Information on downloading igenomes from https://support.illumina.com/sequencing/sequencing_software/igenome.ilmn
-
-#<value>	<dbkey>	<name>	<path>
-
-igenomes	igroot	igenomes root folder	/data/galaxyp/data/igenomes
