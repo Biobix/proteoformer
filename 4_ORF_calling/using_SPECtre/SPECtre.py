@@ -90,7 +90,7 @@ def main():
     opt_args.add_argument("--threads_per_chrom", "-x", action="store", required=False, nargs="?", metavar="INTEGER",
                           default=1, type=int, help="The number of threads used per chromosome to run chromosomal "
                                                     "SPECTRE runs with (default: 1)")
-    opt_args.add_argument("--fdr", "-f", action="store", required=True, nargs="?", metavar="float",
+    opt_args.add_argument("--fdr", "-f", action="store", required=False, nargs="?", metavar="float",
                           default=0.05, type=float, help="FDR used in SPECTRE (default: 0,05)")
 
     args = parser.parse_args()
