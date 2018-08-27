@@ -120,6 +120,8 @@ downloaded and constructed with the get_igenomes.py script in the 'Additional_to
 python get_igenomes.py -v 82 -s human -d /path/to/dir -r -c 15
 ```
 
+Input arguments:
+
 | Argument       | Default   | Description                                                                                                                                                              |
 |----------------|-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | -d / --dir     | Mandatory | Directory wherein the igenomes tree structure will be installed                                                                                                          |
@@ -129,6 +131,18 @@ python get_igenomes.py -v 82 -s human -d /path/to/dir -r -c 15
 | -c / --cores   | Mandatory | The amount of cores that will be used for downloading chromosomes files (Do not use more than 15 cores as the download server can only establish 15 connections at once) |
 | -h / --help    |           | This useful help message                                                                                                                                                 |
 
+The tool currently supports following species:
+| Species                                                             | Input value species argument |
+|---------------------------------------------------------------------|------------------------------|
+| Homo sapiens                                                        | human                        |
+| Mus musculus                                                        | mouse                        |
+| Rattus norvegicus                                                   | rat                          |
+| Drosophila melanogaster                                             | fruitfly                     |
+| Saccharomyces cerevisiae                                            | yeast                        |
+| Danio rerio                                                         | zebrafish                    |
+| Arabidopsis thaliana                                                | arabidopsis                  |
+| Caenorhabditis elegans                                              | c.elegans                    |
+| Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344 | SL1344                       |
 
 
 ### Ensembl download <a name="ensembl"></a>
