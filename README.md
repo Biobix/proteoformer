@@ -132,6 +132,7 @@ Input arguments:
 | -h / --help    |           | This useful help message                                                                                                                                                 |
 
 The tool currently supports following species:
+
 | Species                                                             | Input value species argument |
 |---------------------------------------------------------------------|------------------------------|
 | Homo sapiens                                                        | human                        |
