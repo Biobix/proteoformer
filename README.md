@@ -1,7 +1,7 @@
 Proteoformer
 ============
 
-##Table of contents
+## Table of contents
 1. [Introduction](#introduction)
 2. Dependencies
 3. Prepations
@@ -56,7 +56,7 @@ PROTEOFORMER is also available in galaxy: http://galaxy.ugent.be
 
 
 
-##Copyright <a name="copyright"></a>
+## Copyright <a name="copyright"></a>
 
 Copyright (C) 2014 G. Menschaert, J.Crappé, E. Ndah, A. Koch & S. Steyaert
 
@@ -75,7 +75,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-##More information <a name="moreinformation"></a>
+## More information <a name="moreinformation"></a>
 
 For more (contact) information visit http://www.biobix.be/PROTEOFORMER
 
