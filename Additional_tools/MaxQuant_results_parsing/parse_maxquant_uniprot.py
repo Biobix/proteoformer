@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib_venn import venn2, venn3
 import sqlite3 as sqlite
 
-from dict_functions import dict_funcs
+#from dict_functions import dict_funcs
 
 
 __author__ = 'Steven Verbruggen'
