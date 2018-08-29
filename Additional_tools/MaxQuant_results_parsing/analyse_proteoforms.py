@@ -6,7 +6,7 @@ import argparse
 import re
 from collections import defaultdict
 import sqlite3 as sqlite
-from dict_functions import dict_funcs
+#from dict_functions import dict_funcs
 import pandas as pd
 import numpy as np
 import math
@@ -125,9 +125,13 @@ def main():
     #test_id="ENST00000372798_1_40059347_aTIS_101db1;ENST00000340450_1_40040797_5UTR_110db1;ENST00000372798_1_40040797_5UTR_100db1;ENST00000340450_1_40060135_CDS_100db1;ENST00000479759_1_40067567_ntr_100db1;ENST00000479759_1_40069737_ntr_100db1;Q5T0R9;ENST00000479759_1_40069851_ntr_100db1;ENST00000476047_3_76434856_ntr_100db1;ENST00000417455_10_43605301_ntr_100db1;ENST00000476047_3_76434832_ntr_100db1;ENST00000479759_1_40070450_ntr_100db1;Q5T0S3;Q5T0R8;ENST00000493172_6_17421556_aTIS_101db1;B7Z385;A0A087X0J3;A0A087WZ15;ENST00000465994_6_17421556_aTIS_101db1;E9PDI2;P40123"
     #N terminal splice variant
     #test_id="ENST00000319410_16_75644428_aTIS_101db1;ENST00000302445_16_75641719_CDS_100db1;ENST00000302445_16_75647609_CDS_010db2;Q15046;ENST00000566560_16_75640313_ntr_100db1;H3BVA8;ENST00000566560_16_75641719_ntr_100db1;ENST00000569298_16_75628619_ntr_100db1;J3KRL2;H3BPV7;ENST00000566772_16_75636073_aTIS_101db1;H3BMR9;ENST00000566772_16_75635974_CDS_100db1;ENST00000566772_16_75635989_CDS_100db1;ENST00000566560_16_75635974_ntr_100db1;H3BQK5;ENST00000566560_16_75635989_ntr_100db1"
+    #N-terminal truncation with SAV -> multiple variations
+    #test_id = "ENST00000593845_19_15397845_ntr_100db1;ENST00000397410_19_15397854_CDS_100db1;ENST00000397410_19_15401290_CDS_010db2;ENST00000595465_19_15418923_aTIS_101db1;ENST00000397410_19_15418923_aTIS_101db1;Q9ULX6-2;Q9ULX6"
 
     #More complex variation
     #test_id = "ENST00000345136_8_143939461_aTIS_101db1;ENST00000398774_8_143944663_aTIS_101db1;ENST00000354958_8_143953771_aTIS_101db1;ENST00000356346_8_143973472_aTIS_101db1;ENST00000354589_8_143943890_aTIS_101db1;ENST00000357649_8_143942515_aTIS_101db1;ENST00000436759_8_143975369_aTIS_101db1;ENST00000527096_8_143975369_aTIS_101db1;E9PMV1;H0YDN1;E9PKG0;E9PIA2;E9PQ28;REV__A0A0U1RR03"
+
+
 
     #identifications_copy = defaultdict(lambda: defaultdict())
     #identifications_copy[test_id] = identifications[test_id]
@@ -212,6 +216,16 @@ def construct_plot(counts, output_file):
         else:
             main_counts[classf] = counts[classf]
 
+    #Remove empty groups
+    if main_counts['Splice variants']==0:
+        del main_counts['Splice variants']
+    if main_counts['Translation in non-coding region']==0:
+        del main_counts['Translation in non-coding region']
+    if splice_counts['Exon inclusion']==0:
+        del splice_counts['Exon inclusion']
+    if splice_counts['Exon exclusion']==0:
+        del splice_counts['Exon exclusion']
+
     #Make plot
     fig = plt.figure(figsize=(30,20))
     # set up subplot grid
@@ -260,7 +274,7 @@ def construct_plot(counts, output_file):
                      box.width, box.height])
     lgd_labels = df['classification'].values.tolist()
     handles, labels = ax1.get_legend_handles_labels() #Get legend information of last ax object
-    leg = ax1.legend(handles, lgd_labels, fontsize=18, loc='upper center', bbox_to_anchor = (.5, 0.075), ncol=4)
+    leg = ax1.legend(handles, lgd_labels, fontsize=18, loc='upper center', bbox_to_anchor = (.5, 0), ncol=4)
 
     #Small plot 1
     df = pd.DataFrame.from_dict(splice_counts, orient="index")
@@ -294,7 +308,7 @@ def construct_plot(counts, output_file):
 
     #Connecting arrows
     (x,y) = texts[0].get_position()
-    xy0 = (x+0.08, y)
+    xy0 = (x, y+0.04)
     xyEnd = (-1.2, 0.5)
     con = ConnectionPatch(xyA=xy0, xyB=xyEnd, coordsA="data", coordsB="data",
                       axesA=ax1, axesB=ax2, arrowstyle=ArrowStyle.CurveFilledB(head_length=2, head_width=1), color='black', linewidth=4)
@@ -473,13 +487,16 @@ def classify_proteoform(proteoform_peptides, aligned_base_proteoform, aligned_ba
                 else:
                     classification = 'N-terminal extension, without confirming peptide'
             else:
-                # Search longest identical stretch of characters
-                longest_stretch, perc = search_longest_stretch(rest_of_proteoform, rest_of_canonical)
-                # Check if stretch can be found at the end
-                if rest_of_proteoform.endswith(longest_stretch) and perc>0.1:
-                    classification = "N-terminal splice variant"
-                else:
+                if check_only_sav(rest_of_proteoform, rest_of_canonical):
                     classification = "Multiple variations"
+                else:
+                    # Search longest identical stretch of characters
+                    longest_stretch, perc = search_longest_stretch(rest_of_proteoform, rest_of_canonical)
+                    # Check if stretch can be found at the end
+                    if rest_of_proteoform.endswith(longest_stretch) and perc>0.1:
+                        classification = "N-terminal splice variant"
+                    else:
+                        classification = "Multiple variations"
         # C-terminal extension
         elif (m5 and m6):
             # Get the rest of the sequences and calculate similarity
@@ -503,13 +520,16 @@ def classify_proteoform(proteoform_peptides, aligned_base_proteoform, aligned_ba
                 else:
                     classification = 'C-terminal extension, without confirming peptide'
             else:
-                #Search longest identical stretch of characters
-                longest_stretch, perc = search_longest_stretch(rest_of_proteoform, rest_of_canonical)
-                #Check if stretch can be found at the start
-                if rest_of_proteoform.startswith(longest_stretch) and perc>0.1:
-                    classification = "C-terminal splice variant"
-                else:
+                if check_only_sav(rest_of_proteoform, rest_of_canonical):
                     classification = "Multiple variations"
+                else:
+                    #Search longest identical stretch of characters
+                    longest_stretch, perc = search_longest_stretch(rest_of_proteoform, rest_of_canonical)
+                    #Check if stretch can be found at the start
+                    if rest_of_proteoform.startswith(longest_stretch) and perc>0.1:
+                        classification = "C-terminal splice variant"
+                    else:
+                        classification = "Multiple variations"
         #N-terminal truncation
         elif (m3 and m4):
             # Get the rest of the sequences (-initiator methionine) and calculate similarity
@@ -534,13 +554,16 @@ def classify_proteoform(proteoform_peptides, aligned_base_proteoform, aligned_ba
                 else:
                     classification = 'N-terminal truncation, without confirming peptide'
             else:
-                # Search longest identical stretch of characters
-                longest_stretch, perc = search_longest_stretch(rest_of_proteoform, rest_of_canonical)
-                # Check if stretch can be found at the end
-                if rest_of_proteoform.endswith(longest_stretch) and perc > 0.1:
-                    classification = "N-terminal splice variant"
-                else:
+                if check_only_sav(rest_of_proteoform, rest_of_canonical):
                     classification = "Multiple variations"
+                else:
+                    # Search longest identical stretch of characters
+                    longest_stretch, perc = search_longest_stretch(rest_of_proteoform, rest_of_canonical)
+                    # Check if stretch can be found at the end
+                    if rest_of_proteoform.endswith(longest_stretch) and perc > 0.1:
+                        classification = "N-terminal splice variant"
+                    else:
+                        classification = "Multiple variations"
         #C-terminal truncation
         elif (m7 and m8):
             # Get the rest of the sequences and calculate similarity
@@ -567,13 +590,16 @@ def classify_proteoform(proteoform_peptides, aligned_base_proteoform, aligned_ba
                 else:
                     classification = 'C-terminal truncation, without confirming peptide'
             else:
-                # Search longest identical stretch of characters
-                longest_stretch, perc = search_longest_stretch(rest_of_proteoform, rest_of_canonical)
-                # Check if stretch can be found at the start
-                if rest_of_proteoform.startswith(longest_stretch) and perc > 0.1:
-                    classification = "C-terminal splice variant"
-                else:
+                if check_only_sav(rest_of_proteoform, rest_of_canonical):
                     classification = "Multiple variations"
+                else:
+                    # Search longest identical stretch of characters
+                    longest_stretch, perc = search_longest_stretch(rest_of_proteoform, rest_of_canonical)
+                    # Check if stretch can be found at the start
+                    if rest_of_proteoform.startswith(longest_stretch) and perc > 0.1:
+                        classification = "C-terminal splice variant"
+                    else:
+                        classification = "Multiple variations"
         #Exon exclusion
         elif (m9):
             regex = r"^"+re.escape(m9.group(1))+r"[A-Za-z]+?"+re.escape(m9.group(2))+r"$"
