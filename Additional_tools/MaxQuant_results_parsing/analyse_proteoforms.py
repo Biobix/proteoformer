@@ -54,8 +54,6 @@ def main():
                           type=str, help="MaxQuant output file of protein groups (mandatory)")
     man_args.add_argument("--peptides", "-p", action="store", required=True, nargs="?", metavar="PATH",
                           type=str, help="MaxQuant output file of peptides(mandatory)")
-    man_args.add_argument("--plot_file", "-o", action="store", required=False, nargs="?", metavar="PATH",
-                          type=str, default="proteoform_class_plot.eps", help="Plot output file (default: proteoform_class_plot.eps)")
 
     opt_args = parser.add_argument_group("Optional parameters")
     opt_args.add_argument("--help", "-h", action="help", help="Show help message and exit")
@@ -63,6 +61,10 @@ def main():
                         type=str, help="Working directory (default: CWD)")
     opt_args.add_argument("--clustalo", "-c", action="store", required=False, nargs="?", metavar="PATH", default="clustalo",
                           type=str, help="Path to the Clustal Omega executable (default: clustalo)")
+    opt_args.add_argument("--plot_file", "-o", action="store", required=False, nargs="?", metavar="PATH",
+                          type=str, default="proteoform_class_plot.eps", help="Plot output file (default: proteoform_class_plot.eps)")
+    opt_args.add_argument("--csv_output", "-x", action="store", required=False, nargs="?", metavar="PATH",
+                          type=str, default="proteoform_classifications.csv", help="CSV output file of classifications (default: proteoform_classifications.csv)")
 
     args = parser.parse_args()
 
@@ -145,6 +147,9 @@ def main():
     for protein_group in identifications:
         print identifications[protein_group]['base_proteoform']+": "+identifications[protein_group]['classification']
 
+    #Output identifications and counts as csv
+    output_csv(identifications, args.csv_output)
+
 
     #Count classifications
     counts = count_classifications(identifications)
@@ -173,6 +178,15 @@ def main():
 ##########
 #  SUBS  #
 ##########
+
+#Output identifications
+def output_csv(identifications, csv_file):
+
+    with open(csv_file, 'w') as FW:
+        for protein_group in identifications:
+           FW.write(protein_group+","+identifications[protein_group]['classification']+"\n")
+
+    return
 
 #Construct distribution plot
 def construct_plot(counts, output_file):
