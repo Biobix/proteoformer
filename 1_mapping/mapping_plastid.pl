@@ -350,6 +350,9 @@ Plastid P-site offset calculation during mapping step (PROTEOFORMER)
     
 Generate the P-site offsets with Plastid based on the alignment files of the mapping.pl step
     
+Example:
+    perl mapping_plastid.pl --out_sqlite SQLite/results.db --treated untreated
+
 Input arguments
     --work_dir                          Working directory (default: CWD env setting)
     --tmp                               Folder to store the temporary files (default: work_dir/tmp)

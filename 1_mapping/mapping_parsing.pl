@@ -1777,7 +1777,7 @@ sub print_help_text {
     
     my $help_string = "\n\nParsing of mapping results (PROTEOFORMER)
     
-Alignment results will in this tool be parsed. Based on the P-site offset option, P-site offsets will be gathered from a list of standard offsets or from the results calculated by Plastid. With these offsets, the alignments in the SAM file will be pinpointed on a certain base position. Counts per base positiion will then be saved to the SQLite table (both a table with total counts per position as also a table of counts per position and per RPF length).
+Alignment results will in this tool be parsed. Based on the P-site offset option, P-site offsets will be gathered from a list of standard offsets or from the results calculated by Plastid. With these offsets, the alignments in the SAM file will be pinpointed on a certain base position. Counts per base positiion will then be saved to the SQLite table (both a table with total counts per position as also a table of counts per position and per RPF length). Furthermore, BED and BEDGRAPH files will be generated for visual inspection of the counts in genome browser tools like UCSC.
 
 Example:
     perl mapping_parsing.pl --out_sqlite SQLite/results.db --offset plastid
@@ -1792,7 +1792,7 @@ Input arguments:
                                             Plastid: if you have run the mapping_plastid module first
         --offset_file_untr              Offset input file for untreated data (mandatory if offset=from_file)
         --offset_file_tr                Offset input file for treated data (mandatory if offset=from_file)
-        --help_string                   Print help message
+        --help                          Print help message
 
 ";
     
