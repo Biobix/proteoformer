@@ -15,7 +15,6 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
 4. [Main pipeline](#main)
     1. [General quality check: fastQC](#fastqc1)
     2. [Mapping](#mapping)
-        norm bedgraphs
     3. General quality check: fastQC
     4. Specific ribosome profiling check: mappingQC
     5. Transcript calling

@@ -8,7 +8,6 @@
 
          --mapper $choose.mapper
          --tr_coord $choose.tr_coord
-         --truseq $truseq
 
         #if $MultiUnique.unique == "N"
 
@@ -36,12 +35,13 @@
             --out_sqlite "${out_sqlite}"
             --suite $readtype.plastidStandard.suite
             --suite_tools_loc "/srv/galaxy/server/tool-data/proteoformer/suite_tools"
+            --price_files $readtype.price_files
 
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${untreat_bam_tr}"
             	--out_bam_tr_tr "${treat_bam_tr}"
 			#end if
-            
+
             #if $readtype.plastidStandard.suite == "plastid"
                 --min_l_plastid $readtype.plastidStandard.min_l_plastid
                 --max_l_plastid $readtype.plastidStandard.max_l_plastid
@@ -49,7 +49,7 @@
                 --offset_img_tr $p_offsets_tr
             #end if
         #else if $readtype.riboSinPair == "ribo_untr"
-        
+
             --snRNA $readtype.snrna
             --tRNA $readtype.trna
             --inputfile1 $readtype.input_file1
@@ -62,11 +62,12 @@
             --out_sqlite "${ribo_untr_out_sqlite}"
             --suite $readtype.plastidStandard.suite
             --suite_tools_loc "/srv/galaxy/server/tool-data/proteoformer/suite_tools"
-            
+            --price_files $readtype.price_files
+
             #if $choose.tr_coord == "Y"
                 --out_bam_tr_untr "${ribo_untr_bam_tr}"
             #end if
-            
+
             #if $readtype.plastidStandard.suite == "plastid"
                 --min_l_plastid $readtype.plastidStandard.min_l_plastid
                 --max_l_plastid $readtype.plastidStandard.max_l_plastid
@@ -80,6 +81,7 @@
             --out_bg_as_untr $PE_polyA_as_bg
             --out_sam_untr $PE_polyA_sam
             --out_sqlite $PE_polyA_out_sqlite
+            --truseq $truseq
 
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${PE_polyA_bam_tr}"
@@ -92,6 +94,7 @@
             --out_bg_as_untr $PE_total_as_bg
             --out_sam_untr $PE_total_sam
             --out_sqlite $PE_total_out_sqlite
+            --truseq $truseq
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${PE_total_bam_tr}"
 			#end if
@@ -102,9 +105,20 @@
             --out_sqlite $SE_polyA_out_sqlite
             --out_bg_s_untr $SE_polyA_s_bg
             --out_bg_as_untr $SE_polyA_as_bg
-
+            --truseq $truseq
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${SE_polyA_bam_tr}"
+			#end if
+        #else if $readtype.riboSinPair == "SE_total"
+
+            --inputfile1 $readtype.input_file1
+            --out_sam_untr $SE_total_sam
+            --out_sqlite $SE_total_out_sqlite
+            --out_bg_s_untr $SE_total_s_bg
+            --out_bg_as_untr $SE_total_as_bg
+            --truseq $truseq
+			#if $choose.tr_coord == "Y"
+            	--out_bam_tr_untr "${SE_total_bam_tr}"
 			#end if
 		#end if
 
@@ -204,6 +218,10 @@
                 </conditional>
                 <param name="min_l_parsing" value="26" type="integer" label="Choose the minimum length for parsing into the count tables"/>
                 <param name="max_l_parsing" value="34" type="integer" label="Choose the maximum length for parsing into the count tables"/>
+                <param name="price_files" type="select" label="Select if alignment files for PRICE should be generated">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true"></option>
+                </param>
             </when> <!-- ribo -->
             
             <when value="ribo_untr">
@@ -241,6 +259,10 @@
                 </conditional>
                 <param name="min_l_parsing" value="26" type="integer" label="Choose the minimum length for parsing into the count tables"/>
                 <param name="max_l_parsing" value="34" type="integer" label="Choose the maximum length for parsing into the count tables"/>
+                <param name="price_files" type="select" label="Select if alignment files for PRICE should be generated">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true"></option>
+                </param>
             </when> <!-- ribo_untr -->
             
             <when value="PE_polyA">
@@ -253,6 +275,10 @@
                     <option value="N" selected="true">No</option>
                 </param>
                 <param name="rrna" type="select" label="Premapping on ribosomal RNA sequences" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
+                <param name="truseq" type="select" label="If strands (+ and -) are assigned as in TruSeq or not" multiple="false">
                     <option value="Y" selected="true">Yes</option>
                     <option value="N">No</option>
                 </param>
@@ -271,6 +297,10 @@
                     <option value="Y" selected="true">Yes</option>
                     <option value="N">No</option>
                 </param>
+                <param name="truseq" type="select" label="If strands (+ and -) are assigned as in TruSeq or not" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
             </when> <!-- PE_total -->
 
             <when value="SE_polyA">
@@ -285,12 +315,31 @@
                     <option value="Y" selected="true">Yes</option>
                     <option value="N">No</option>
                 </param>
+                <param name="truseq" type="select" label="If strands (+ and -) are assigned as in TruSeq or not" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
             </when> <!-- SE_polyA -->
+
+
+            <when value="SE_total">
+                <param name="input_file1" type="data" format="fastq" label="Forward FASTQ file" help="Must have ASCII encoded quality scores"/>
+                <param name="adaptor" value="CTGTAGGCACCATCAAT" type="text" size="45"  label="enter the adaptor sequence that needs to be clipped"/>
+                <param name="readlength" type="integer" value="50" label="choose the read length"/>
+                <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
+                    <option value="Y">Yes</option>
+                    <option value="N" selected="true">No</option>
+                </param>
+                <param name="rrna" type="select" label="Premapping on ribosomal RNA sequences" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
+                <param name="truseq" type="select" label="If strands (+ and -) are assigned as in TruSeq or not" multiple="false">
+                    <option value="Y" selected="true">Yes</option>
+                    <option value="N">No</option>
+                </param>
+            </when> <!-- SE_total -->
         </conditional> <!-- riboSinPair -->
-        <param name="truseq" type="select" label="If strands (+ and -) are assigned as in TruSeq or not" multiple="false">
-            <option value="Y" selected="true">Yes</option>
-            <option value="N">No</option>
-        </param>
         <param name="cores" type="integer" size="5" value="5" label="enter the number of cores to run the transcriptome mapping"/>
     </inputs>
 
@@ -382,6 +431,25 @@
         <data format="bam" name="SE_polyA_bam_tr" label="$choose.mapper on ${on_string}: RNA-seq reads based on transcript coordinates">
             <filter>choose['mapper'] == 'STAR'</filter>
 			<filter>readtype['riboSinPair'] == 'SE_polyA'</filter>
+			<filter>choose['tr_coord'] == 'Y'</filter>
+        </data>
+
+
+        <data format="sam" name="SE_total_sam" label="$choose.mapper on ${on_string}: alignment SE_total RNAseq reads">
+        	 <filter>readtype['riboSinPair'] == 'SE_total'</filter>
+        </data>
+        <data format="sqlite" name="SE_total_out_sqlite" label="SQLite DB with mapping results (step1)" >
+        	 <filter>readtype['riboSinPair'] == 'SE_total'</filter>
+        </data>
+        <data format="bedgraph" name="SE_total_as_bg" label="RNA-seq footprint count data Antisense Bedgraph (as)">
+            <filter>readtype['riboSinPair'] == 'SE_total'</filter>
+        </data>
+        <data format="bedgraph" name="SE_total_s_bg" label="RNA-seq footprint count data Sense Bedgraph (s)">
+            <filter>readtype['riboSinPair'] == 'SE_total'</filter>
+        </data>
+        <data format="bam" name="SE_total_bam_tr" label="$choose.mapper on ${on_string}: RNA-seq reads based on transcript coordinates">
+            <filter>choose['mapper'] == 'STAR'</filter>
+			<filter>readtype['riboSinPair'] == 'SE_total'</filter>
 			<filter>choose['tr_coord'] == 'Y'</filter>
         </data>
 
