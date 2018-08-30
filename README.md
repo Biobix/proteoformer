@@ -327,9 +327,11 @@ Input arguments:
 | --suite_tools_loc   | work_dir                                          | The foder with scripts of the subsequent mapping tools when using plastid or standard suite                                                                                                                                                                                                                                                                      |
 | --help              |                                                   | Generate help message                                                                                                                                                                                                                                                                                                                                            |
 
-If you chose the custom suite, you can execute the Plastid and the parsing part of the mapping yourself after mapping.pl.
+If you chose the custom suite, you can execute the Plastid and the parsing part of the mapping yourself after `mapping.pl`.
  This gives you the opportunity to test different offset sets. As you can see, also a tab-separated offset list can be used
- in the parsing by inputting them as a txt file. In that way, you can let the program use your offsets of choice. For example:
+ in the parsing by inputting them as a txt file. In that way, you can let the program use your offsets of choice.
+ 
+Examples of how to run these separated programs:
 
 ```
 #Plastid for untreated sample
@@ -365,9 +367,37 @@ Input arguments of mapping_parsing.pl:
 
 **Output:**
 
-Output of different tables
+After running this step, different tables will be generated in the SQLite results database.
 
-BED and BEDgraph
+A table of all arguments:
+
+| Variable | Value       |
+|----------|-------------|
+| run_name | experiment1 |
+| ...      | ...         |
+
+A table with mapping statistics:
+
+| Sample             | type    | total    | mapped_U | mapped_M | mapped_T | unmapped | map_freq_U        | map_freq_M        | map_freq_T      |
+|--------------------|---------|----------|----------|----------|----------|----------|-------------------|-------------------|-----------------|
+| experiment1.fastq1 | genomic | 31133026 | 17607183 | 1240756  | 18847939 | 12285087 | 0.565546792656775 | 0.039853369863554 | 0.3945998375403 |
+| ...                | ...     | ...      | ...      | ...      | ...      | ...      | ...               | ...               | ...             |
+
+A table with counts per base position for each sample:
+
+| chr | strand | start  | count |
+|-----|--------|--------|-------|
+| 8   | -1     | 116252 | 2.0   |
+| ... | ...    | ...    | ...   |
+
+A table with counts per base position and per RPF length for each sample:
+
+| chr | strand | start  | RPF | count |
+|-----|--------|--------|-----|-------|
+| 8   | -1     | 116252 | 28  | 2.0   |
+| ... | ...    | ...    | ... | ...   |
+
+Furthermore, BED and BEDgraph files are generated, which allow visualizing these counts in a genome browser.
 
 ## Copyright <a name="copyright"></a>
 
