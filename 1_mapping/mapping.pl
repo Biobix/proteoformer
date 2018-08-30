@@ -42,7 +42,8 @@ use Cwd;
 #mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$pricefiles,$suite,$suite_tools_loc);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$suite,$suite_tools_loc);
+my $help;
 
 GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
@@ -51,9 +52,9 @@ GetOptions(
 "species=s"=>\$species,                 	# Species, eg mouse/rat/human/fruitfly/arabidopsis/SL1344/zebrafish/yeast       mandatory argument
 "ensembl=i"=>\$ensemblversion,          	# Ensembl annotation version, eg 66 (Feb2012),                      			mandatory argument
 "cores=i"=>\$cores,                     	# Number of cores to use for Bowtie Mapping,                        			mandatory argument
-"readtype=s"=>\$readtype,              		# The readtype (ribo, ribo_untr, PE_polyA, SE_polyA, PE_total, SE_total)       	mandatory argument (default = ribo)
+"readtype=s"=>\$readtype,              		# The readtype (ribo, ribo_untr, PE_polyA, SE_polyA, PE_total, SE_total)       	optional argument (default = ribo)
 "mapper:s"=>\$mapper,                   	# The mapper used for alignment (STAR,TopHat2)       			                optional  argument (default = STAR)
-"readlength:i"=>\$readlength,           	# The readlength (if RiboSeq take 50 bases),                        			optional  argument (default = 50)
+"readlength:i"=>\$readlength,           	# The readlength (if RiboSeq take 50 bases),                        			optional  argument (default = 36)
 "adaptor:s"=>\$adaptorSeq,              	# The adaptor sequence that needs to be clipped with fastx_clipper, 			optional  argument (default = CTGTAGGCACCATCAAT) => Ingolia paper (for ArtSeq = AGATCGGAAGAGCACAC)
 "unique=s" =>\$unique,                  	# Retain the uniquely (and multiple) mapping reads (Y or N),        			mandatory argument
 "tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
@@ -88,14 +89,19 @@ GetOptions(
 "splicing=s" =>\$splicing,                # Allow splicing for genome alignment for eukaryotic species (Y or N)         optional argument (default = Y)
 "firstrankmultimap=s" =>\$FirstRankMultiMap,  # Only retain the first ranked alignment of multimapper (Y or N)           optional argument (default = N)
 "rpf_split=s" =>\$rpf_split,                 #If the program needs to construct RPF specific bedgraph files (Y or N)     optional argument (default = N)
-"pricefiles=s" =>\$price_files,              #If the program needs to generate sam files specifically for PRICE (Y or N)    optional argument (default = N)
+"price_files=s" =>\$price_files,             #If the program needs to generate sam files specifically for PRICE (Y or N)    optional argument (default = N)
 "suite=s" =>\$suite,                       #Option to execute different mapping modules all together for ribo data ('custom', 'standard', 'plastid')     optional argument (default = custom)
                                                         #Custom: only mapping, other modules manually afterwards
                                                         #Standard: mapping + parsing with standard offset
                                                         #Plastid: mapping + default p offset calculation with plastid + parsing based on these offsets
-"suite_tools_loc=s" =>\$suite_tools_loc     #The folder with script of subsequent tools when using a suite                  optional argument (default = workdir)
+"suite_tools_loc=s" =>\$suite_tools_loc,    #The folder with script of subsequent tools when using a suite                  optional argument (default = workdir)
+"help" => \$help                            # Help text option
 );
 
+if ($help){
+    print_help_text();
+    exit;
+}
 
 
 ###########################################################################
@@ -324,19 +330,19 @@ if ($tr_coord){
     print "generate alignment file based on transcriptome coord     : $tr_coord\n";
 }
 if ($mapper eq "STAR"){
-    if ($pricefiles){
-        print "Generate alignment files specifically for PRICE           : $pricefiles\n";
+    if ($price_files){
+        print "Generate alignment files specifically for PRICE           : $price_files\n";
     } else {
         #default
-        $pricefiles = 'N';
-        print "Generate alignment files specifically for PRICE           : $pricefiles\n";
+        $price_files = 'N';
+        print "Generate alignment files specifically for PRICE           : $price_files\n";
     }
 } else {
     #default
-    $pricefiles = 'N';
-    print "Generate alignment files specifically for PRICE           : $pricefiles\n";
+    $price_files = 'N';
+    print "Generate alignment files specifically for PRICE           : $price_files\n";
 }
-if ($pricefiles ne 'Y' && $pricefiles ne 'N'){
+if ($price_files ne 'Y' && $price_files ne 'N'){
     print "Price file generation option should be Y or N!\n";
     die;
 }
@@ -391,7 +397,7 @@ if (!defined($out_bam_tr))     		{$out_bam_tr        = $work_dir."/".$mapper."/f
 if (!defined($out_bam_tr_untr)) 	{$out_bam_tr_untr    = $work_dir."/".$mapper."/fastq1/untreat_tr.bam";}
 if (!defined($out_bam_tr_tr))		{$out_bam_tr_tr     = $work_dir."/".$mapper."/fastq2/treat_tr.bam";}
 if (!defined($out_sqlite))     		{$out_sqlite        = $work_dir."/SQLite/results.db";}
-if ($pricefiles eq 'Y'){
+if ($price_files eq 'Y'){
     $price_sam_untr    = $work_dir."/".$mapper."/fastq1/price_untreat.sam";
     $price_bam_untr    = $work_dir."/".$mapper."/fastq1/price_untreat.bam";
     $price_sam_tr    = $work_dir."/".$mapper."/fastq2/price_treat.sam";
@@ -502,7 +508,7 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Store input arguments
-store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr, $pricefiles);
+store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr, $price_files);
 
 
 ############
@@ -1107,7 +1113,7 @@ sub map_STAR {
 	system("mv ".$directory."Aligned.sorted.sam ".$bamf);
     
     #Redo mapping in order to generate PRICE specific alignment files
-    if ($pricefiles eq 'Y' && (uc($readtype) eq 'RIBO' || $readtype eq 'ribo_untr')){
+    if ($price_files eq 'Y' && (uc($readtype) eq 'RIBO' || $readtype eq 'ribo_untr')){
         print "     Mapping against genomic $seqFileName for PRICE specific alignment files"."\n";
         
         if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
@@ -1702,7 +1708,7 @@ sub store_input_vars {
     my $price_bam_untr = $_[32];
     my $price_sam_tr = $_[33];
     my $price_bam_tr = $_[34];
-    my $pricefiles = $_[35];
+    my $price_files = $_[35];
 
     my $dbh_sqlite_results = dbh($dsn,$us,$pw);
 
@@ -1799,7 +1805,7 @@ sub store_input_vars {
     $query = "INSERT INTO arguments (variable,value) VALUES (\'max_l_parsing\',\'".$max_l_parsing."\')";
     $dbh_sqlite_results->do($query);
     
-    if($pricefiles eq 'Y'){
+    if($price_files eq 'Y'){
         $query = "INSERT INTO arguments (variable,value) VALUES (\'price_sam_untr\',\'".$price_sam_untr."\')";
         $dbh_sqlite_results->do($query);
         
@@ -1964,4 +1970,76 @@ sub parseLogBowtie {
     close(LOG1);
     return ($inReads,$mappedReadsU,$mappedReadsM,$unmappedReads);
 
+}
+
+### Help text ###
+sub print_help_text {
+    
+    my $help_string = "\n\nMapping Proteoformer
+    
+The first big task of the pipeline is mapping the raw data on the reference genome. All reference data should be downloaded as an iGenomes folder.
+First, some prefiltering of bad and low-quality reads is done by using the Fastx toolkit. Also, the adapters are eventually clipped off, using the FastQ Clipper (recommended) or the clipper included in STAR.
+Mapping can be done by using STAR, TopHat or BowTie. BowTie is less preferable as this not includes splicing. Before mapping against the genome, it is possible to filter out contaminants of PhiX, rRNA, sn(o)RNA and tRNA with the same mapping tool you chose to map against the genome.
+After mapping, SAM and BAM files with aligned data are obtained. Plastid can be used to determine the P site offsets per RPF length. These offsets allow to pinpoint all reads to an exact base position as explained in https://plastid.readthedocs.io/en/latest/examples/p_site.html. These offsets are very important further down the pipeline to assign reads to the correct base position.
+Next, these offsets are used to parse the alignment files into count tables. These count tables will be placed inside a results SQLite database in which also the mapping statistics and the arguments will be put. During all following steps of the pipeline, all results will be stored in this database and are available for consultation. We recommend to use the sqlite3 command line shell for easy consultation of this database.
+For visualization, BedGraph files are generated. These can be used on different genome browsers like UCSC.
+    
+Example:
+    perl mapping.pl --inputfile1 link/to/your/untr_data.fq --inputfile2 link/to/your/tr_data.fq --name my_experiment --species human --ensembl 92 --cores 20 --unique Y --igenomes_root /user/igenomes --readtype ribo --clipper fastx --adaptor CTGTAGGCACCATCAAT --phix Y --rRNA Y --snRNA Y --tRNA Y --rpf_split Y --pricefiles Y --suite plastid
+        
+        Input parameters:
+            --inputfile1                        the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq (mandatory)
+            --inputfile2                        the fastq file of the treated data for RIBO-seq (PUR,LTM,HARR) or the 2nd fastq for paired-end RNA-seq (mandatory)
+            --name                              Name of the run (mandatory)
+            --species                           Species: mouse/rat/human/fruitfly/arabidopsis/SL1344/zebrafish/yeast (mandatory)
+            --ensembl                           Ensembl annotation version (mandatory)
+            --igenomes_root                     iGenomes root folder (mandatory)
+            --cores                             Number of cores to use for Bowtie Mapping (mandatory)
+            --readtype                          The readtype: ribo, ribo_untr, PE_polyA, SE_polyA, PE_total or SE_total (default: ribo)
+            --mapper                            The mapper used for alignment: STAR,TopHat2,BowTie or BowTie2 (default: STAR)
+            --readlength                        The readlength (default: 36)
+            --adaptor                           The adaptor sequence that needs to be clipped with the clipper (default: CTGTAGGCACCATCAAT)
+            --unique                            Retain the only uniquely mapping reads (Y or N) (mandatory)
+            --work_dir                          Working directory (default: CsCWD env setting)
+            --tmp                               Folder where temporary files are stored (default: CWD/tmp)
+            --min_l_plastid                     Minimum length for plastid (default: 22)
+            --max_l_plastid                     Maximum length for plastid (default: 34)
+            --offset_img_untr                   Path to save the offset image of Plastid in (untreated) (default: CWD/plastid/run_name_untreated_p_offsets.png)
+            --offset_img_tr                     Path to save the offset image of plastid in (treated) (default: CWD/plastid/run_name_untreated_p_offsets.png)
+            --min_l_parsing                     Minimum length for count table parsing (default: 26, 25 for fruitfly)
+            --max_l_parsing                     Maximum length for count table parsing (default: 34)
+            --out_bg_s_untr:                    Output file for sense untreated count data (bedgraph) (default: untreat_sense.bedgraph)
+            --out_bg_as_untr                    Output file for antisense untreated count data (bedgraph) (default: untreat_antisense.bedgraph)
+            --out_bg_s_tr                       Output file for sense treated count data (bedgraph) (default: treat_sense.bedgraph)
+            --out_bg_as_tr                      Output file for antisense treated count data (bedgraph) (default: treat_antisense.bedgraph)
+            --out_sam_untr                      Output file for alignments of untreated data (sam) (default: untreat.sam)
+            --out_sam_tr                        Output file for alignments of treated data (sam) (default: treat.sam)
+            --out_bam_untr                      Output file for alignments of untreated data (bam) (default: untreat.bam)
+            --out_bam_tr                        Output file for alignments of treated data (bam) (default: treat.bam)
+            --out_bam_tr_untr                   Output file for alignments on transcript coordinates for untreated data (bam) (default: untreat_tr.bam)
+            --out_bam_tr_tr                     Output file for alignments on transcript coordinates for treated data (bam) (default: treat_tr.bam)
+            --out_sqlite                        SQLite DB output file (default: SQLite/results.db)
+            --clipper                           Which clipper needs to be used (none, STAR, fastx) (default: none)
+            --phix                              Map to phix DB prior to genomic mapping (Y or N) (default: N)
+            --rRNA                              Map to rRNA DB prior to genomic mapping (Y or N) (default: Y)
+            --snRNA                             Map to snRNA DB prior to genomic mapping (Y or N) (default: N)
+            --tRNA                              Map to tRNA DB prior to genomic mapping (Y or N) (default: N)
+            --tr_coord                          Generate alignment file based on transcript coordinates (Y or N) (default: N)
+            --truseq                            If strands (+ and -) are assigned as in TruSeq or not for RNAseq (Y or N) (default: Y)
+            --mismatch                          Alignment will be output only if it has fewer mismatches than this value (default: 2)
+            --maxmultimap                       Alignments will be output only if the read maps fewer than this value (default: 16)
+            --splicing                          Allow splicing for genome alignment (Y or N) (default: Y)
+            --firstrankmultimap                 Only retain the first ranked alignment when non-uniquely mapped (Y or N) (default: N)
+            --rpf_split                         If the program needs to construct RPF specific bedgraph files (Y or N) (default: N)
+            --price_files                       If the program needs to generate sam files specifically for PRICE (Y or N) (default: N)
+            --suite                             Option to execute different mapping modules all together for ribo data (custom, standard, plastid) (default: custom)
+                                                    Custom: only mapping, other modules manually afterwards
+                                                    Standard: mapping + parsing with standard offset
+                                                    Plastid: mapping + default p offset calculation with plastid + parsing based on these offsets
+            --suite_tools_loc                   The folder with script of subsequent tools when using a suite (default: workdir)
+            --help                              Help text option\n
+";
+
+                
+                print $help_string;
 }

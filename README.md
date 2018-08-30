@@ -325,8 +325,14 @@ Input arguments:
 | --pricefiles        | N                                             | If the program needs to generate SAM files specifically for PRICE: Yes (Y) or No (N), choose Y if you plan to execute PRICE later on                                                                                                                                                                                                                             |
 | --suite             | custom                                        | Options of how to run the different mapping modules (mapping, mapping_plastid, mapping_parsing) all together for ribo data: only execute mapping and startup plastid and parsing manually later (custom), mapping and parsing with standard offsets (standard), mapping with afterwards plastid offset calculation and parsing based on these offsets (plastid)  |
 | --suite_tools_loc   | $CWD                                          | The foder with scripts of the subsequent mapping tools when using plastid or standard suite                                                                                                                                                                                                                                                                      |
+| --help              |                                               | Generate help message                                                                                                                                                                                                                                                                                                                                            |
+
+If you chose the custom suite, you can execute the Plastid and the parsing part of the mapping yourself. For example:
+
+```
 
 
+```
 
 ## Copyright <a name="copyright"></a>
 
