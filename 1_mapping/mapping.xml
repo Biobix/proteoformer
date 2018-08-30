@@ -180,7 +180,8 @@
                 <option value="ribo_untr">Ribo-seq (only untreated sample)</option>
                 <option value="PE_polyA">Paired-end polyA pulled RNA-seq</option>
                 <option value="PE_total">Paired-end RNA-seq</option>
-                <option value="SE_polyA">Single-end RNA-seq</option>
+                <option value="SE_polyA">Single-end polyA pulled RNA-seq</option>
+                <option value="SE_total">Single-end RNA-seq</option>
             </param>
             <when value="ribo">
                 <param name="input_file1" type="data" format="fastq" label="choose the FASTQ file (untreated RIBO-seq: no drug or CHX or Single End RNA-seq or Paired End RNA-seq file 1)" help="Must have ASCII encoded quality scores"/>
