@@ -5,61 +5,37 @@
 #  This scripts normalizes bedgraph files based on different library sizes
 #
 #  Usage:
-#    bash normBedgraph --ntuntrs /data2/steven/eIF1/NTuniq3/output/untreat_sense.bedgraph --ntuntras /data2/steven/eIF1/NTuniq3/output/untreat_antisense.bedgraph --nttrs /data2/steven/eIF1/NTuniq3/output/treat_sense.bedgraph --nttras /data2/steven/eIF1/NTuniq3/output/treat_antisense.bedgraph --kduntrs /data2/steven/eIF1/KDuniq3/output/untreat_sense.bedgraph --kduntras /data2/steven/eIF1/KDuniq3/output/untreat_antisense.bedgraph --kdtrs /data2/steven/eIF1/KDuniq3/output/treat_sense.bedgraph --kdtras /data2/steven/eIF1/KDuniq3/output/treat_antisense.bedgraph --libntuntr 37873493 --libnttr 45427218 --libkduntr 26914126 --libkdtr 20699824
+#    bash normBedgraph --untrs /data2/steven/eIF1/NTuniq3/output/untreat_sense.bedgraph --untras /data2/steven/eIF1/NTuniq3/output/untreat_antisense.bedgraph --nttrs /data2/steven/eIF1/NTuniq3/output/treat_sense.bedgraph --nttras /data2/steven/eIF1/NTuniq3/output/treat_antisense.bedgraph --libuntr 37873493 --libtr 45427218
 #
 #  Created by Steven Verbruggen in 2015.
 #
 
 #Command line input
-NTUNTRS=
-NTUNTRAS=
-NTTRS=
-NTTRAS=
-KDUNTRS=
-KDUNTRAS=
-KDTRS=
-KDTRAS=
-LIBNTUNTR=
-LIBNTTR=
-LIBKDUNTR=
-LIBKDTR=
+UNTRS=
+UNTRAS=
+TRS=
+TRAS=
+LIBUNTR=
+LIBTR=
 while [ "$1" != "" ] ; do
     case $1 in
-        --ntuntrs)              shift
-                                NTUNTRS=$1
+        --untrs)              shift
+                                UNTRS=$1
                                 ;;
-        --ntuntras )            shift
-                                NTUNTRAS=$1
+        --untras )            shift
+                                UNTRAS=$1
                                 ;;
-        --nttrs )               shift
-                                NTTRS=$1
+        --trs )               shift
+                                TRS=$1
                                 ;;
-        --nttras )              shift
-                                NTTRAS=$1
+        --tras )              shift
+                                TRAS=$1
                                 ;;
-        --kduntrs )             shift
-                                KDUNTRS=$1
+        --libuntr )           shift
+                                LIBUNTR=$1
                                 ;;
-        --kduntras )            shift
-                                KDUNTRAS=$1
-                                ;;
-        --kdtrs )               shift
-                                KDTRS=$1
-                                ;;
-        --kdtras )              shift
-                                KDTRAS=$1
-                                ;;
-        --libntuntr )           shift
-                                LIBNTUNTR=$1
-                                ;;
-        --libnttr )             shift
-                                LIBNTTR=$1
-                                ;;
-        --libkduntr )           shift
-                                LIBKDUNTR=$1
-                                ;;
-        --libkdtr )             shift
-                                LIBKDTR=$1
+        --libtr )             shift
+                                LIBTR=$1
                                 ;;
     esac
     shift
@@ -71,22 +47,16 @@ echo "Normalize bedgraphs"
 echo "-------------------"
 echo
 echo "ARGUMENTS:"
-echo " --ntuntrs = $NTUNTRS"
-echo " --ntuntras = $NTUNTRAS"
-echo " --nttrs = $NTTRS"
-echo " --nttras = $NTTRAS"
-echo " --kduntrs = $KDUNTRS"
-echo " --kduntras = $KDUNTRAS"
-echo " --kdtrs = $KDTRS"
-echo " --kdtras = $KDTRAS"
-echo " --libntuntr = $LIBNTUNTR"
-echo " --libnttr = $LIBNTTR"
-echo " --libkduntr = $LIBKDUNTR"
-echo " --libkdtr = $LIBKDTR"
+echo " --untrs = $UNTRS"
+echo " --untras = $UNTRAS"
+echo " --trs = $TRS"
+echo " --tras = $TRAS"
+echo " --libuntr = $LIBUNTR"
+echo " --libtr = $LIBTR"
 echo
 
 #Group lib sizes in one array
-LIBSIZES=($LIBNTUNTR $LIBNTTR $LIBKDUNTR $LIBKDTR)
+LIBSIZES=($LIBUNTR $LIBTR)
 
 #Determine minimum lib size
 min=100000000000000
@@ -96,25 +66,19 @@ do
 done
 
 #Calculate normalization factors
-normntuntr=$(bc -l <<< "$LIBNTUNTR/$min")
-normnttr=$(bc -l <<< "$LIBNTTR/$min")
-normkduntr=$(bc -l <<< "$LIBKDUNTR/$min")
-normkdtr=$(bc -l <<< "$LIBKDTR/$min")
-NORMFACTORS=($normntuntr $normntuntr $normnttr $normnttr $normkduntr $normkduntr $normkdtr $normkdtr)
+normuntr=$(bc -l <<< "$LIBUNTR/$min")
+normtr=$(bc -l <<< "$LIBTR/$min")
+NORMFACTORS=($normuntr $normuntr $normtr $normtr)
 
 #Put all files in array
 FILES=()
-FILES+=($NTUNTRS)
-FILES+=($NTUNTRAS)
-FILES+=($NTTRS)
-FILES+=($NTTRAS)
-FILES+=($KDUNTRS)
-FILES+=($KDUNTRAS)
-FILES+=($KDTRS)
-FILES+=($KDTRAS)
+FILES+=($UNTRS)
+FILES+=($UNTRAS)
+FILES+=($TRS)
+FILES+=($TRAS)
 
 #Outputfiles
-OUTPUTFILES=("ntuntrs.bedgraph" "ntuntras.bedgraph" "nttrs.bedgraph" "nttras.bedgraph" "kduntrs.bedgraph" "kduntras.bedgraph" "kdtrs.bedgraph" "kdtras.bedgraph")
+OUTPUTFILES=("untrs.bedgraph" "untras.bedgraph" "trs.bedgraph" "tras.bedgraph")
 j=-1
 
 #Do changes and write to output files

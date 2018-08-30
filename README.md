@@ -75,7 +75,7 @@ conda config --add channels conda-forge
 conda config --add channels bioconda
 ```
 
-Then you can install all dependencies based on the yml file in the dependency_envs folder of this GitHub repository with following command:
+Then you can install all dependencies based on the yml file in the `dependency_envs` folder of this GitHub repository with following command:
 
 ```conda env create -f Dependency_envs/proteoformer.yml```
 
@@ -125,7 +125,7 @@ ssource activate download_sra_parallel
 ### iGenomes reference information download <a name="igenomes"></a>
 
 Mapping is done based on reference information in the form of iGenomes directories. These directories can easily
-downloaded and constructed with the get_igenomes.py script in the 'Additional_tools' folder. For example:
+downloaded and constructed with the `get_igenomes.py` script in the `Additional_tools` folder. For example:
 
 ```
 python get_igenomes.py -v 82 -s human -d /path/to/dir -r -c 15
@@ -160,7 +160,7 @@ The tool currently supports following species:
 ### Ensembl download <a name="ensembl"></a>
 
 After mapping, mostly reference annotation is used from Ensembl (exons, splicing, canonical translation initiation,...). 
-This information is available as an SQLite database and is downloadable by using the ENS_db.py script of the 'Additional_tools'
+This information is available as an SQLite database and is downloadable by using the `ENS_db.py` script of the `Additional_tools`
  folder. For example:
  
 ```
@@ -191,7 +191,7 @@ The Ensembl database for SL1344 (Salmonella) is available under request.
 
 For Prokaryotes, no untranslated upstream regions (UTRs) exist. Although, offset callers, used during mapping, need these
 regions in order to calculate P-site offsets. Therefore, for Prokaryotes, these UTRs need to be simulated with the 
-simulate_utr_for_prokaryotes.py script in the 'Additional_tools' folder. For example:
+`simulate_utr_for_prokaryotes.py` script in the `Additional_tools` folder. For example:
 
 ```
 python simulate_utr_for_prokaryotes.py igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82.gtf > igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82_with_utr.gtf
@@ -367,9 +367,9 @@ Input arguments of mapping_parsing.pl:
 
 **Output:**
 
-After running this step, different tables will be generated in the SQLite results database.
+After running the full mapping step, different tables will be generated in the SQLite results database.
 
-A table of all arguments:
+A table of all inputted arguments:
 
 | Variable | Value       |
 |----------|-------------|
@@ -397,7 +397,15 @@ A table with counts per base position and per RPF length for each sample:
 | 8   | -1     | 116252 | 28  | 2.0   |
 | ... | ...    | ...    | ... | ...   |
 
-Furthermore, BED and BEDgraph files are generated, which allow visualizing these counts in a genome browser.
+Furthermore, BED and BedGraph files are generated, which allow visualizing these counts in a genome browser.
+
+**Extra:** To obtain normalized BedGraph files based on the different library sizes, there is an extra tool for that in 
+the `Additional_tools` folder. As input, it takes the different original BedGraph files and library sizes of both samples 
+(i.e. the total mapped reads against the genomic reference, which can be found in the statistics table of the results database).
+
+```
+bash normBedgraph --untrs output/untreat_sense.bedgraph --untras output/untreat_antisense.bedgraph --nttrs output/treat_sense.bedgraph --nttras output/treat_antisense.bedgraph --libuntr 37873493 --libtr 45427218
+```
 
 ## Copyright <a name="copyright"></a>
 
