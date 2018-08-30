@@ -42,21 +42,25 @@ use Cwd;
 #1_mapping.pl --out_sqlite SQLite/results.db
 
 # get the command line arguments
-my ($work_dir,$tmpfolder,$out_sqlite,$offset_option,$offset_file_untr,$offset_file_tr);
+my ($work_dir,$tmpfolder,$out_sqlite,$offset_option,$offset_file_untr,$offset_file_tr,$help);
 
 GetOptions(
 "tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
 "work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
-"out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file,                                             			optional  argument (default = results.db)
+"out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file,                                             			optional  argument (default = SQLite/results.db)
 "offset:s" =>\$offset_option,                      # offset option (standard, from_file, plastid)                           optional  argument (default = standard)
 #                                                       Standard: if you use the standard offset lengths used by Ingolia et al. (2009)
 #                                                       From_file: from txt file with rpf_length, offset format as in plastid
 #                                                       Plastid: if you have run the mapping module with plastid before
 "offset_file_untr:s" =>\$offset_file_untr,  # offset input file for untreated data                                         mandatory argument if offset argument is 'from_file'
-"offset_file_tr:s" => \$offset_file_tr      # offset input file for treated data                                           mandatory argument if offset argument is 'from_file' and readtype argument in arguments table is 'ribo'
+"offset_file_tr:s" => \$offset_file_tr,     # offset input file for treated data                                           mandatory argument if offset argument is 'from_file' and readtype argument in arguments table is 'ribo'
+"help" => \$help                            #Help text option
 );
 
-
+if ($help){
+    print_help_text();
+    exit;
+}
 
 ###########################################################################
 #Check all input variable and/or get default values and set extra variables
@@ -1766,4 +1770,31 @@ sub get_ARG_vars{
     
     # Return ARG variables
     return($species,$version,$IGENOMES_ROOT,$cores,$seqFileName1,$seqFileName2,$mapper,$unique,$rpf_split,$FirstRankMultiMap,$truseq,$readtype,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count);
+}
+
+##Help text##
+sub print_help_text {
+    
+    my $help_string = "\n\nParsing of mapping results (PROTEOFORMER)
+    
+Alignment results will in this tool be parsed. Based on the P-site offset option, P-site offsets will be gathered from a list of standard offsets or from the results calculated by Plastid. With these offsets, the alignments in the SAM file will be pinpointed on a certain base position. Counts per base positiion will then be saved to the SQLite table (both a table with total counts per position as also a table of counts per position and per RPF length).
+
+Example:
+    perl mapping_parsing.pl --out_sqlite SQLite/results.db --offset plastid
+    
+Input arguments:
+        --work_dir                      The working directory (default: CWD env setting)
+        --tmp                           The folder where temporary files are stored (default: work_dir/tmp)
+        --out_sqlite                    SQLite results DB (default: work_dir/SQLite/results.db)
+        --offset                        Offset option (standard, from_file or plastid) (default: standard)
+                                            Standard: if you use the standard offset lengths used by Ingolia et al. (2009)
+                                            From_file: from tab separated txt file with rpf_length-tab-offset format
+                                            Plastid: if you have run the mapping_plastid module first
+        --offset_file_untr              Offset input file for untreated data (mandatory if offset=from_file)
+        --offset_file_tr                Offset input file for treated data (mandatory if offset=from_file)
+        --help_string                   Print help message
+
+";
+    
+    print $help_string;
 }

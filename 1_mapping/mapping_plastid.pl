@@ -16,15 +16,22 @@ use Cwd;
 # ./1_mapping_plastid.pl --out_sqlite SQLite/results.db --treated untreated
 
 # get the command line arguments
-my ($work_dir,$tmpfolder,$out_sqlite,$treated,$offset_img);
+my ($work_dir,$tmpfolder,$out_sqlite,$treated,$offset_img,$help);
 
 GetOptions(
 "tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
 "work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
 "out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file,                                             			optional  argument (default = results.db)
 "treated:s" =>\$treated,                    # Untreated (no treat, CHX,...) or treated (LTM, HARR,...)                      optional  argument (default = 'untreated')
-"offset_img=s" =>\$offset_img               # P site offset image                                                           optional  argument (default = CWD/plastid/run_name_(un)treated_p_offsets.png)
+"offset_img=s" =>\$offset_img,              # P site offset image                                                           optional  argument (default = CWD/plastid/run_name_(un)treated_p_offsets.png)
+"help" => \$help                            #Help text option
 );
+
+if ($help){
+    print_help_text();
+    exit;
+}
+
 
 ###########################################################################
 #Check all input variable and/or get default values and set extra variables
@@ -333,3 +340,27 @@ sub dbh {
     
     return($dbh);
 }
+
+##Print help text##
+sub print_help_text {
+    
+    my $help_string = "\n\n
+    
+Plastid P-site offset calculation during mapping step (PROTEOFORMER)
+    
+Generate the P-site offsets with Plastid based on the alignment files of the mapping.pl step
+    
+Input arguments
+    --work_dir                          Working directory (default: CWD env setting)
+    --tmp                               Folder to store the temporary files (default: work_dir/tmp)
+    --out_sqlite                        SQLite results database (default: work_dir/SQLite/results.db)
+    --treated                           Which sample to calculate offsets for (options: untreated/treated) (default: untreated)
+    --offset_img                        P-site offsets output image path (default: work_dir/plastid/run_name_(un)treated_p_offsets.png)
+    --help                              Generate help message
+
+";
+        print $help_string;
+    
+    
+}
+
