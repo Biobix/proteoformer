@@ -538,6 +538,14 @@ DATA2 = PUR, HARR, or LTM treated sample
        A bam alignment file holding the DATA1 alignments based on transcriptome coordinates
        A bam alignment file holding the DATA2 alignments based on transcriptome coordinates
 
+       If Plastid offset option was chosen:
+       A png figure showing the DATA1 calculated P-site offsets
+       A png figure showing the DATA1 calculated P-site offsets
+
+*For RNA-seq*
+
+        Only a selection of these files will be generated
+
 -----
 
 .. class:: infomark
@@ -546,7 +554,7 @@ DATA2 = PUR, HARR, or LTM treated sample
 
 A FastQ file holding the DATA1
 
-A FastQ file holding the DATA2
+A FastQ file holding the DATA2, if necessary depending on the experiment type (Ribo-seq, RNA-seq, Ribo-seq untreated only,...)
 
 ------
 
