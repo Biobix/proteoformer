@@ -1,4 +1,4 @@
-<tool id="mappingQC" name="MappingQC" version="1.0">
+<tool id="mappingQC" name="Step 2: MappingQC" version="1.0">
     <description>quality control of mapping results</description>
     <command interpreter="perl">
         mappingQC.pl --samfile $samfile --treated $treated --cores $cores --result_db $sqlite_db --unique $unique --ens_db $ensembl_db.fields.path --offset $offsetSelect.offset --plotrpftool $plotrpftool --tool_dir "/srv/galaxy/server/tool-data/proteoformer/mqc_tools/" --html $MappingQC_output --output_folder $MappingQC_output.files_path
