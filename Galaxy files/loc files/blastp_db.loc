@@ -1,0 +1,10 @@
+# This is a sample file distributed with Galaxy that is used to define a
+# list of Blast search databases, using three columns tab separated
+# (longer whitespace are TAB characters):
+
+#<value>	<dbkey>	<name>	<path>
+
+blastp_mm	db2	Mus Musculus	/srv/galaxy/server/tool-data/proteoformer/blastdb/Mus_Musculus/Mus_Musculus
+blastp_arath	db3	Arabidopsis Thaliana	/srv/galaxy/server/tool-data/proteoformer/blastdb/Arath/Arath
+blastp_dme	db4	Drosophila melanogaster	/srv/galaxy/server/tool-data/proteoformer/blastdb/drosophilia/drosophilia
+blastp_hs	db5	Homo Sapiens	/srv/galaxy/server/tool-data/proteoformer/blastdb/Homo_sapiens/Homo_sapiens
