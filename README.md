@@ -16,7 +16,7 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
     1. [General quality check: fastQC](#fastqc1)
     2. [Mapping](#mapping)
     3. [General quality check: fastQC](#fastqc2)
-    4. Specific ribosome profiling check: mappingQC
+    4. [Specific ribosome profiling quality check: mappingQC](#mappingqc)
     5. Transcript calling
     6. ORF calling
         1. PROTEOFORMER
@@ -127,7 +127,7 @@ Mapping is done based on reference information in the form of iGenomes directori
 downloaded and constructed with the `get_igenomes.py` script in the `Additional_tools` folder. For example:
 
 ```
-python get_igenomes.py -v 82 -s human -d /path/to/dir -r -c 15
+python get_igenomes.py -v 92 -s human -d /path/to/dir -r -c 15
 ```
 
 Input arguments:
@@ -163,7 +163,7 @@ This information is available as an SQLite database and is downloadable by using
  folder. For example:
  
 ```
-python ENS_db.py -v 82 -s human
+python ENS_db.py -v 92 -s human
 ```
 
 Input arguments:
@@ -193,10 +193,10 @@ regions in order to calculate P-site offsets. Therefore, for Prokaryotes, these 
 `simulate_utr_for_prokaryotes.py` script in the `Additional_tools` folder. For example:
 
 ```
-python simulate_utr_for_prokaryotes.py igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82.gtf > igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82_with_utr.gtf
+python simulate_utr_for_prokaryotes.py igenomes/SL1344/Ensembl/ASM21085v2/Annotation/Genes/genes_32.gtf > igenomes/SL1344/Ensembl/ASM21085v2/Annotation/Genes/genes_32_with_utr.gtf
 # Move and copy GTFs
-mv igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82.gtf igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82_without_utr.gtf
-cp igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82_with_utr.gtf igenomes/Homo_sapiens/Ensembl/GRCh38/Annotation/Genes/genes_82.gtf
+mv igenomes/SL1344/Ensembl/ASM21085v2/Annotation/Genes/genes_32.gtf igenomes/SL1344/Ensembl/ASM21085v2/Annotation/Genes/genes_32_without_utr.gtf
+cp igenomes/SL1344/Ensembl/ASM21085v2/Annotation/Genes/genes_32_with_utr.gtf igenomes/SL1344/Ensembl/ASM21085v2/Annotation/Genes/genes_32.gtf
 ```
 
 This outputs a new GTF file. Best to rename the old GTF file and copy the new one under the name of the original GTF file 
@@ -416,6 +416,52 @@ during the mapping step, quality will normally have remarkably improved.
 fastqc output/untreat.sam -t 20
 fastqc output/treat.sam -t 20
 ```
+
+### Specific ribosome profiling quality check: mappingQC <a name="mappingqc"></a>
+
+MappingQC generates some figures which give a nice overview of the quality and the general feature of the aligned
+ ribosome profiling data. More specific, it gives an overview of the P site offset calculation, the gene distribution
+ and the metagenic classification. Furthermore, MappingQC does a thorough analysis of the triplet periodicity and the
+ linked triplet phase (typical for ribosome profiling) in the canonical transcript of your data. Especially, the link 
+ between the phase distribution and the RPF length, the relative sequence position and the triplet identity are taken 
+ into account. MappingQC is also available as a stand-alone tool, separated from PROTEOFORMER and its SQLite results 
+ structure, so that you can apply it on every samfile you like, independent of the mapping source.
+
+For PROTEOFORMER, mappingQC needs a SAM file (from one of both samples), an [Ensembl database](#ensembl) and the results database to run. It generates an
+HTML file which gives an overview of all generated figures. For exporting this report, a ZIP file is generated with the 
+HTML and all figures included. The tool needs a tool directory with different background scripts. The directory (`mqc_tools`)
+is available in our GitHub repository under `2_mappingQC`. Input the path of where you put this directory in the `--tool_dir`
+argument.
+
+Example:
+
+```
+perl mappingQC.pl --samfile output/untreat.sam --treated untreated --cores 20 --result_db SQLite/results.db --unique Y --ens_db ENS_hsa_92.db --offset plastid --plastid plastid/experiment1_untreated_p_offsets.png --tool_dir mqc_tools --plotrpftool pyplot3D
+```
+
+Input arguments;
+
+| Argument        | Default                            | Description                                                                                                                                              |
+|-----------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --work_dir      | CWD env setting                    | The working directory                                                                                                                                    |
+| --tmp           | work_dir/tmp                       | The temporary files folder                                                                                                                               |
+| --samfile       | Mandatory                          | The SAM file to do the analysis for                                                                                                                      |
+| --treated       | untreated                          | Whether the SAM file is from the treated or untreated sample (possiblities: untreated/treated)                                                           |
+| --cores         | 5                                  | The amount of cores that can be used by the program                                                                                                      |
+| --result_db     | Mandatory                          | The result database with all mapping results                                                                                                             |
+| --unique        | Y                                  | Whether to use only the unique alignments (Y/N) (has to be Y if the mapping was done uniquely)                                                           |
+| --ens_db        | Mandatory                          | The Ensembl database with annotation info                                                                                                                |
+| --offset        | standard                           | The source of offsets: calculated with Plastid during mapping (plastid), standard offsets from Ingolia 2019 (standard) or from an input file (from_file) |
+| --offset_file   | Mandatory if offset=from_file      | The offsets input file                                                                                                                                   |
+| --offset_img    | Mandatory if offset=plastid        | The offsets image Plastid generated during mapping                                                                                                       |
+| --output_folder | work_dir/mappingQC_output          | The output folder for storing output files                                                                                                               |
+| --tool_dir      | work_dir/mqc_tools                 | The directory with all necessary underlying tools                                                                                                        |
+| --plotrpftool   | grouped2D                          | Module used for plotting the RPF-phase figure: Seaborn grouped 2D chart (grouped2D), mplot3d 3D bar chart (pyplot3D) or mayavi 3D bar chart (mayavi)     |
+| --html          | work_dir/mappingqc_out.html        | The output HTML file                                                                                                                                     |
+| --zip           | work_dir/mappingQC_(un)treated.zip | The output ZIP file                                                                                                                                      |
+| --help          |                                    | This helpful screen                                                                                                                                      |
+
+
 
 ## Copyright <a name="copyright"></a>
 
