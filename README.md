@@ -15,7 +15,7 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
 4. [Main pipeline](#main)
     1. [General quality check: fastQC](#fastqc1)
     2. [Mapping](#mapping)
-    3. General quality check: fastQC
+    3. [General quality check: fastQC](#fastqc2)
     4. Specific ribosome profiling check: mappingQC
     5. Transcript calling
     6. ORF calling
@@ -404,6 +404,17 @@ the `Additional_tools` folder. As input, it takes the different original BedGrap
 
 ```
 bash normBedgraph --untrs output/untreat_sense.bedgraph --untras output/untreat_antisense.bedgraph --nttrs output/treat_sense.bedgraph --nttras output/treat_antisense.bedgraph --libuntr 37873493 --libtr 45427218
+```
+
+### General quality check: fastQC <a name="fastqc2"></a>
+
+This step is quite similar to the [first quality check step with FastQC](#fastqc1), although this time FastQC will be 
+performed on the alignment files (sam). This generates again HTML reports but due to the adapter clipping and pre-filtering
+during the mapping step, quality will normally have remarkably improved.
+
+```
+fastqc output/untreat.sam -t 20
+fastqc output/treat.sam -t 20
 ```
 
 ## Copyright <a name="copyright"></a>

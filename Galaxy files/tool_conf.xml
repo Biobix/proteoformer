@@ -10,31 +10,51 @@
       <tool file="proteoformer/tis_calling_intergenic.xml" />
       <tool file="proteoformer/tis_overview.xml" />
       <tool file="proteoformer/snp_calling.xml" />
-      <tool file="proteoformer/assembly.xml" />
+      <tool file="proteoformer/2_assembly.xml" />
       <tool file="proteoformer/generate_translation_db.xml" />
       <tool file="proteoformer/FlossProteoformer.xml" />
-      <tool file="proteoformer/metagenic_classification.xml" />
-      <tool file="proteoformer/gene_distribution.xml" />
 </section>
 
-<label text="NGS Analysis" id="ngs"/>
+<tool file="/srv/galaxy/server/tools/mQC/mQC.xml" labels="new"/>
+
+<tool file="/srv/galaxy/server/tools/probamconvert/tools/probamconvert/probamconvert.xml" />
+
+<tool file="/srv/galaxy/server/tools/imprinting/imprinting.xml" labels="new" />
+
+<label text="NGS Analysis" id="ngs_analysis"/>
 <section name = "NGS: QC and manipulation" id="ngs_qc">
 
 </section>
 
 <section name = "NGS: Mapping" id = "ngs_mapping">
+
+</section>
+
+<section id="ngs:_picard" name="NGS: Picard">
+
 </section>
 
 <section name = "NGS: SAM Tools" id = "ngs_sam">
 
 </section>
 
+<section name= "NGS: Analaysis" id = "ngs" >
+	<tool file="ngs_tools/RNAseq.xml" labels="biobix tool"/>
+	<tool file="ngs_tools/Infinium.xml" labels="biobix tool"/>
+</section>
+
 <section name = "NGS: GATK Tools" id = "ngs_gatk">
+
+</section>
+
+<section id="ngs_bed" name="NGS: bedtools" version="">
+
 </section>
 
 <section name= "NGS: Variant Analysis" id = "ngs_var">
 </section>
-<label text="Galaxy core" id="galaxy"/> 
+
+<label text="Galaxy core" id="galaxy"/>
 <section id="getext" name="Get Data">
     <tool file="data_source/upload.xml" />
     <tool file="data_source/ucsc_tablebrowser.xml" />
