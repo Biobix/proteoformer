@@ -30,6 +30,26 @@
         <columns>value, dbkey, name, path</columns>
         <file path="tool-data/all_fasta.loc" />
     </table>
+ <table name="bowtie_indexes" comment_char="#" allow_duplicate_entries="False">
+        <columns>value, dbkey, name, path</columns>
+        <file path="tool-data/bowtie_indices.loc" />
+    </table>
+ <table name="bowtie2_indexes" comment_char="#" allow_duplicate_entries="False">
+        <columns>value, dbkey, name, path</columns>
+        <file path="tool-data/bowtie2_indices.loc" />
+    </table>
+<table name="tophat_indexes" comment_char="#" allow_duplicate_entries="False">
+        <columns>value, dbkey, name, path</columns>
+        <file path="tool-data/bowtie_indices.loc" />
+    </table>
+ <table name="tophat2_indexes" comment_char="#" allow_duplicate_entries="False">
+        <columns>value, dbkey, name, path</columns>
+        <file path="tool-data/bowtie2_indices.loc" />
+    </table>
+<table name="bwa_indexes" comment_char="#" allow_duplicate_entries="False">
+        <columns>value, dbkey, name, path</columns>
+        <file path="tool-data/bwa_index.loc" />
+    </table>
     <!-- Locations of indexes in the BFAST mapper format -->
     <table name="bfast_indexes" comment_char="#" allow_duplicate_entries="False">
         <columns>value, dbkey, formats, name, path</columns>
