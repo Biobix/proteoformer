@@ -1,0 +1,108 @@
+<tool id="transcript_calling" name="Step 3: Transcript calling">
+	<description>for all ribosome profiles</description>
+	<command interpreter="perl">
+        
+        transcript_calling.pl --in_sqlite "${sqlite_db}" --out_sqlite "${out_sqlite_db}" --scripts_folder "/srv/galaxy/server/tool-data/transcript_calling_scripts"
+        
+        #if $meth.method=="rule-based"
+        
+            --ens_db "$meth.{ensembl_db.fields.path}"
+        
+        #else if $meth.method=="ribozinb"
+        
+            --min_count $meth.min_count
+            --no_of_samples $meth.no_of_samples
+            --fdr $meth.fdr
+            --default_score $meth.score.which
+            --alpha $meth.alpha
+            
+            #if $meth.score.which=="d"
+            
+                --cutoff $meth.score.cutoff
+            
+            #end if
+            
+        #end if
+        
+    </command>
+    
+	<inputs>
+		<param name="sqlite_db" type="data" format="sqlite" size="50" label="Sqlite DB with RIBO-seq data after mapping" help="The SQLite results database should at least contain output from the RIBO-seq mapping."/>
+        <conditional name="meth">
+            <param name="method" type="select" label="The method of transcript calling" multiple="false">
+                <option value="rule-based" selected="true">Rule-based transcript calling</option>
+                <option value="ribozinb">Zero-inflated binomial model (RiboZINB)</option>
+            </param>
+            <when value="rule-based">
+                <param name="ensembl_db" type="select" label="Select the correct ensembl annotation DB" help="The Ensembl sqlite databases are species and annotation version specific. If your genome of interest is not listed - contact your administrator.">
+                    <options from_data_table="PROTEOFORMER_ENS" />
+                </param>
+            </when>
+            <when value="ribozinb">
+                <param name="min_count" type="integer" value="5" label="The minimum reads for a transcript to be called."/>
+                <param name="no_of_samples" type="integer" value="30" label="The number of iterations when generating a negative set."/>
+                <param name="fdr" type="float" value="0.05" label="The false discovery rate."/>
+                <param name="alpha" type="float" value="1.0" label="The proportion of noise when generating a negative set."/>
+                <conditional name="score">
+                    <param name="which" type="select" label="Whether the default score threshold should be used or whether the threshold needs to be estimated by using a permutation test.">
+                        <option value="d" selected="true" multiple="false">Default score</option>
+                        <option value="p">Permutation test</option>
+                    </param>
+                </conditional>
+            </when>
+        </conditional>
+	</inputs>
+    <outputs>
+        <data format="sqlite" name="out_sqlite_db" label="SQLite DB with mapping/tr_calling results (step1-2)"/>
+    </outputs>
+	<help>
+.. class:: infomark
+
+**What it does**
+
+Based on the SQLite database holding the experimental data from RIBO-seq mapping, this tool determines the translated transcripts for a given untreated/CHX/EMT-treated ribosome profiling data set (=DATA1 from RNA-mapping in 'Step 1: Mapping (both RNA-seq and RIBO-seq)'). There are two possible methods for doing this.
+
+The first method uses annotation info from Ensembl to determine the exon structure of all possible transcipts. Based on the coverage over the exons, this method tool uses rules about the exon coverage to determine which transcripts are called as translated transcripts.
+
+A second method uses the zero-inflated binomial model (RiboZINB) to determine the acitvely translated transcript isoforms.
+
+-----
+
+.. class:: infomark
+
+**Input**
+
+An sqlite database holding experimental data from the RNA-mapping (RIBO-seq).
+
+For the rule-based method, a species and annotation-version specific sqlite Ensembl database. The location of this database should be included in the ENS_db.loc file, located in the main tool directory.
+
+-----
+
+.. class:: infomark
+
+**Output**
+
+An sqlite database holding all experimental data from the RIBO-seq mapping and transcript calling/translation tool. After the transcript calling an extra table will be added:
+
+(NOTE: annotations as CCDS identifier and canonical transcript  are also inserted for further filtering of the transcripts)
+::
+
+
+    transcript_id  stable_id        chr         seq_region_id  seq_region_strand  seq_region_start  seq_region_end  read_counts  normalized_counts    biotype         exon_coverage  canonical   ccds        gene_stable_id     FPKM
+    -------------  ---------------  ----------  -------------  -----------------  ----------------  --------------  -----------  -------------------  --------------  -------------  ----------  ----------  -----------------  ----------------
+    2427712        ENST00000445884  1           27511          1                  10002981.0        10010032.0      3.0          0.00681818181818182  protein coding  Yes            Yes         No          ENSG00000228150    19.3450784708
+    ...
+
+
+------
+
+**Citation:**
+
+For the underlying tool and it's use in Galaxy, please cite http://dx.doi.org/10.1093/nar/gku1283
+
+PROTEOFORMER is licensed under the GPL v3.
+
+For more information visit https://github.com/Biobix/proteoformer or http://www.biobix.be/PROTEOFORMER.
+
+	</help>
+</tool>
