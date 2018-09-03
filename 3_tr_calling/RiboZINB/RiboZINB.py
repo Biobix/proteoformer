@@ -15,7 +15,8 @@ Use the RiboZINB module (author: Elvis Ndah) for determining actively translated
 ARGUMENTS
     -w | --work_dir                     The working directory (default: CWD)
     -x | --tmpfolder                    The temporary folder (default: work_dir/tmp)
-    -p | --result_db                    The results database (mandatory)
+    -i | --in_sqlite                    The input results database (mandatory)
+    -o | --out_sqlite                   The output results database (default: same path as in_sqlite)
     -m | --mincount                     The minimum reads count for a transcript to be called (default: 5)
     -n | --no_of_samples                The number of iterations when generating a negative set (default: 30)
     -f | --fdr                          The false discovery rate (default: 0.05)
@@ -23,6 +24,7 @@ ARGUMENTS
                                             (default: d)
     -v | --cutoff                       The default score threshold (default: 0.1)
     -a | --alpha                        Proportion of noise to generate negative set (default: 1)
+    -h | --help                         Generate help message
 
 
 
@@ -37,8 +39,8 @@ def main():
 
     # Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "w:x:p:m:n:f:g:s:v:a:",["work_dir=","tmpfolder=","result_db=","mincount=",\
-            "no_of_samples=", "fdr=", "fdr_type=","default_score=","cutoff=", "alpha="])
+        myopts, args = getopt.getopt(sys.argv[1:], "w:x:i:o:m:n:f:g:s:v:a:h",["work_dir=","tmpfolder=","in_sqlite=","out_sqlite=","mincount=",\
+            "no_of_samples=", "fdr=", "fdr_type=","default_score=","cutoff=", "alpha=","help"])
     except getopt.GetoptError as err:
         print err
         sys.exit()
@@ -47,10 +49,15 @@ def main():
     # o == option
     # a == argument passed to the o
     for o, a in myopts:
+        if o in ('-h', '--help'):
+            generate_help_message()
+            sys.exit()
         if o in ('-w', '--work_dir'):
             work_dir = a
-        if o in ('-p', '--result_db'):
-            result_db = a
+        if o in ('-i', '--in_sqlite'):
+            in_sqlite = a
+        if o in ('-o', '--out_sqlite'):
+            out_sqlite = a
         if o in ('-x', '--tmpfolder'):
             tmpfolder = a
         if o in ('-m', '--mincount'):
@@ -67,6 +74,8 @@ def main():
             alpha = float(a)
 
 
+
+
     #Parse arguments
     try:
         work_dir
@@ -78,10 +87,14 @@ def main():
     except:
         tmpfolder = work_dir+"/tmp"
     try:
-        result_db
+        in_sqlite
     except:
         print "Do not forget the result DB parameter!"
         sys.exit()
+    try:
+        out_sqlite
+    except:
+        out_sqlite = in_sqlite
     try:
         mincount
     except:
@@ -126,7 +139,8 @@ def main():
     print
     print "Working directory:                                           "+work_dir
     print "Temporary files folder:                                      "+tmpfolder
-    print "Results DB:                                                  "+result_db
+    print "Input SQLite results db:                                     "+in_sqlite
+    print "Output SQLite results db:                                    "+out_sqlite
     print "Minimum reads count:                                         "+str(mincount)
     print "Number of iterations when generating negative set:           "+str(no_of_samples)
     print "False discovery rate:                                        "+str(fdr)
@@ -135,6 +149,8 @@ def main():
     print "Noise proportion factor alpha:                               "+str(alpha)
     print
     sys.stdout.flush()
+
+    result_db = in_sqlite
 
     #Create tmp folder
     if not os.path.isdir(tmpfolder):
@@ -642,6 +658,32 @@ def get_arguments(db):
             sys.exit()
 
     return ens_db, igenomes_root, species, ens_v, cores, run_name
+
+
+## Print help message
+def generate_help_message():
+
+    help_string = "\nRiboZINB PROTEOFORMER\n\n"\
+"Use the RiboZINB module (author: Elvis Ndah) for determining actively translated transcript isoforms in PROTEOFORMER.\n\n\n"\
+"ARGUMENTS\n"\
+"    -w | --work_dir                     The working directory (default: CWD)\n"\
+"    -x | --tmpfolder                    The temporary folder (default: work_dir/tmp)\n"\
+"    -i | --in_sqlite                    The input results database (mandatory)\n"\
+"    -o | --out_sqlite                   The output results database (default: same path as in_sqlite)\n"\
+"    -m | --mincount                     The minimum reads count for a transcript to be called (default: 5)\n"\
+"    -n | --no_of_samples                The number of iterations when generating a negative set (default: 30)\n"\
+"    -f | --fdr                          The false discovery rate (default: 0.05)\n"\
+"    -s | --default_score                Use the default score threshold (d) or estimate threshold by permutation test (p)\n"\
+"                                            (default: d)\n"\
+"    -v | --cutoff                       The default score threshold (default: 0.1)\n"\
+"    -a | --alpha                        Proportion of noise to generate negative set (default: 1)\n"\
+"    -h | --help                         Generate help message\n\n\n"\
+"EXAMPLE\n\n"\
+"python RiboZINB.py -p SQLite/results.db\n\n\n"
+
+    print help_string
+
+    return
 
 #########Set MAIN####################
 if __name__ == "__main__":

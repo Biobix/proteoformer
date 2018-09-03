@@ -515,17 +515,18 @@ An example of how to run this tool:
 
 Input arguments:
 
-| Argument           | Default         | Description                                                                                        |
-|--------------------|-----------------|----------------------------------------------------------------------------------------------------|
-| -w/--work_dir      | CWD env setting | The working directory                                                                              |
-| -x/--tmpfolder     | work_dir/tmp    | The temporary files folder                                                                         |
-| -p/--result_db     | Mandatory       | The SQLite results database                                                                        |
-| -m/--mincount      | 5               | The minimum reads for a transcript to be called                                                    |
-| -n/--no_of_samples | 30              | The number of iterations when generating a negative set                                            |
-| -f/--fdr           | 0.05            | The false discovery rate                                                                           |
-| -s/--default_score | d               | Use the default score threshold (d) or estimate the threshold by performing a permutation test (p) |
-| -v/--cutoff        | 0.1             | The default score threshold                                                                        |
-| -a/--alpha         | 1               | Proportion of noise when generating the negative set                                               |
+| Argument           | Default                | Description                                                                                        |
+|--------------------|------------------------|----------------------------------------------------------------------------------------------------|
+| -w/--work_dir      | CWD env setting        | The working directory                                                                              |
+| -x/--tmpfolder     | work_dir/tmp           | The temporary files folder                                                                         |
+| -i/--in_sqlite     | Mandatory              | The input SQLite results database                                                                  |
+| -o/--out_sqlite    | Same path as in_sqlite | The output SQLite results database                                                                 |
+| -m/--mincount      | 5                      | The minimum reads for a transcript to be called                                                    |
+| -n/--no_of_samples | 30                     | The number of iterations when generating a negative set                                            |
+| -f/--fdr           | 0.05                   | The false discovery rate                                                                           |
+| -s/--default_score | d                      | Use the default score threshold (d) or estimate the threshold by performing a permutation test (p) |
+| -v/--cutoff        | 0.1                    | The default score threshold                                                                        |
+| -a/--alpha         | 1                      | Proportion of noise when generating the negative set                                               |
 
 Output table structure in the SQLite results database:
 
