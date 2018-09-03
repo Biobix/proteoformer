@@ -1312,7 +1312,7 @@ sub generate_trans_db {
     my @tis = split '_', $tis_id; #SPLIT TIS id from SNP and INDEL underscore info
     
     #Get TIS calling method for TIS ID
-    my $TIS_calling_method = get_TIS_calling_method($dbh_results, $tis_id);
+    my $TIS_calling_method = get_TIS_calling_method($dbh_results, $tis[0]);
     my $ens_db;
     
     #Get ens_db for PRICE and SPECtre
