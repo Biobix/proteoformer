@@ -461,7 +461,9 @@ Input arguments;
 | --zip           | work_dir/mappingQC_(un)treated.zip | The output ZIP file                                                                                                                                      |
 | --help          |                                    | This helpful screen                                                                                                                                      |
 
-
+**Caution:** The mplot3d package in Pyplot is vulnerable for so-called Escher effects. Sometimes, certain boxes are plotted
+with a wrong z-order, but overall, figures are clear. On the other hand, the Mayavi package requires the usage of a graphical
+card, so on servers, this is mostly not an option.
 
 ## Copyright <a name="copyright"></a>
 
