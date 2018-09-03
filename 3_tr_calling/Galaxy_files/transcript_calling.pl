@@ -38,7 +38,7 @@ use Cwd;
 #
 #
 
-my ($work_dir,$tmp,$in_sqlite,$out_sqlite,$method,$ens_db,$mincount,$no_of_samples,$fdr,$default_score,$cutoff,$alpha,$scripts_folder)
+my ($work_dir,$tmp,$in_sqlite,$out_sqlite,$method,$ens_db,$mincount,$no_of_samples,$fdr,$default_score,$cutoff,$alpha,$scripts_folder);
 
 GetOptions(
 "work_dir:s"=>\$work_dir,
