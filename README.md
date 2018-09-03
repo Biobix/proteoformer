@@ -467,11 +467,11 @@ Input arguments:
 with a wrong z-order, but overall, figures are clear. On the other hand, the Mayavi package requires the usage of a graphical
 card, so on servers, this is mostly not an option.
 
-###Transcript calling <a name="transcriptcalling"></a>
+### Transcript calling <a name="transcriptcalling"></a>
 
 After checking the aligned data for quality and general features, you can search for the translated transcripts.
 
-###Rule-based transcript calling <a name="rulebased"></a>
+### Rule-based transcript calling <a name="rulebased"></a>
 
 A first way to determine these translated transcript, is based on general rules. Transcript without RIBO-seq counts are 
 ignored from the start. Then, for each exon of the transcript, the counts of ribosome reads are calculated and normalized 
@@ -493,6 +493,7 @@ Input arguments:
 | --in_sqlite  | SQLite/results.db              | The SQLite results database from previous steps     |
 | --out_sqlite | The same as in_sqlite argument | The SQLite results database to store all results in |
 | --ens_db     | Mandatory                      | The Ensembl database with annotation info           |
+| --help       |                                | Generate help message                               |
 
 Output table structure:
 

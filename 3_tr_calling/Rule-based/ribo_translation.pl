@@ -47,13 +47,20 @@ use Cwd;
 
 # Parameters, get the command line arguments
 my ($work_dir,$in_sqlite,$ens_db,$out_sqlite,$tmpfolder);
+my $help;
 GetOptions(
 "work_dir:s" =>\$work_dir,              # Working directory											optional  argument (default = $CWD env setting)
 "in_sqlite:s" =>\$in_sqlite,            # Results db (relative of CWD)                              optional  argument (default = SQLite/results.db)
 "ens_db:s" =>\$ens_db,                  # ENSEMBL db (relative of CWD)                              optional  argument (default = SQLite/name_build_from_arguments.db)
 "tmp:s" =>\$tmpfolder,					# Folder where temporary files are stored,                  optional  argument (default = $TMP env setting)
-"out_sqlite:s" =>\$out_sqlite          # Directory of out results db (relative of CWD)             optional  argument (default = SQLite/results.db)
+"out_sqlite:s" =>\$out_sqlite,          # Directory of out results db (relative of CWD)             optional  argument (default = SQLite/results.db)
+"help" => \$help                        # Help text option
 );
+
+if ($help) {
+    print_help_text();
+    exit;
+}
 
 ###########################################################################
 #Check all input variable and/or get default values and set extra variables
@@ -896,4 +903,29 @@ sub store_ENS_var{
     $dbh_results->do($query);
 
 	$dbh_results -> disconnect();
+}
+
+#Print help text
+sub print_help_text{
+    
+    my $help_string = "\n\nTranslated transcript calling Proteoformer
+    
+This tool calls the translated transcripts out of the aligned RIBO-seq data based on an exon-coverage rule. Transcript without RIBO-seq counts are ignored from the start. Then, for each exon of the transcript, the counts of ribosome reads are calculated and normalized by exon length. If the normalized count of an exon is 5 times lower than the mean normalized exon count of the given transcript, the exon is classified as a noise exon. Transcripts with less than 15% noise exons, are called as actively-translated transcripts (exon_coverage = Yes in the output table).
+    
+Example:
+    perl ribo_translation.pl --in_sqlite SQLite/results.db --out_sqlite SQLite/results.db --ens_db ENS_hsa_92.db
+
+Input parameters:
+    --work_dir                              The working directory (default: CWD env setting)
+    --tmp                                   The temporary files folder (default: work_dir/tmp)
+    --in_sqlite                             The SQLite results database from previous steps (default: SQLite/results.db)
+    --out_sqlite                            The SQLite results database to store all results in (default: the same as in_sqlite argument)
+    --ens_db                                The Ensembl database with annotation info (mandatory)
+    --help                                  Generates this help message
+    
+";
+    
+    print $help_string;
+    
+    return
 }
