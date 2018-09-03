@@ -19,7 +19,7 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
     4. [Specific ribosome profiling quality check: mappingQC](#mappingqc)
     5. [Transcript calling](#transcriptcalling)
         1. [Rule-based transcript calling](#rulebased)
-        2. [RiboZINB](#ribozinb)
+        2. [RiboZINB](#ribozinb_trcal)
     6. ORF calling
         1. PROTEOFORMER
         2. PRICE
@@ -499,7 +499,7 @@ Output table structure in the SQLite results database:
 | 196519        | ENST00000371471 | 20  | 131538        | -1                | 53567065         | 53593839       | 585         | 0.187680461982676 | protein_coding | Yes           | Yes       | CCDS13443 | ENSG00000171940 | 10.6593122808274 |
 | ...           | ...             | ... | ...           | ...               | ...              | ...            | ...         | ...               | ...            | ...           | ...       | ...       | ...             | ...              |
 
-#### RiboZINB <a name="ribozinb"></a>
+#### RiboZINB <a name="ribozinb_trcal"></a>
 
 Another way to call transcripts, is by using the [RiboZINB](https://github.com/Biobix/RiboZINB) tool. This tool makes use 
 of the zero-inflated binomial model to determine actively translated transcript isoforms. RiboZINB was directly included 

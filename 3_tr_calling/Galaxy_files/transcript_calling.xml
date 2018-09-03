@@ -48,6 +48,9 @@
                         <option value="d" selected="true" multiple="false">Default score</option>
                         <option value="p">Permutation test</option>
                     </param>
+                    <when value="d">
+                        <param name="cutoff" type="float" value="0.1" label="The default score threshold."/>
+                    </when>
                 </conditional>
             </when>
         </conditional>
