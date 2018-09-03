@@ -2,11 +2,11 @@
 	<description>for all ribosome profiles</description>
 	<command interpreter="perl">
         
-        transcript_calling.pl --in_sqlite "${sqlite_db}" --out_sqlite "${out_sqlite_db}" --scripts_folder "/srv/galaxy/server/tool-data/transcript_calling_scripts"
+        transcript_calling.pl --in_sqlite "${sqlite_db}" --out_sqlite "${out_sqlite_db}" --scripts_folder "/srv/galaxy/server/tool-data/proteoformer/transcript_calling_scripts" --method $meth.method
         
         #if $meth.method=="rule-based"
         
-            --ens_db "$meth.{ensembl_db.fields.path}"
+            --ens_db "${meth.ensembl_db.fields.path}"
         
         #else if $meth.method=="ribozinb"
         

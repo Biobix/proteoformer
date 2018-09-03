@@ -57,55 +57,55 @@ GetOptions(
 );
 
 my $CWD = getcwd;
-if !($work_dir){
+if(!defined($work_dir)){
     $work_dir = $CWD;
 }
-if !($tmp){
+if(!defined($tmp)){
     $tmp = $work_dir."/tmp/";
 }
-if !($in_sqlite){
+if(!defined($in_sqlite)){
     die "Do not forget to pass the in_sqlite argument!\n";
 }
-if !($out_sqlite){
+if(!defined($out_sqlite)){
     die "Do not forget to pass the out_sqlite argument!\n";
 }
-if !($method){
+if(!defined($method)){
     die "Do not forget to pass the method argument!\n";
 }
 if(lc($method) eq "rule-based"){
-    if !($ens_db){
+    if(!defined($ens_db)){
         die "Do not forget to pass the ens_db argument!\n";
     }
-} elsif (lc($method) eq "ribozinb"){
-    if !($min_count){
+} elsif(lc($method) eq "ribozinb"){
+    if(!defined($mincount)){
         die "Do not forget to pass the min_count argument!\n";
     }
-    if !($no_of_samples){
+    if(!defined($no_of_samples)){
         die "Do not forget to pass the no_of_samples argument!\n";
     }
-    if !($fdr){
+    if(!defined($fdr)){
         die "Do not forget to pass the fdr argument!\n";
     }
-    if !($default_score){
+    if(!defined($default_score)){
         die "Do not forget to pass the default_score argument!\n";
     }
-    if !($cutoff){
+    if(!defined($cutoff)){
         die "Do not forget to pass the cutoff argument!\n";
     }
-    if !($alpha){
+    if(!defined($alpha)){
         die "Do not forget to pass the alpha argument!\n";
     }
 } else {
     die "Method should be rule-based or ribozinb!\n";
 }
-if !($scripts_folder){
+if(!defined($scripts_folder)){
     die "Do not forget to mention the scripts folder!\n";
 }
 
-if (lc($method) eq "rule-based"){
+if(lc($method) eq "rule-based"){
     my $cmd = "perl ".$scripts_folder."/ribo_translation.pl --work_dir ".$work_dir." --tmp ".$tmp." --in_sqlite ".$in_sqlite." --out_sqlite ".$out_sqlite." --ens_db ".$ens_db;
     system($cmd);
-} elsif (lc($method) eq "ribozinb"){
+} elsif(lc($method) eq "ribozinb"){
     my $cmd = "python ".$scripts_folder."/RiboZINB.py --work_dir ".$work_dir." --tmpfolder ".$tmp." --in_sqlite ".$in_sqlite." --out_sqlite ".$out_sqlite." --mincount ".$mincount." --no_of_samples ".$no_of_samples." --fdr ".$fdr." --default_score ".$default_score." --cutoff ".$cutoff." --alpha ".$alpha;
     system($cmd);
 }
