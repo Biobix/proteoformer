@@ -19,7 +19,7 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
     4. [Specific ribosome profiling quality check: mappingQC](#mappingqc)
     5. [Transcript calling](#transcriptcalling)
         1. [Rule-based transcript calling](#rulebased)
-        2. RiboZINB
+        2. [RiboZINB](#ribozinb)
     6. ORF calling
         1. PROTEOFORMER
         2. PRICE
@@ -103,22 +103,22 @@ the other tools, the proteoformer environment is used.
 #### RiboZINB
 
 ```
-cconda env create -f Dependency_envs/ribozinb.yml
-ssource activate ribozinb
+conda env create -f Dependency_envs/ribozinb.yml
+source activate ribozinb
 ```
 
 #### SPECtre
 
 ```
-cconda env create -f Dependency_envs/spectre.yml
-ssource activate spectre
+conda env create -f Dependency_envs/spectre.yml
+source activate spectre
 ```
 
 #### SRA download
 
 ```
-cconda env create -f Dependency_envs/download_sra_parallel.yml
-ssource activate download_sra_parallel
+conda env create -f Dependency_envs/download_sra_parallel.yml
+source activate download_sra_parallel
 ```
 
 ## Preparations <a name="preparations"></a>
@@ -404,9 +404,7 @@ Furthermore, BED and BedGraph files are generated, which allow visualizing these
 the `Additional_tools` folder. As input, it takes the different original BedGraph files and library sizes of both samples 
 (i.e. the total mapped reads against the genomic reference, which can be found in the statistics table of the results database).
 
-```
-bash normBedgraph --untrs output/untreat_sense.bedgraph --untras output/untreat_antisense.bedgraph --nttrs output/treat_sense.bedgraph --nttras output/treat_antisense.bedgraph --libuntr 37873493 --libtr 45427218
-```
+```bash normBedgraph --untrs output/untreat_sense.bedgraph --untras output/untreat_antisense.bedgraph --nttrs output/treat_sense.bedgraph --nttras output/treat_antisense.bedgraph --libuntr 37873493 --libtr 45427218```
 
 ### General quality check: fastQC <a name="fastqc2"></a>
 
@@ -471,7 +469,7 @@ card, so on servers, this is mostly not an option.
 
 After checking the aligned data for quality and general features, you can search for the translated transcripts.
 
-### Rule-based transcript calling <a name="rulebased"></a>
+#### Rule-based transcript calling <a name="rulebased"></a>
 
 A first way to determine these translated transcript, is based on general rules. Transcript without RIBO-seq counts are 
 ignored from the start. Then, for each exon of the transcript, the counts of ribosome reads are calculated and normalized 
@@ -481,9 +479,8 @@ transcripts (`exon_coverage = Yes` in the output table).
 
 An example of how to run this tool:
 
-```
-perl ribo_translation.pl --in_sqlite SQLite/results.db --out_sqlite SQLite/results.db --ens_db ENS_hsa_92.db
-```
+```perl ribo_translation.pl --in_sqlite SQLite/results.db --out_sqlite SQLite/results.db --ens_db ENS_hsa_92.db```
+
 Input arguments:
 
 | Argument     | Default                        | Description                                         |
@@ -495,13 +492,49 @@ Input arguments:
 | --ens_db     | Mandatory                      | The Ensembl database with annotation info           |
 | --help       |                                | Generate help message                               |
 
-Output table structure:
+Output table structure in the SQLite results database:
 
 | transcript_id | stable_id       | chr | seq_region_id | seq_region_strand | seq_region_start | seq_region_end | read_counts | normalized_counts | biotype        | exon_coverage | canonical | ccds      | gene_stable_id  | FPKM             |
 |---------------|-----------------|-----|---------------|-------------------|------------------|----------------|-------------|-------------------|----------------|---------------|-----------|-----------|-----------------|------------------|
 | 196519        | ENST00000371471 | 20  | 131538        | -1                | 53567065         | 53593839       | 585         | 0.187680461982676 | protein_coding | Yes           | Yes       | CCDS13443 | ENSG00000171940 | 10.6593122808274 |
 | ...           | ...             | ... | ...           | ...               | ...              | ...            | ...         | ...               | ...            | ...           | ...       | ...       | ...             | ...              |
 
+#### RiboZINB <a name="ribozinb"></a>
+
+Another way to call transcripts, is by using the [RiboZINB](https://github.com/Biobix/RiboZINB) tool. This tool makes use 
+of the zero-inflated binomial model to determine actively translated transcript isoforms. RiboZINB was directly included 
+in the PROTEOFORMER pipeline.
+
+**The RiboZINB tool itself is still in beta and statistics are still in development and validation.**
+
+The RiboZINB tool requires its own Conda environment to run:
+
+```source activate ribozinb```
+
+An example of how to run this tool:
+
+```python RiboZINB.py -p SQLite/results.db```
+
+Input arguments:
+
+| Argument           | Default         | Description                                                                                        |
+|--------------------|-----------------|----------------------------------------------------------------------------------------------------|
+| -w/--work_dir      | CWD env setting | The working directory                                                                              |
+| -x/--tmpfolder     | work_dir/tmp    | The temporary files folder                                                                         |
+| -p/--result_db     | Mandatory       | The SQLite results database                                                                        |
+| -m/--mincount      | 5               | The minimum reads for a transcript to be called                                                    |
+| -n/--no_of_samples | 30              | The number of iterations when generating a negative set                                            |
+| -f/--fdr           | 0.05            | The false discovery rate                                                                           |
+| -s/--default_score | d               | Use the default score threshold (d) or estimate the threshold by performing a permutation test (p) |
+| -v/--cutoff        | 0.1             | The default score threshold                                                                        |
+| -a/--alpha         | 1               | Proportion of noise when generating the negative set                                               |
+
+Output table structure in the SQLite results database:
+
+| transcript_id | stable_id       | chr | seq_region_id | seq_region_strand | seq_region_start | seq_region_end | read_counts | normalized_counts | biotype        | exon_coverage | canonical | ccds     | gene_stable_id  | FPKM          |
+|---------------|-----------------|-----|---------------|-------------------|------------------|----------------|-------------|-------------------|----------------|---------------|-----------|----------|-----------------|---------------|
+| 173461        | ENST00000314167 | 4   | 131552        | -1                | 849278           | 932298         | 1513        | 0.340612336785    | protein_coding | NA            | Yes       | CCDS3340 | ENSG00000178950 | 19.3450784708 |
+| ...           | ...             | ... | ...           | ...               | ...              | ...            | ...         | ...               | ...            | ...           | ...       | ...      | ...             | ...           |
 
 ## Copyright <a name="copyright"></a>
 
