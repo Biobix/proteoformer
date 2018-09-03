@@ -503,9 +503,7 @@ Output table structure in the SQLite results database:
 
 Another way to call transcripts, is by using the [RiboZINB](https://github.com/Biobix/RiboZINB) tool. This tool makes use 
 of the zero-inflated binomial model to determine actively translated transcript isoforms. RiboZINB was directly included 
-in the PROTEOFORMER pipeline.
-
-**The RiboZINB tool itself is still in beta and statistics are still in development and validation.**
+in the PROTEOFORMER pipeline. **The RiboZINB tool itself is still in beta and statistics are still in development and validation.**
 
 The RiboZINB tool requires its own Conda environment to run:
 
