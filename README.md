@@ -17,7 +17,9 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
     2. [Mapping](#mapping)
     3. [General quality check: fastQC](#fastqc2)
     4. [Specific ribosome profiling quality check: mappingQC](#mappingqc)
-    5. Transcript calling
+    5. [Transcript calling](#transcriptcalling)
+        1. [Rule-based transcript calling](#rulebased)
+        2. RiboZINB
     6. ORF calling
         1. PROTEOFORMER
         2. PRICE
@@ -439,7 +441,7 @@ Example:
 perl mappingQC.pl --samfile output/untreat.sam --treated untreated --cores 20 --result_db SQLite/results.db --unique Y --ens_db ENS_hsa_92.db --offset plastid --plastid plastid/experiment1_untreated_p_offsets.png --tool_dir mqc_tools --plotrpftool pyplot3D
 ```
 
-Input arguments;
+Input arguments:
 
 | Argument        | Default                            | Description                                                                                                                                              |
 |-----------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -464,6 +466,41 @@ Input arguments;
 **Caution:** The mplot3d package in Pyplot is vulnerable for so-called Escher effects. Sometimes, certain boxes are plotted
 with a wrong z-order, but overall, figures are clear. On the other hand, the Mayavi package requires the usage of a graphical
 card, so on servers, this is mostly not an option.
+
+###Transcript calling <a name="transcriptcalling"></a>
+
+After checking the aligned data for quality and general features, you can search for the translated transcripts.
+
+###Rule-based transcript calling <a name="rulebased"></a>
+
+A first way to determine these translated transcript, is based on general rules. Transcript without RIBO-seq counts are 
+ignored from the start. Then, for each exon of the transcript, the counts of ribosome reads are calculated and normalized 
+by exon length. If the normalized count of an exon is 5 times lower than the mean normalized exon count of the given transcript,
+the exon is classified as a noise exon. Transcripts with less than 15% noise exons, are called as actively-translated 
+transcripts (`exon_coverage = Yes` in the output table).
+
+An example of how to run this tool:
+
+```
+perl ribo_translation.pl --in_sqlite SQLite/results.db --out_sqlite SQLite/results.db --ens_db ENS_hsa_92.db
+```
+Input arguments:
+
+| Argument     | Default                        | Description                                         |
+|--------------|--------------------------------|-----------------------------------------------------|
+| --work_dir   | CWD env setting                | The working directory                               |
+| --tmp        | work_dir/tmp                   | The temporary files folder                          |
+| --in_sqlite  | SQLite/results.db              | The SQLite results database from previous steps     |
+| --out_sqlite | The same as in_sqlite argument | The SQLite results database to store all results in |
+| --ens_db     | Mandatory                      | The Ensembl database with annotation info           |
+
+Output table structure:
+
+| transcript_id | stable_id       | chr | seq_region_id | seq_region_strand | seq_region_start | seq_region_end | read_counts | normalized_counts | biotype        | exon_coverage | canonical | ccds      | gene_stable_id  | FPKM             |
+|---------------|-----------------|-----|---------------|-------------------|------------------|----------------|-------------|-------------------|----------------|---------------|-----------|-----------|-----------------|------------------|
+| 196519        | ENST00000371471 | 20  | 131538        | -1                | 53567065         | 53593839       | 585         | 0.187680461982676 | protein_coding | Yes           | Yes       | CCDS13443 | ENSG00000171940 | 10.6593122808274 |
+| ...           | ...             | ... | ...           | ...               | ...              | ...            | ...         | ...               | ...            | ...           | ...       | ...       | ...             | ...              |
+
 
 ## Copyright <a name="copyright"></a>
 
