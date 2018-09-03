@@ -5,7 +5,7 @@
 <section name="PROTEOFORMER pipeline" id="proteoformer">
       <tool file="proteoformer/mapping.xml" />
       <tool file="proteoformer/mappingQC.xml" />
-      <tool file="proteoformer/ribo_translation.xml" />
+      <tool file="proteoformer/transcript_calling.xml" />
       <tool file="proteoformer/tis_calling.xml" />
       <tool file="proteoformer/tis_calling_intergenic.xml" />
       <tool file="proteoformer/tis_overview.xml" />
