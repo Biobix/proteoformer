@@ -25,7 +25,7 @@ def main():
     opt_args.add_argument("--workdir", "-w", action="store", required=False, nargs="?", metavar="FOLDER", default="",
                           type=str, help="Working directory (default: CWD)")
     opt_args.add_argument("--tmp_csv", "-t", action="store", required=False, nargs="?", metavar="PATH",
-                          default="combfasta.csv", type="str",
+                          default="combfasta.csv", type=str,
                           help="Temporary csv file for storing table structure "
                                "(default: combfasta.csv)")
     opt_args.add_argument("--output", "-o", action="store", required=False, nargs="?", metavar="PATH",
