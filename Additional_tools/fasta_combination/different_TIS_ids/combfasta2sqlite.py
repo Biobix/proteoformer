@@ -5,7 +5,6 @@ import argparse
 from collections import defaultdict
 import re
 import sqlite3 as sqlite
-from dict_functions import dict_funcs
 
 
 def main():
