@@ -1,110 +1,127 @@
 name: proteoformer
 channels:
-- bioconda
-- conda-forge
-- defaults
-- r
+  - bioconda
+  - conda-forge
+  - defaults
+  - r
 dependencies:
-- bcftools=1.6=0
-- bowtie=1.2.1.1=py27pl5.22.0_0
-- fastqc
-- fastx_toolkit=0.0.14=0
-- htslib=1.6=0
-- libgtextutils=0.7=3
-- mqc=1.10=py27pl5.22.0r3.4.1_1
-- mysql-connector-c=6.1.6=2
-- perl-apache-test=1.40=0
-- perl-app-cpanminus=1.7039=pl5.22.0_3
-- perl-clone=0.38=0
-- perl-clone-pp=1.06=pl5.22.0_0
-- perl-dbd-sqlite=1.50=1
-- perl-dbi=1.636=0
-- perl-parallel-forkmanager=1.17=0
-- perl-pathtools=3.40=0
-- perl-scalar-list-utils=1.45=2
-- perl-threaded=5.22.0=pl5.22.0_12
-- plastid=0.4.7=py27_0
-- pysam=0.11.2.2=py27_1
-- python-dateutil
-- samtools=1.5=1
-- twobitreader=3.1.4=py27_0
-- ucsc-bedtobigbed=357=0
-- biopython=1.70=py27_2
-- bzip2=1.0.6=1
-- curl=7.55.1=0
-- cycler=0.10.0=py27_0
-- cython=0.27.3=py27_0
-- dbus=1.10.22=0
-- expat=2.2.1=0
-- functools32=3.2.3.2=py27_1
-- gsl=2.1=2
-- gst-plugins-base=1.8.0=0
-- gstreamer=1.8.0=1
-- icu=58.2=0
-- jpeg=9b=2
-- krb5=1.14.2=0
-- libedit=3.1.20170329=0
-- libiconv=1.14=4
-- libpng=1.6.34=0
-- libssh2=1.8.0=2
-- libtiff=4.0.8=0
-- libuuid=1.0.3=1
-- libxcb=1.12=1
-- matplotlib-venn=0.11.5=py27_0
-- ncurses=5.9=10
-- nose=1.3.7=py27_2
-- pandas=0.21.0=py27_0
-- patsy=0.4.1=py27_0
-- pcre=8.39=0
-- perl=5.22.0.1=0
-- pixman=0.34.0=0
-- pycairo=1.13.3=py27_0
-- pyparsing=2.2.0=py27_0
-- pyqt=4.11.4=py27_3
-- pytz=2017.3=py_2
-- r-base=3.4.1=3
-- readline=7.0=0
-- seaborn=0.8.1=py27_0
-- sip=4.18=py27_1
-- six=1.11.0=py27_1
-- statsmodels=0.8.0=py27_0
-- subprocess32=3.2.7=py27_0
-- tbb=2018_20171205=0
-- termcolor=1.1.0=py27_1
-- xorg-libxau=1.0.8=3
-- xorg-libxdmcp=1.1.2=3
-- xz=5.2.3=0
-- ca-certificates=2017.08.26=h1d4fec5_0
-- cairo=1.14.8=0
-- certifi=2017.7.27.1=py27h9ceb091_0
-- fontconfig=2.12.1=3
-- freetype=2.5.5=2
-- glib=2.50.2=1
-- harfbuzz=0.9.39=2
-- intel-openmp=2018.0.0=h15fc484_7
-- libffi=3.2.1=hd88cf55_4
-- libgcc=7.2.0=h69d50b8_2
-- libgcc-ng=7.2.0=h7cc24e2_2
-- libgfortran-ng=7.2.0=h9f7466a_2
-- libstdcxx-ng=7.2.0=h7a57d05_2
-- libxml2=2.9.4=0
-- matplotlib=1.5.1=np111py27_0
-- mkl=2018.0.0=hb491cac_4
-- numpy=1.11.3=py27h3dfced4_4
-- openjdk=8.0.121=1
-- openssl=1.0.2m=h26d622b_1
-- pango=1.40.3=1
-- pip=9.0.1=py27ha730c48_4
-- python=2.7.14=ha6fc286_23
-- qt=4.8.7=4
-- scipy=1.0.0=py27hf5f0f52_0
-- setuptools=36.5.0=py27h68b189e_0
-- sqlite=3.20.1=hb898158_2
-- tk=8.6.7=hc745277_3
-- wheel=0.29.0=py27h411dd7b_1
-- zlib=1.2.11=ha838bed_2
-- perl-bioperl
-- perl-http-message
-- perl-try-tiny
-- perl-file-which
-- perl-lwp-protocol-https
+  - bcftools=1.6
+  - bowtie=1.2.1.1
+  - fastqc=0.11.7
+  - fastx_toolkit=0.0.14
+  - htslib=1.6
+  - libgtextutils=0.7
+  - mqc=1.10
+  - mysql-connector-c=6.1.6
+  - perl-apache-test=1.40
+  - perl-app-cpanminus=1.7039
+  - perl-bioperl=1.6.924
+  - perl-clone=0.38
+  - perl-clone-pp=1.06
+  - perl-dbd-sqlite=1.50
+  - perl-dbi=1.636
+  - perl-encode-locale=1.05
+  - perl-file-which=1.20
+  - perl-http-date=6.02
+  - perl-http-message=6.11
+  - perl-io-html=1.001
+  - perl-lwp-mediatypes=6.02
+  - perl-lwp-protocol-https=6.06
+  - perl-lwp-simple=6.15
+  - perl-parallel-forkmanager=1.17
+  - perl-pathtools=3.40
+  - perl-scalar-list-utils=1.45
+  - perl-threaded=5.22.0
+  - perl-try-tiny=0.24
+  - perl-uri=1.71
+  - perl-yaml=1.24
+  - plastid=0.4.7
+  - pysam=0.11.2.2
+  - samtools=1.5
+  - twobitreader=3.1.4
+  - ucsc-bedtobigbed=357
+  - backports=1.0
+  - backports.functools_lru_cache=1.5
+  - backports_abc=0.5
+  - biopython=1.70
+  - bzip2=1.0.6
+  - ca-certificates=2018.4.16
+  - certifi=2018.4.16
+  - curl=7.55.1
+  - cycler=0.10.0
+  - cython=0.27.3
+  - dbus=1.10.22
+  - expat=2.2.1
+  - freetype=2.8.1
+  - functools32=3.2.3.2
+  - futures=3.2.0
+  - graphite2=1.3.11
+  - gsl=2.1
+  - gst-plugins-base=1.8.0
+  - gstreamer=1.8.0
+  - icu=58.2
+  - jpeg=9b
+  - kiwisolver=1.0.1
+  - krb5=1.14.2
+  - libedit=3.1.20170329
+  - libiconv=1.14
+  - libpng=1.6.34
+  - libssh2=1.8.0
+  - libtiff=4.0.8
+  - libuuid=1.0.3
+  - libxcb=1.12
+  - matplotlib=2.2.2
+  - matplotlib-venn=0.11.5
+  - ncurses=5.9
+  - nose=1.3.7
+  - openssl=1.0.2o
+  - pandas=0.21.0
+  - pango=1.40.14
+  - patsy=0.4.1
+  - pcre=8.39
+  - perl=5.22.0.1
+  - pixman=0.34.0
+  - pycairo=1.13.3
+  - pyparsing=2.2.0
+  - pyqt=5.6.0
+  - python-dateutil=2.7.3
+  - pytz=2017.3
+  - qt=5.6.2
+  - r-base=3.4.1
+  - readline=7.0
+  - seaborn=0.8.1
+  - singledispatch=3.4.0.3
+  - sip=4.18
+  - six=1.11.0
+  - statsmodels=0.8.0
+  - subprocess32=3.2.7
+  - tbb=2018_20171205
+  - termcolor=1.1.0
+  - tornado=5.1
+  - xorg-libxau=1.0.8
+  - xorg-libxdmcp=1.1.2
+  - xz=5.2.3
+  - cairo=1.14.12
+  - font-ttf-dejavu-sans-mono=2.37
+  - fontconfig=2.12.4
+  - glib=2.53.6
+  - harfbuzz=1.7.6
+  - intel-openmp=2018.0.0
+  - libffi=3.2.1
+  - libgcc=7.2.0
+  - libgcc-ng=7.2.0
+  - libgfortran-ng=7.2.0
+  - libstdcxx-ng=7.2.0
+  - libxml2=2.9.4
+  - mkl=2018.0.0
+  - numpy=1.11.3
+  - openjdk=8.0.121
+  - pip=9.0.1
+  - python=2.7.14
+  - scipy=1.0.0
+  - setuptools=36.5.0
+  - sqlite=3.20.1
+  - tk=8.6.7
+  - wheel=0.29.0
+  - zlib=1.2.11
+
