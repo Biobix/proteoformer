@@ -521,6 +521,7 @@ Input arguments:
 | -x/--tmpfolder     | work_dir/tmp           | The temporary files folder                                                                         |
 | -i/--in_sqlite     | Mandatory              | The input SQLite results database                                                                  |
 | -o/--out_sqlite    | Same path as in_sqlite | The output SQLite results database                                                                 |
+| -e/--ens_db        | Mandatory              | The Ensembl annotation database                                                                    |
 | -m/--mincount      | 5                      | The minimum reads for a transcript to be called                                                    |
 | -n/--no_of_samples | 30                     | The number of iterations when generating a negative set                                            |
 | -f/--fdr           | 0.05                   | The false discovery rate                                                                           |

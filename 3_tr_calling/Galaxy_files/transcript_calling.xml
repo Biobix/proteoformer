@@ -2,13 +2,9 @@
 	<description>for all ribosome profiles</description>
 	<command interpreter="perl">
         
-        transcript_calling.pl --in_sqlite "${sqlite_db}" --out_sqlite "${out_sqlite_db}" --scripts_folder "/srv/galaxy/server/tool-data/proteoformer/transcript_calling_scripts" --method $meth.method
+        transcript_calling.pl --in_sqlite "${sqlite_db}" --out_sqlite "${out_sqlite_db}" --scripts_folder "/srv/galaxy/server/tool-data/proteoformer/transcript_calling_scripts" --ens_db "${ensembl_db.fields.path}" --method $meth.method
         
-        #if $meth.method=="rule-based"
-        
-            --ens_db "${meth.ensembl_db.fields.path}"
-        
-        #else if $meth.method=="ribozinb"
+        #if $meth.method=="ribozinb"
         
             --min_count $meth.min_count
             --no_of_samples $meth.no_of_samples
@@ -28,21 +24,19 @@
     
 	<inputs>
 		<param name="sqlite_db" type="data" format="sqlite" size="50" label="Sqlite DB with RIBO-seq data after mapping" help="The SQLite results database should at least contain output from the RIBO-seq mapping."/>
+        <param name="ensembl_db" type="select" label="Select the correct ensembl annotation DB" help="The Ensembl sqlite databases are species and annotation version specific. If your genome of interest is not listed - contact your administrator.">
+            <options from_data_table="PROTEOFORMER_ENS" />
+        </param>
         <conditional name="meth">
             <param name="method" type="select" label="The method of transcript calling" multiple="false">
                 <option value="rule-based" selected="true">Rule-based transcript calling</option>
                 <option value="ribozinb">Zero-inflated binomial model (RiboZINB)</option>
             </param>
-            <when value="rule-based">
-                <param name="ensembl_db" type="select" label="Select the correct ensembl annotation DB" help="The Ensembl sqlite databases are species and annotation version specific. If your genome of interest is not listed - contact your administrator.">
-                    <options from_data_table="PROTEOFORMER_ENS" />
-                </param>
-            </when>
             <when value="ribozinb">
                 <param name="min_count" type="integer" value="5" label="The minimum reads for a transcript to be called."/>
                 <param name="no_of_samples" type="integer" value="30" label="The number of iterations when generating a negative set."/>
                 <param name="fdr" type="float" value="0.05" label="The false discovery rate."/>
-                <param name="alpha" type="float" value="1.0" label="The proportion of noise when generating a negative set."/>
+                <param name="alpha" type="float" value="1" label="The proportion of noise when generating a negative set."/>
                 <conditional name="score">
                     <param name="which" type="select" label="Whether the default score threshold should be used or whether the threshold needs to be estimated by using a permutation test.">
                         <option value="d" selected="true" multiple="false">Default score</option>
@@ -77,7 +71,7 @@ A second method uses the zero-inflated binomial model (RiboZINB) to determine th
 
 An sqlite database holding experimental data from the RNA-mapping (RIBO-seq).
 
-For the rule-based method, a species and annotation-version specific sqlite Ensembl database. The location of this database should be included in the ENS_db.loc file, located in the main tool directory.
+A species and annotation-version specific sqlite Ensembl database. The location of this database should be included in the ENS_db.loc file, located in the main tool directory.
 
 -----
 

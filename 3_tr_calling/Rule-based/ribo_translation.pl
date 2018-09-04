@@ -897,6 +897,10 @@ sub store_ENS_var{
     # Connect to db
     my $dbh_results = DBI->connect('DBI:SQLite:'.$db_ribo,$user,$pw,
     							{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
+    
+    #Delete possible previous ensembl db in arguments table
+    my $del_query = "DELETE FROM arguments WHERE variable='ens_db';";
+    $dbh_results->do($del_query);
 
 	# Store path of ENSEMBL db in arguments table
 	my $query = "INSERT INTO arguments (variable,value) VALUES (\'ens_db\',\'".$db_ensembl."\')";

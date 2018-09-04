@@ -17,6 +17,7 @@ ARGUMENTS
     -x | --tmpfolder                    The temporary folder (default: work_dir/tmp)
     -i | --in_sqlite                    The input results database (mandatory)
     -o | --out_sqlite                   The output results database (default: same path as in_sqlite)
+    -e | --ens_db                       The Ensembl database (mandatory)
     -m | --mincount                     The minimum reads count for a transcript to be called (default: 5)
     -n | --no_of_samples                The number of iterations when generating a negative set (default: 30)
     -f | --fdr                          The false discovery rate (default: 0.05)
@@ -39,7 +40,7 @@ def main():
 
     # Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "w:x:i:o:m:n:f:g:s:v:a:h",["work_dir=","tmpfolder=","in_sqlite=","out_sqlite=","mincount=",\
+        myopts, args = getopt.getopt(sys.argv[1:], "w:x:i:o:e:m:n:f:g:s:v:a:h",["work_dir=","tmpfolder=","in_sqlite=","out_sqlite=","ens_db=","mincount=",\
             "no_of_samples=", "fdr=", "fdr_type=","default_score=","cutoff=", "alpha=","help"])
     except getopt.GetoptError as err:
         print err
@@ -58,6 +59,8 @@ def main():
             in_sqlite = a
         if o in ('-o', '--out_sqlite'):
             out_sqlite = a
+        if o in ('-e', '--ens_db'):
+            ensDB = a
         if o in ('-x', '--tmpfolder'):
             tmpfolder = a
         if o in ('-m', '--mincount'):
@@ -71,7 +74,10 @@ def main():
         if o in ('-v', '--cutoff'):
             cutoff = float(a)
         if o in ('-a', '--alpha'):
-            alpha = float(a)
+            if a==str(1):
+                alpha = int(a)
+            else:
+                alpha = float(a)
 
 
 
@@ -89,12 +95,17 @@ def main():
     try:
         in_sqlite
     except:
-        print "Do not forget the result DB parameter!"
+        print "Do not forget the input result SQLite DB parameter!"
         sys.exit()
     try:
         out_sqlite
     except:
         out_sqlite = in_sqlite
+    try:
+        ensDB
+    except:
+        print "Do not forget the Ensembl database parameter!"
+        sys.exit()
     try:
         mincount
     except:
@@ -141,6 +152,7 @@ def main():
     print "Temporary files folder:                                      "+tmpfolder
     print "Input SQLite results db:                                     "+in_sqlite
     print "Output SQLite results db:                                    "+out_sqlite
+    print "Ensembl database:                                            "+ensDB
     print "Minimum reads count:                                         "+str(mincount)
     print "Number of iterations when generating negative set:           "+str(no_of_samples)
     print "False discovery rate:                                        "+str(fdr)
@@ -160,11 +172,10 @@ def main():
         os.system("mkdir "+ribozinb_tmp)
 
     # Get the arguments out of resultDB
-    ensDB, igenomes_root, species, ens_version, cores, exp_name = get_arguments(result_db)
+    igenomes_root, species, ens_version, cores, exp_name = get_arguments(result_db)
 
     print "Input arguments from "+result_db+":"
     print
-    print "Ensembl DB:                                                  "+ensDB
     print "Ensembl version:                                             "+str(ens_version)
     print "igenomes root folder:                                        "+igenomes_root
     print "Species:                                                     "+species
@@ -234,7 +245,7 @@ def main():
     parse_results(result_db, ensDB, ribozinb_tmp, exp_name, coord_system_id)
 
     #Update arguments table with latest transcription calling method
-    update_arguments(result_db)
+    update_arguments(result_db, ensDB)
 
     print "Remove RiboZINB scripts\n"
     sys.stdout.flush()
@@ -251,7 +262,7 @@ def main():
 ##########
 
 ### Update arguments table
-def update_arguments(result_db):
+def update_arguments(result_db, ensDB):
     
     #Connect with result db
     try:
@@ -262,11 +273,19 @@ def update_arguments(result_db):
     cur = con.cursor()
     
     #Delete previous transcription calling method
-    query = "DELETE FROM arguments WHERE variable='tr_calling';"
+    query = "DELETE FROM arguments WHERE variable=\'tr_calling\';"
     cur.execute(query)
     
     #Put in new calling method
-    query = "INSERT INTO arguments (variable, value) VALUES ('tr_calling', 'ribozinb');"
+    query = "INSERT INTO arguments (variable, value) VALUES (\'tr_calling\', \'ribozinb\');"
+    cur.execute(query)
+
+    #Delete previous ensembl DB
+    query = "DELETE FROM arguments WHERE variable='ens_db';"
+    cur.execute(query)
+    
+    #Put in new calling method
+    query = "INSERT INTO arguments (variable, value) VALUES (\'ens_db\', \'"+ensDB+"\');"
     cur.execute(query)
     
     return
@@ -616,7 +635,6 @@ def get_arguments(db):
         sys.exit()
 
     #Init
-    ens_db=''
     igenomes_root=''
     species=''
     ens_v=''
@@ -626,11 +644,6 @@ def get_arguments(db):
     with con:
         cur = con.cursor()
 
-        if cur.execute("SELECT value FROM arguments WHERE variable='ens_db';"):
-            ens_db = str(cur.fetchone()[0])
-        else:
-            print "ERROR: could not fetch the Ensembl database argument in "+db
-            sys.exit()
         if cur.execute("SELECT value FROM arguments WHERE variable='igenomes_root';"):
             igenomes_root = str(cur.fetchone()[0])
         else:
@@ -657,7 +670,7 @@ def get_arguments(db):
             print "ERROR: could not fetch the run name argument in " + db
             sys.exit()
 
-    return ens_db, igenomes_root, species, ens_v, cores, run_name
+    return igenomes_root, species, ens_v, cores, run_name
 
 
 ## Print help message
@@ -670,6 +683,7 @@ def generate_help_message():
 "    -x | --tmpfolder                    The temporary folder (default: work_dir/tmp)\n"\
 "    -i | --in_sqlite                    The input results database (mandatory)\n"\
 "    -o | --out_sqlite                   The output results database (default: same path as in_sqlite)\n"\
+"    -e | --ens_db                       The Ensembl database (mandatory)\n"\
 "    -m | --mincount                     The minimum reads count for a transcript to be called (default: 5)\n"\
 "    -n | --no_of_samples                The number of iterations when generating a negative set (default: 30)\n"\
 "    -f | --fdr                          The false discovery rate (default: 0.05)\n"\

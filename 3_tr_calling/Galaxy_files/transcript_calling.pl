@@ -72,11 +72,10 @@ if(!defined($out_sqlite)){
 if(!defined($method)){
     die "Do not forget to pass the method argument!\n";
 }
-if(lc($method) eq "rule-based"){
-    if(!defined($ens_db)){
-        die "Do not forget to pass the ens_db argument!\n";
-    }
-} elsif(lc($method) eq "ribozinb"){
+if(!defined($ens_db)){
+    die "Do not forget to pass the ens_db argument!\n";
+}
+if(lc($method) eq "ribozinb"){
     if(!defined($mincount)){
         die "Do not forget to pass the min_count argument!\n";
     }
@@ -89,11 +88,16 @@ if(lc($method) eq "rule-based"){
     if(!defined($default_score)){
         die "Do not forget to pass the default_score argument!\n";
     }
-    if(!defined($cutoff)){
-        die "Do not forget to pass the cutoff argument!\n";
+    if($default_score eq 'd'){
+        if(!defined($cutoff)){
+            die "Do not forget to pass the cutoff argument!\n";
+        }
     }
     if(!defined($alpha)){
         die "Do not forget to pass the alpha argument!\n";
+    }
+    if($alpha==1){
+        $alpha = int($alpha);
     }
 } else {
     die "Method should be rule-based or ribozinb!\n";
@@ -104,8 +108,13 @@ if(!defined($scripts_folder)){
 
 if(lc($method) eq "rule-based"){
     my $cmd = "perl ".$scripts_folder."/ribo_translation.pl --work_dir ".$work_dir." --tmp ".$tmp." --in_sqlite ".$in_sqlite." --out_sqlite ".$out_sqlite." --ens_db ".$ens_db;
+    print "\nTranscript calling command:\n".$cmd."\n\n";
     system($cmd);
 } elsif(lc($method) eq "ribozinb"){
-    my $cmd = "python ".$scripts_folder."/RiboZINB.py --work_dir ".$work_dir." --tmpfolder ".$tmp." --in_sqlite ".$in_sqlite." --out_sqlite ".$out_sqlite." --mincount ".$mincount." --no_of_samples ".$no_of_samples." --fdr ".$fdr." --default_score ".$default_score." --cutoff ".$cutoff." --alpha ".$alpha;
+    my $cmd = "python ".$scripts_folder."/RiboZINB.py --work_dir ".$work_dir." --tmpfolder ".$tmp." --in_sqlite ".$in_sqlite." --out_sqlite ".$out_sqlite." --ens_db ".$ens_db." --mincount ".$mincount." --no_of_samples ".$no_of_samples." --fdr ".$fdr." --default_score ".$default_score." --alpha ".$alpha;
+    if($default_score eq "d"){
+        $cmd = $cmd." --cutoff ".$cutoff;
+    }
+    print "\nTranscript calling command:\n".$cmd."\n\n";
     system($cmd);
 }

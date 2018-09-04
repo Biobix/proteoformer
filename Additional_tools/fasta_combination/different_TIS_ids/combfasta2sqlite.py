@@ -73,6 +73,7 @@ def store_in_db(parsed_data, tmp_csv, db):
                         "'chr' char(50) NOT NULL default ''," \
                         "'start' int(10) NOT NULL default ''," \
                         "'annotation' varchar(128) NOT NULL default ''," \
+                        "'snp_id' varchar(128) NOT NULL default '',"\
                         "'bincode' varchar(128) NOT NULL default '',"\
                         "'main_db' int(10) NOT NULL default '',"\
                         "'gene_stable_id' varchar(128) NOT NULL default ''," \
@@ -89,6 +90,7 @@ def store_in_db(parsed_data, tmp_csv, db):
                        parsed_data[id]['chr'] + "," + \
                        parsed_data[id]['start'] + "," + \
                        parsed_data[id]['annotation'] + "," + \
+                       parsed_data[id]['snp_id'] + "," + \
                        parsed_data[id]['bincode'] + "," + \
                        parsed_data[id]['main_db'] + "," + \
                        parsed_data[id]['gene_stable_id'] + "," + \
@@ -117,12 +119,32 @@ def parse_data(input_data):
 
     id=1
     for accession in input_data:
+        m_snp = re.search('^>generic\|(ENST\d+?)\_(\S+?)\_(\d+?)\_(\S+?)\_(\d+?)\_(\d+?)db(\d+?)\|(ENSG\d+?) (\S+?) (\S+?) ', accession)
         m1 = re.search('^>generic\|(ENST\d+?)\_(\S+?)\_(\d+?)\_(\S+?)\_(\d+?)db(\d+?)\|(ENSG\d+?) (\S+?) (\S+?) ', accession)
-        if m1:
+        if m_snp:
+            parsed_data[id]['tr_stable_id'] = m_snp.group(1)
+            parsed_data[id]['chr'] = m_snp.group(2)
+            parsed_data[id]['start'] = m_snp.group(3)
+            parsed_data[id]['annotation'] = m_snp.group(4)
+            parsed_data[id]['snp_id'] = m_snp.group(5)
+            parsed_data[id]['bincode'] =  m_snp.group(6)
+            parsed_data[id]['main_db'] = m_snp.group(7)
+            parsed_data[id]['gene_stable_id'] = m_snp.group(8)
+            parsed_data[id]['start_codon'] = m_snp.group(9)
+            parsed_data[id]['aTIS_call'] = m_snp.group(10)
+            parsed_data[id]['sequence'] = input_data[accession]
+            m2 = re.search('\[(.+)\]$', accession)
+            if m2:
+                parsed_data[id]['side_accessions'] = m2.group(1)
+            else:
+                parsed_data[id]['side_accessions'] = ""
+            id+=1
+        elif m1:
             parsed_data[id]['tr_stable_id'] = m1.group(1)
             parsed_data[id]['chr'] = m1.group(2)
             parsed_data[id]['start'] = m1.group(3)
             parsed_data[id]['annotation'] = m1.group(4)
+            parsed_data[id]['snp_id'] = ''
             parsed_data[id]['bincode'] =  m1.group(5)
             parsed_data[id]['main_db'] = m1.group(6)
             parsed_data[id]['gene_stable_id'] = m1.group(7)
