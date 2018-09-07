@@ -446,8 +446,14 @@ def count_bincodes_proteins(protein_groups, peptides, accessions, bincodes, leng
             if(protein_counts[protein]==max_count):
                 max_proteins.append(protein)
                 #ENST00000357849_8_67061900_CDS_010db2
+                m_snp = re.search('^(ENST\d+?)\_\S+?\_\d+?\_(\S+?)\_\d+?\_\d+?db\d$', protein)
                 m = re.search('^(ENST\d+?)\_\S+?\_\d+?\_(\S+?)\_\d+?db\d$', protein)
-                if m:
+                if m_snp:
+                    if m_snp.group(2) not in annotations:
+                        annotations.append(m_snp.group(2))
+                    if m_snp.group(1) not in transcripts:
+                        transcripts.append(m_snp.group(1))
+                elif m:
                     if m.group(2) not in annotations:
                         annotations.append(m.group(2))
                     if m.group(1) not in transcripts:

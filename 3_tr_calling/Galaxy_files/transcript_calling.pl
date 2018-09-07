@@ -38,7 +38,7 @@ use Cwd;
 #
 #
 
-my ($work_dir,$tmp,$in_sqlite,$out_sqlite,$method,$ens_db,$mincount,$no_of_samples,$fdr,$default_score,$cutoff,$alpha,$scripts_folder);
+my ($work_dir,$tmp,$in_sqlite,$out_sqlite,$method,$ens_db,$mincount,$no_of_samples,$fdr,$default_score,$cutoff,$alpha,$scripts_folder,$galaxy);
 
 GetOptions(
 "work_dir:s"=>\$work_dir,
@@ -53,7 +53,8 @@ GetOptions(
 "default_score:s"=>\$default_score,
 "cutoff:f"=>\$cutoff,
 "alpha:f"=>\$alpha,
-"scripts_folder=s"=>\$scripts_folder
+"scripts_folder=s"=>\$scripts_folder,
+"galaxy=s"=>\$galaxy
 );
 
 my $CWD = getcwd;
@@ -105,13 +106,16 @@ if(lc($method) eq "ribozinb"){
 if(!defined($scripts_folder)){
     die "Do not forget to mention the scripts folder!\n";
 }
+if(!defined($galaxy)){
+    $galaxy="N";
+}
 
 if(lc($method) eq "rule-based"){
     my $cmd = "perl ".$scripts_folder."/ribo_translation.pl --work_dir ".$work_dir." --tmp ".$tmp." --in_sqlite ".$in_sqlite." --out_sqlite ".$out_sqlite." --ens_db ".$ens_db;
     print "\nTranscript calling command:\n".$cmd."\n\n";
     system($cmd);
 } elsif(lc($method) eq "ribozinb"){
-    my $cmd = "python ".$scripts_folder."/RiboZINB.py --work_dir ".$work_dir." --tmpfolder ".$tmp." --in_sqlite ".$in_sqlite." --out_sqlite ".$out_sqlite." --ens_db ".$ens_db." --mincount ".$mincount." --no_of_samples ".$no_of_samples." --fdr ".$fdr." --default_score ".$default_score." --alpha ".$alpha;
+    my $cmd = "python ".$scripts_folder."/RiboZINB.py --work_dir ".$work_dir." --tmpfolder ".$tmp." --in_sqlite ".$in_sqlite." --out_sqlite ".$out_sqlite." --ens_db ".$ens_db." --mincount ".$mincount." --no_of_samples ".$no_of_samples." --fdr ".$fdr." --default_score ".$default_score." --alpha ".$alpha." --galaxy ".$galaxy;
     if($default_score eq "d"){
         $cmd = $cmd." --cutoff ".$cutoff;
     }

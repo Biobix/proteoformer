@@ -40,8 +40,8 @@ def main():
 
     # Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "w:x:i:o:e:m:n:f:g:s:v:a:h",["work_dir=","tmpfolder=","in_sqlite=","out_sqlite=","ens_db=","mincount=",\
-            "no_of_samples=", "fdr=", "fdr_type=","default_score=","cutoff=", "alpha=","help"])
+        myopts, args = getopt.getopt(sys.argv[1:], "w:x:i:o:e:m:n:f:g:s:v:a:q:h",["work_dir=","tmpfolder=","in_sqlite=","out_sqlite=","ens_db=","mincount=",\
+            "no_of_samples=", "fdr=", "fdr_type=","default_score=","cutoff=", "alpha=","galaxy=","help"])
     except getopt.GetoptError as err:
         print err
         sys.exit()
@@ -78,6 +78,8 @@ def main():
                 alpha = int(a)
             else:
                 alpha = float(a)
+        if o in ('-q', '--galaxy'):
+            galaxy = a
 
 
 
@@ -141,11 +143,17 @@ def main():
         alpha
     except:
         alpha = int(1)
+    try:
+        galaxy
+    except:
+        galaxy = 'N'
 
     # Print input arguments
     print "PROTEOFORMER: RiboZINB"
     print "----------------------"
     print
+    if galaxy=='Y':
+        print "(galaxy version)"
     print "Input arguments:"
     print
     print "Working directory:                                           "+work_dir
@@ -170,6 +178,11 @@ def main():
     ribozinb_tmp = tmpfolder+"/RiboZINB"
     if not os.path.isdir(ribozinb_tmp):
         os.system("mkdir "+ribozinb_tmp)
+
+    #Galaxy
+    if galaxy=='Y':
+        os.system("conda activate ribozinb")
+        sys.exit()
 
     # Get the arguments out of resultDB
     igenomes_root, species, ens_version, cores, exp_name = get_arguments(result_db)
@@ -253,6 +266,10 @@ def main():
 
     #print "Remove RiboZINB tmp folder\n"
     #os.system("rm -rf "+ribozinb_tmp)
+
+    #Galaxy deactivate conda env
+    if galaxy=='Y':
+        os.system('conda deactivate')
 
     print "--- DONE ---\n\n"
     sys.stdout.flush()
