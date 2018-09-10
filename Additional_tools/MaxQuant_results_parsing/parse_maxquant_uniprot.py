@@ -251,6 +251,7 @@ def store_in_db(db, max_protein_dict):
                                                                      "'sources' varchar(512) NOT NULL default '',"\
                                                                      "'max_proteins' varchar(512) NOT NULL default '',"\
                                                                      "'annotations' varchar(128) NOT NULL default ''," \
+                                                                     "'snp_id' varchar(128) NOT NULL default '',"\
                                                                      "'bin_codes' varchar(128) NOT NULL default ''," \
                                                                      "'gene_ids' varchar(128) NOT NULL default ''," \
                                                                      "'descriptions' varchar(512) NOT NULL default '');"
@@ -260,8 +261,8 @@ def store_in_db(db, max_protein_dict):
         for protein_group in max_protein_dict.keys():
             insert_query = "INSERT INTO '"+table_name+"' VALUES ('"+protein_group+"', '"+max_protein_dict[protein_group]['sources']+\
                            "', '"+max_protein_dict[protein_group]['max_proteins']+"', '"+max_protein_dict[protein_group]['annotations']+"', '"+\
-                           max_protein_dict[protein_group]['bin_codes']+"', '"+max_protein_dict[protein_group]['gene_ids']+"', '"+\
-                           max_protein_dict[protein_group]['descriptions']+"');"
+                           max_protein_dict[protein_group]['snp_ids']+"', '"+max_protein_dict[protein_group]['bin_codes']+"', '"+\
+                           max_protein_dict[protein_group]['gene_ids']+"', '"+max_protein_dict[protein_group]['descriptions']+"');"
             #print insert_query
             cur.execute(insert_query)
 
@@ -370,6 +371,7 @@ def count_protein_groups(protein_groups, accessions, transcript_info):
         #Get sources of all max proteins and make a combined source label
         sources_list = []
         annotations = []
+        snp_ids = []
         bin_codes = []
         gene_ids = []
         descriptions = []
@@ -377,6 +379,7 @@ def count_protein_groups(protein_groups, accessions, transcript_info):
             to_add_sources = re.split('\+', accessions[protein]['source'])
             sources_list.extend(to_add_sources)
             annotations.append(accessions[protein]['annotation'])
+            snp_ids.append(accessions[protein]['snp_id'])
             bin_codes.append(accessions[protein]['bincode'])
             gene_ids.append(accessions[protein]['gene_stable_id'])
             transcript_id = accessions[protein]['tr_stable_id']
@@ -400,6 +403,7 @@ def count_protein_groups(protein_groups, accessions, transcript_info):
         max_protein_dict[protein_group]['max_proteins'] = '|'.join(max_proteins)
         max_protein_dict[protein_group]['sources'] = sources
         max_protein_dict[protein_group]['annotations'] = '|'.join(annotations)
+        max_protein_dict[protein_group]['snp_ids'] = '|'.join(snp_ids)
         max_protein_dict[protein_group]['bin_codes'] = '|'.join(bin_codes)
         max_protein_dict[protein_group]['gene_ids'] = '|'.join(gene_ids)
         if not descriptions:
@@ -447,12 +451,33 @@ def parse_accessions(combined_fasta):
 
                 #For Proteoformer generated main accessions
                 if accessions[main_acc]["source"] == "Proteoformer":
+                    m2_snp = re.search('^(ENST\d+?)\_(\S+?)\_(\d+?)\_(\S+?)\_(\d+?)\_(\d+?)db(\d+?)\|(ENSG\d+?) (\S+?) (\S+?) ', part)
                     m2 = re.search('^(ENST\d+?)\_(\S+?)\_(\d+?)\_(\S+?)\_(\d+?)db(\d+?)\|(ENSG\d+?) (\S+?) (\S+?) ', part)
-                    if m2:
+                    if m2_snp:
+                        accessions[main_acc]['tr_stable_id'] = m2_snp.group(1)
+                        accessions[main_acc]['chr'] = m2_snp.group(2)
+                        accessions[main_acc]['start'] = m2_snp.group(3)
+                        accessions[main_acc]['annotation'] = m2_snp.group(4)
+                        accessions[main_acc]['snp_id'] = m2_snp.group(5)
+                        accessions[main_acc]['bincode'] = m2_snp.group(6)
+                        accessions[main_acc]['main_db'] = m2_snp.group(7)
+                        accessions[main_acc]['gene_stable_id'] = m2_snp.group(8)
+                        accessions[main_acc]['start_codon'] = m2_snp.group(9)
+                        accessions[main_acc]['aTIS_call'] = m2_snp.group(10)
+                        accessions[main_acc]['protein_name'] = ""
+                        accessions[main_acc]['description'] = ""
+                        #Search possible side accessions
+                        m2_snp = re.search('\[(.+?)\]$', descr)
+                        if m2_snp:
+                            accessions[main_acc]['side_accessions'] = m2_snp.group(1)
+                        else:
+                            accessions[main_acc]['side_accessions'] = ""
+                    elif m2:
                         accessions[main_acc]['tr_stable_id'] = m2.group(1)
                         accessions[main_acc]['chr'] = m2.group(2)
                         accessions[main_acc]['start'] = m2.group(3)
                         accessions[main_acc]['annotation'] = m2.group(4)
+                        accessions[main_acc]['snp_id'] = ''
                         accessions[main_acc]['bincode'] = m2.group(5)
                         accessions[main_acc]['main_db'] = m2.group(6)
                         accessions[main_acc]['gene_stable_id'] = m2.group(7)
@@ -477,6 +502,7 @@ def parse_accessions(combined_fasta):
                         accessions[main_acc]['chr'] = ''
                         accessions[main_acc]['start'] = ''
                         accessions[main_acc]['annotation'] = ''
+                        accessions[main_acc]['snp_id']=''
                         accessions[main_acc]['bincode'] = ''
                         accessions[main_acc]['main_db'] = ''
                         accessions[main_acc]['gene_stable_id'] = ''
@@ -491,12 +517,22 @@ def parse_accessions(combined_fasta):
                             if m5:
                                 accessions[main_acc]["source"] = accessions[main_acc]["source"] + "+Proteoformer"
                             #Search for bincode of the first accession
+                            m6_snp = re.search('^(ENST\d+?)\_(\S+?)\_(\d+?)\_(\S+?)\_(\d+?)\_(\d+?)db(\d+?)', accessions[main_acc]['side_accessions'])
                             m6 = re.search('^(ENST\d+?)\_(\S+?)\_(\d+?)\_(\S+?)\_(\d+?)db(\d+?)', accessions[main_acc]['side_accessions'])
-                            if m6:
+                            if m6_snp:
+                                accessions[main_acc]['tr_stable_id'] = m6_snp.group(1)
+                                accessions[main_acc]['chr'] = m6_snp.group(2)
+                                accessions[main_acc]['start'] = m6_snp.group(3)
+                                accessions[main_acc]['annotation'] = m6_snp.group(4)
+                                accessions[main_acc]['snp_id'] = m6_snp.group(5)
+                                accessions[main_acc]['bincode'] = m6_snp.group(6)
+                                accessions[main_acc]['main_db'] = m6_snp.group(7)
+                            elif m6:
                                 accessions[main_acc]['tr_stable_id'] = m6.group(1)
                                 accessions[main_acc]['chr'] = m6.group(2)
                                 accessions[main_acc]['start'] = m6.group(3)
                                 accessions[main_acc]['annotation'] = m6.group(4)
+                                accessions[main_acc]['snp_id'] = ''
                                 accessions[main_acc]['bincode'] = m6.group(5)
                                 accessions[main_acc]['main_db'] = m6.group(6)
                         else:
