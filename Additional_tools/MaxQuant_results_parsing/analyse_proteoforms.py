@@ -246,18 +246,21 @@ def construct_plot(counts, output_file):
     GridSpec(2, 3)
 
     #Big plot
-    #Reorder dataframe
-    df = pd.DataFrame.from_dict(main_counts, orient="index")
-    df.columns = ['count']
-    df.sort_index(inplace=True)
-    df['classification'] = df.index
-    b, c = df.loc['Translation in non-coding region'].copy(), df.iloc[-1].copy()
-    df.loc['Translation in non-coding region'], df.iloc[-1] = c, b
-    b, c = df.loc['Splice variants'].copy(), df.iloc[0].copy()
-    df.loc['Splice variants'], df.iloc[0] = c, b
-    df.reset_index(drop=True, inplace=True)
+    # Reorder dataframe
+    df = get_ordered_dataframe(main_counts)
     labels_list = df['count'].values.tolist()
+    #Plot
+    ax1 = plt.subplot2grid((2, 3), (0, 0), colspan=2, rowspan=2)
+    #Generate explode tuple
+    explode_tuple = tuple()
+    for val in df.loc[:,'classification'].values.tolist():
+        if val=='Translation in non-coding region' or val=='Splice variants':
+            explode_tuple = explode_tuple + (0.2,)
+        else:
+            explode_tuple = explode_tuple + (0,)
 
+    #Get colors
+    colors = gen_color_list(df['classification'].values.tolist())
     ax1 = plt.subplot2grid((2, 3), (0, 0), colspan=2, rowspan=2)
     #Generate explode tuple
     explode_tuple = tuple()
@@ -344,6 +347,56 @@ def construct_plot(counts, output_file):
 
 
 
+#Get ordered data frame
+def get_ordered_dataframe(main_counts):
+
+    df = pd.DataFrame.from_dict(main_counts, orient="index")
+    df.columns = ['count']
+    df['classification'] = df.index
+    # Replace first and last row for non coding and splice variants
+    b, c = df.loc['Translation in non-coding region'].copy(), df.iloc[-1].copy()
+    df.loc['Translation in non-coding region'], df.iloc[-1] = c, b
+    b, c = df.loc['Splice variants'].copy(), df.iloc[0].copy()
+    df.loc['Splice variants'], df.iloc[0] = c, b
+    # Sort values, except first and last row
+    rest = df.iloc[1:-1].copy()
+    rest.sort_values('classification', inplace=True)
+    # Remake dataframe with sorted values
+    first = pd.DataFrame([[df.iloc[0, 0], df.iloc[0, 1]]], columns=['count', 'classification'])
+    last = pd.DataFrame([[df.iloc[-1, 0], df.iloc[-1, 1]]], columns=['count', 'classification'])
+    new_df = pd.concat([first, rest, last], ignore_index=True)
+    df = new_df
+    df.reset_index(drop=True, inplace=True)
+
+
+    return df
+
+#Generate color list
+def gen_color_list(class_list):
+
+    all_labels = ['Splice variants','C-terminal extension', 'C-terminal truncation', 'Multiple variations', 'N-terminal extension', 'N-terminal truncation', 'Only amino acid substitutions', 'Out of frame ORF', 'dORF', 'uORF', 'Translation in non-coding region']
+
+    cmap = plt.cm.tab10
+    colors = cmap(np.linspace(0., 1., len(all_labels)))
+
+    #Resturcture colors
+    b = np.copy(colors[2,:])
+    c = np.copy(colors[0,:])
+    colors[2,:] = np.copy(c)
+    colors[0,:] = np.copy(b)
+    b = np.copy(colors[3, :])
+    c = np.copy([0.8588,0.8588,0.5529,1])
+    colors[3, :] = np.copy(c)
+    colors[-1, :] = np.copy(b)
+
+    #Remove unneeded colors
+    deleted_labels = 0
+    for i in range(0, len(all_labels)):
+        if all_labels[i] not in class_list:
+            colors = np.delete(colors, i-deleted_labels, 0)
+            deleted_labels+=1
+
+    return colors
 
 
 #Count classifications
@@ -468,10 +521,12 @@ def classify_proteoform(proteoform_peptides, aligned_base_proteoform, aligned_ba
         m9 = re.search('^([A-Za-z]+)\-+([A-Za-z]+)$', aligned_base_proteoform)
             #multiple
         m9b = re.search('^[A-Za-z]+\-+[A-Za-z]+\-+[A-Za-z]+$', aligned_base_proteoform)
+        m9c = re.search('^[A-Za-z]+\-+[A-Za-z]+\-+[A-Za-z]+\-+[A-Za-z]+$', aligned_base_proteoform)
         #If exon inclusion: insert in canonical
         m10 = re.search('^([A-Za-z]+)\-+([A-Za-z]+)$', aligned_base_canonical)
             #multiple
         m10b = re.search('^[A-Za-z]+\-+[A-Za-z]+\-+[A-Za-z]+$', aligned_base_canonical)
+        m10c = re.search('^[A-Za-z]+\-+[A-Za-z]+\-+[A-Za-z]+\-+[A-Za-z]+$', aligned_base_canonical)
         #If there are no indels from start to stop in both sequence, then only SAVs
         m11 = re.search('^[A-Za-z]+$', aligned_base_proteoform)
         m12 = re.search('^[A-Za-z]+$', aligned_base_canonical)
@@ -632,7 +687,11 @@ def classify_proteoform(proteoform_peptides, aligned_base_proteoform, aligned_ba
                 classification = "exon inclusion, more complex"
         elif (m9b):
             classification = "exon exclusion"
+        elif (m9c):
+            classification = "exon exclusion"
         elif (m10b):
+            classification = "exon inclusion"
+        elif (m10c):
             classification = "exon inclusion"
         #Only amino acid variations
         elif (m11 and m12):
