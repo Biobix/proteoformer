@@ -299,8 +299,7 @@ def construct_plot(counts, output_file):
     df['classification'] = df.index
     labels_list = df['count'].values.tolist()
     ax2 = plt.subplot2grid((2,3), (0,2))
-    cmap = plt.cm.Greens
-    colors = cmap(np.linspace(.1, .9, len(labels_list)))
+    colors = get_greens(df['classification'].values.tolist())
     df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax2, colors=colors, textprops={'fontsize':15}, fontsize=15, pctdistance=0.85, labels = labels_list, labeldistance=1.05)
     ax2.set_ylabel("")
     ax2.set_title("Splice variants", {'fontsize': 36})
@@ -314,12 +313,11 @@ def construct_plot(counts, output_file):
     df['classification'] = df.index
     labels_list = df['count'].values.tolist()
     ax3 = plt.subplot2grid((2, 3), (1, 2))
-    cmap = plt.cm.Reds
-    colors = cmap(np.linspace(.1, .9, len(labels_list)))
+    colors = get_reds(df['classification'].values.tolist())
     df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax3, colors=colors, textprops={'fontsize':15}, fontsize=15, pctdistance=0.85, labels = labels_list, labeldistance=1.05)
     ax3.set_ylabel("")
     ax3.set_title("Non-coding region proteoforms", {'fontsize':36})
-    lgd_labels = df['classification'].values.tolist()
+    lgd_labels = rewrite_labels(df['classification'].values.tolist())
     handles, labels = ax3.get_legend_handles_labels()  # Get legend information of last ax object
     leg = ax3.legend(handles, lgd_labels, fontsize=18, loc='upper center', bbox_to_anchor=(.5, 0.075), ncol=2)
 
@@ -397,7 +395,51 @@ def gen_color_list(class_list):
             deleted_labels+=1
 
     return colors
+    
+#Rewrite non coding labels
+def rewrite_labels(labels):
 
+    rewritten = list()
+    translate = dict({'processed_transcript':'Processed transcript', 'transcribed_processed_pseudogene':'Transcribed processed pseudogene', 'processed_pseudogene': 'Processed pseudogene', 'retained_intron':'Retained intron'})
+
+    for label in labels:
+        rewritten.append(translate[label])
+
+    return rewritten
+
+#Get red colors
+def get_reds(class_list):
+
+    all_labels = ['processed_transcript', 'transcribed_processed_pseudogene', 'processed_pseudogene', 'retained_intron']
+
+    cmap = plt.cm.Reds
+    colors = cmap(np.linspace(.1, .9, len(all_labels)))
+
+    #Remove unneeded colors
+    deleted_labels = 0
+    for i in range(0, len(all_labels)):
+        if all_labels[i] not in class_list:
+            colors = np.delete(colors, i-deleted_labels, 0)
+            deleted_labels+=1
+
+    return colors
+
+#Get green colors
+def get_greens(class_list):
+
+    all_labels = ['Exon inclusion', 'Exon exclusion', 'Exon substitution', 'C-terminal splice variant', 'N-terminal splice variant']
+
+    cmap = plt.cm.Greens
+    colors = cmap(np.linspace(.1, .9, len(all_labels)))
+
+    #Remove unneeded colors
+    deleted_labels = 0
+    for i in range(0, len(all_labels)):
+        if all_labels[i] not in class_list:
+            colors = np.delete(colors, i-deleted_labels, 0)
+            deleted_labels+=1
+
+    return colors
 
 #Count classifications
 def count_classifications(identifications):
