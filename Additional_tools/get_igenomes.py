@@ -51,7 +51,7 @@ import sys
 import re
 from multiprocessing import Pool
 import datetime
-
+import traceback
 
 def main():
 
@@ -76,7 +76,7 @@ def main():
             print_help()
             sys.exit()
         if o in ('-d','--dir'):
-            instalDir=a;
+            instalDir=os.path.abspath(a);
         if o in ('-s','--species'):
             species=a
         if o in ('-v','--version'):
@@ -322,59 +322,9 @@ def main():
     os.system("mkdir Chromosomes")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes")
 
-    #Defenition of one download process
-    def downloadChromosomeFasta(chr):
-        if(species=='arabidopsis'):#Arabidopsis is on the site of ensembl Plants instead of normal Ensembl. This site cannot use rsync yet.
-            if(chr=='MT'):#Ensembl uses 'Mt' for Arabidopsis mitochondrial genome
-                os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
-                os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
-                os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa MT.fa")
-            else:
-                os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz")
-                os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz")
-                os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa "+chr+".fa")
-            print("\t\t*) Chromosome "+chr+" finished")
-        elif(species=='SL1344'):
-            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/fasta/bacteria_23_collection/salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344/dna/Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa.gz")
-            os.system("gunzip Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa.gz")
-            os.system("mv Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa "+chr+".fa")
-        else:#use rsync for other species
-            if(chr=='MT' or chr=='M'):
-                if(species=='fruitfly'):#Other name 'dmel_mitochondrion_genome' for fruitfly
-                    if(ens_v>75):
-                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
-                    else:
-                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
-                    os.system("gunzip M.fa.gz")
-                elif(species=='yeast'):#Other name 'Mito' for yeast
-                    if(ens_v>75):
-                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.Mito.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
-                    else:
-                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mito.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
-                    os.system("gunzip MT.fa.gz")
-                elif(species=='c.elegans'):#Other name 'MtDNA' for c elegans
-                    if(ens_v>75):
-                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
-                    else:
-                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
-                    os.system("gunzip MT.fa.gz")
-                else:#MT for other species
-                    if(ens_v>75):
-                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
-                    else:
-                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
-                    os.system("gunzip MT.fa.gz")
-            else:
-                if(ens_v>75):
-                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
-                else:
-                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
-                os.system("gunzip "+chr+".fa.gz")
-            print("\t\t*) Chromosome "+chr+" finished")
-
     #Multithreading chromosome downloads
     pool = Pool(processes=cores)
-    [pool.apply_async(downloadChromosomeFasta, args=(key,)) for key in chromList]
+    [pool.apply_async(downloadChromosomeFasta, args=(key,species,speciesLong,ens_v,stringEns_v,assembly,instalDir)) for key in chromList]
     pool.close()
     pool.join()
 
@@ -433,7 +383,7 @@ def main():
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence")
     os.system("mkdir AbundantSequences")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/AbundantSequences")
-    os.system("wget -q ftp://ftp.ncbi.nih.gov//genomes/Viruses/Enterobacteria_phage_phiX174_sensu_lato_uid14015/NC_001422.fna")
+    os.system("wget -q ftp://ftp.ncbi.nih.gov//genomes/Viruses/enterobacteria_phage_phix174_sensu_lato_uid14015/NC_001422.fna")
     os.system("mv NC_001422.fna phix.fa")
 
 
@@ -475,6 +425,61 @@ def main():
     print("   (***) igenomes folder download complete (***)")
     print("\n")
 
+    return
+
+########
+# SUBS #
+########
+
+#Defenition of one download process
+def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assembly, instalDir):
+    if(species=='arabidopsis'):#Arabidopsis is on the site of ensembl Plants instead of normal Ensembl. This site cannot use rsync yet.
+        if(chr=='MT'):#Ensembl uses 'Mt' for Arabidopsis mitochondrial genome
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
+            os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
+            os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa MT.fa")
+        else:
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz")
+            os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz")
+            os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa "+chr+".fa")
+        print("\t\t*) Chromosome "+chr+" finished")
+    elif(species=='SL1344'):
+        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/fasta/bacteria_23_collection/salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344/dna/Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa.gz")
+        os.system("gunzip Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa.gz")
+        os.system("mv Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa "+chr+".fa")
+    else:#use rsync for other species
+        if(chr=='MT' or chr=='M'):
+            if(species=='fruitfly'):#Other name 'dmel_mitochondrion_genome' for fruitfly
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
+                os.system("gunzip M.fa.gz")
+            elif(species=='yeast'):#Other name 'Mito' for yeast
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.Mito.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mito.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                os.system("gunzip MT.fa.gz")
+            elif(species=='c.elegans'):#Other name 'MtDNA' for c elegans
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                os.system("gunzip MT.fa.gz")
+            else:#MT for other species
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                os.system("gunzip MT.fa.gz")
+        else:
+            if(ens_v>75):
+                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+            else:
+                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+            os.system("gunzip "+chr+".fa.gz")
+        print("\t\t*) Chromosome "+chr+" finished")
     return
 
 def print_help():
