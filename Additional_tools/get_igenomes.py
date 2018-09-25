@@ -31,6 +31,7 @@ __author__ = 'SV'
     arabidopsis                 |   Arabidopsis_thaliana
     c.elegans                   |   Caenorhabditis_elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
+    MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
     
     EXAMPLE:
     
@@ -119,9 +120,9 @@ def main():
         if(ens_v>31):
             print("Error: latest Ensembl Plants version is 29!")
             sys.exit()
-    elif(species =='SL1344'):
-        if(ens_v>36):
-            print("Error: latest Ensembl Bacteria version is 36!")
+    elif(species =='SL1344' or species =='MYC_ABS_ATCC_19977'):
+        if(ens_v>40):
+            print("Error: latest Ensembl Bacteria version is 40!")
             sys.exit()
     else:
         if(ens_v>89):
@@ -197,12 +198,15 @@ def main():
     elif(species=='SL1344'):
         speciesLong='SL1344'
         assembly='ASM21085v2'
+    elif(species=='MYC_ABS_ATCC_19977'):
+        speciesLong='mycobacterium_abscessus_atcc_19977'
+        assembly='ASM6918v1'
     else:
-        print("Species has to be one of the following list: human, mouse, fruitfly, yeast, zebrafish, arabidopsis, c.elegans")
+        print("Species has to be one of the following list: human, mouse, fruitfly, yeast, zebrafish, arabidopsis, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344")
         sys.exit()
 
     print("Assembly                                    : " + assembly)
-    if(species!='arabidopsis' and species!='SL1344'):
+    if(species!='arabidopsis' and species!='SL1344' and species!='MYC_ABS_ATCC_19977'):
         print("UCSC code                                   : " + ucscCode)
     print("")
 
@@ -259,22 +263,34 @@ def main():
                     chromList['MT']=m.group(2)
                 else:
                     chromList[m.group(1)]=m.group(2)
-    elif(species=='SL1344'):
+    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977'):
         #For bacteria, chromosome sizes can be fetched out of the files where the Ensembl DB is build from
+        if (species=='SL1344'):
+            collection = '23'
+        elif (species=='MYC_ABS_ATCC_19977'):
+            collection = '16'
         canEns_v=str(ens_v+53) #Bacteria Ensembl releases are 53 less than the other species.
         #first, search coord system id
-        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/mysql/bacteria_23_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
+        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/mysql/bacteria_"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
         os.system("gzip -d coord_system.txt.gz")
         coord_system_id=0
         input = open('coord_system.txt', 'r')
-        for line in input:
-            pattern = re.compile('^(\d+)\t\d+\t\w+\t(\w+)\t1')
-            m = pattern.search(line)
-            if m:
-                if(m.group(2)==assembly):
-                    coord_system_id=m.group(1)
+        if (species=='SL1344'):
+            for line in input: #For SL1344 we take the chromosome as coord_system (corresponds to "1" as last field)
+                pattern = re.compile('^(\d+)\t\d+\t\w+\t(\w+)\t1')
+                m = pattern.search(line)
+                if m:
+                    if(m.group(2)==assembly):
+                        coord_system_id=m.group(1)
+        elif (species=='MYC_ABS_ATCC_19977'):
+            for line in input: #For MYC_ABS_ATCC_19977 we take the supercontig as coord_system (corresponds to "3" as last field)
+                pattern = re.compile('^(\d+)\t\d+\t\w+\t(\w+)\t3')
+                m = pattern.search(line)
+                if m:
+                    if(m.group(2)==assembly):
+                        coord_system_id=m.group(1)
         #Then search for the chromosome in seq_region.txt
-        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/mysql/bacteria_23_collection_core_"+stringEns_v+"_"+canEns_v+"_1/seq_region.txt.gz")
+        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/mysql/bacteria_"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/seq_region.txt.gz")
         os.system("gzip -d seq_region.txt.gz")
         input = open('seq_region.txt', 'r')
         regex = r"\b(?=\w)^\d+\t(\w+)\t"+re.escape(coord_system_id)+r"\t(\d+)\b(?!\w)"
@@ -308,11 +324,12 @@ def main():
     outFile.close()
     if(species=='arabidopsis'):
         os.system("rm -rf seq_region.txt")
-    elif(species=='SL1344'):
+    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977'):
         os.system("rm -rf coord_system.txt")
         os.system("rm -rf seq_region.txt")
     else:
         os.system("rm -rf tmpChromInfo.txt")
+
 
 
     ## Download chromosome files
@@ -327,7 +344,6 @@ def main():
     [pool.apply_async(downloadChromosomeFasta, args=(key,species,speciesLong,ens_v,stringEns_v,assembly,instalDir)) for key in chromList]
     pool.close()
     pool.join()
-
 
 
 
@@ -359,6 +375,9 @@ def main():
     elif(species=='SL1344'):
         os.system("wget -q ftp://ftp.ensemblgenomes.org:21//pub/release-"+stringEns_v+"/bacteria/gtf/bacteria_23_collection/salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344/Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+"."+stringEns_v+".gtf.gz")
         os.system("mv Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
+    elif(species=='MYC_ABS_ATCC_19977'):
+        os.system("wget -q ftp://ftp.ensemblgenomes.org:21//pub/release-"+stringEns_v+"/bacteria/gtf/bacteria_16_collection/mycobacterium_abscessus_atcc_19977/Mycobacterium_abscessus_atcc_19977."+assembly+"."+stringEns_v+".gtf.gz")
+        os.system("mv Mycobacterium_abscessus_atcc_19977."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     else:
         os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     os.system("gunzip genesTmp.gtf.gz")
@@ -402,7 +421,7 @@ def main():
     readmeFile.write("The contents of the annotation directories were downloaded from Ensembl on: "+month+" "+str(day)+", "+str(year)+".\n")
     if(species=='arabidopsis'):
         readmeFile.write("Gene annotation files were downloaded from Ensembl Plants release "+stringEns_v+".")
-    elif(species=='SL1344'):
+    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977'):
         readmeFile.write("Gene annotation files were downloaded from Ensembl Bacteria release "+stringEns_v+".")
     else:
         readmeFile.write("Gene annotation files were downloaded from Ensembl release "+stringEns_v+".")
@@ -447,6 +466,13 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
         os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/fasta/bacteria_23_collection/salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344/dna/Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa.gz")
         os.system("gunzip Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa.gz")
         os.system("mv Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa "+chr+".fa")
+    elif(species=='MYC_ABS_ATCC_19977'):
+            # For Mycobacterium ABS ATCC 19977 no chromosome is assembled, so we go for the toplevel assembly (noticeable at the end of the name of the downloaded file)
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/fasta/bacteria_16_collection/mycobacterium_abscessus_atcc_19977/dna/Mycobacterium_abscessus_atcc_19977."+assembly+".dna.toplevel.fa.gz")
+            print("test\n")
+            os.system("gunzip Mycobacterium_abscessus_atcc_19977."+assembly+".dna.toplevel.fa.gz")
+            print(chr+"\n")
+            os.system("mv Mycobacterium_abscessus_atcc_19977."+assembly+".dna.toplevel.fa "+chr+".fa")
     else:#use rsync for other species
         if(chr=='MT' or chr=='M'):
             if(species=='fruitfly'):#Other name 'dmel_mitochondrion_genome' for fruitfly
@@ -489,7 +515,7 @@ def print_help():
 
     -d | --dir                                  Directory wherein the igenomes tree structure will be installed
     -v | --version                              Ensembl annotation version to download
-                                                (Ensembl plant (for arabidopsis) has seperate annotation versions!)
+                                                (Ensembl plant (for arabidopsis) and bacteria have seperate annotation versions!)
     -s | --species                              Specify the desired species for which gene annotation files should be downloaded
     -r | --remove                               If any, overwrite the existing igenomes structure for that species
     -c | --cores                                The amount of cores that will be used for downloading chromosomes files
@@ -507,6 +533,7 @@ def print_help():
     arabidopsis                 |   Arabidopsis_thaliana
     c.elegans                   |   Caenorhabditis_elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
+    MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
 
     EXAMPLE:
 
