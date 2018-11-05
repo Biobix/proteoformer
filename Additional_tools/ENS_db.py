@@ -20,6 +20,8 @@ ARGUMENTS:
                                             fruitfly                    |   drosophila_melanogaster
                                             saccharomyces_cerevisiae    |   yeast
                                             caenorhabditis_elegans      |   c.elegans
+                                            SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
+                                            MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
 
 -h | --help                                 Print this useful help message
 
@@ -101,7 +103,9 @@ def main():
                    'yeast': 'sce', 'c.elegans': 'cel',
                    'homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'drosophila_melanogaster': 'dme',
                    'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel','rat': 'rnv',
-                   'rattus_norvegicus': 'rnv'};
+                   'rattus_norvegicus': 'rnv',
+                   'MYC_ABS_ATCC_19977': 'MYC_ABS_ATCC_19977', 'mycobacterium_abscessus_atcc_19977': 'MYC_ABS_ATCC_19977',
+                   'SL1344': 'SL1344'};
 
 
     #
@@ -147,6 +151,7 @@ def main():
     # Getting right ftp directory based on arguments
     #
 
+    canEns_v=str(int(ens_v)+53) #Plant and Bacteria Ensembl releases are 53 less than the other species.
     if (species=='human' or species=='homo_sapiens'):
         if(int(ens_v) >= 76 and int(ens_v) <= 92):
              core='/homo_sapiens_core_' + ens_v + '_38.sql.gz'
@@ -210,9 +215,15 @@ def main():
             print("ERROR: unsupported ensembl version: " + ens_v)
             print("supported ensembl versions: from 74 till 88")
             sys.exit()
+    elif (species=='SL1344' or species=='salmonella_eentrica_serovar_typhimurium'):
+        core = 'bacteria_23_collection_core_' + ens_v +'_' + canEns_v + '_1.sql.gz'
+        download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/bacteria//mysql/bacteria_23_collection_core_' + ens_v +'_' + canEns_v + '_1/', core)
+    elif (species=='MYC_ABS_ATCC_19977' or species=='mycobacterium_abscessus_atcc_19977'):
+        core = 'bacteria_16_collection_core_' + ens_v +'_' + canEns_v + '_1.sql.gz'
+        download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/bacteria//mysql/bacteria_16_collection_core_' + ens_v +'_' + canEns_v + '_1/', core)
     else:
         print("Error: unsupported species: " +species )
-        print("Supported species: human, fruitfy, mouse, saccharomyces_cerevisiae, caenorhabditis_elegans")
+        print("Supported species: human, fruitfy, mouse, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977")
         sys.exit()
 
     #
@@ -436,6 +447,8 @@ ARGUMENTS:
                                             fruitfly                    |   drosophila_melanogaster
                                             saccharomyces_cerevisiae    |   yeast
                                             caenorhabditis_elegans      |   c.elegans
+                                            SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
+                                            MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
 
 -h | --help                                 Print this useful help message
 

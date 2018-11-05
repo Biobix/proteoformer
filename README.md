@@ -20,14 +20,10 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
     5. [Transcript calling](#transcriptcalling)
         1. [Rule-based transcript calling](#rulebased)
         2. [RiboZINB](#ribozinb_trcal)
-    6. [ORF calling](#orf_calling)
-        1. [PROTEOFORMER classic ORF calling](#classic_orf_calling)
-            1. [TIS calling](#tis_calling)
-            2. [SNP calling](#snp_calling)
-            3. [ORF assembly](#assembly)
-        2. [PRICE](#price)
-        3. [SPECtre](#spectre)
-        4. [Analysis ID overview table](#tis_overview)
+    6. ORF calling
+        1. PROTEOFORMER
+        2. PRICE
+        3. SPECtre
     7. Fasta file generation
 5. Optional steps
     1. ORF-based counts
@@ -99,7 +95,7 @@ If you want to exit the proteoformer Conda environment:
 
 ```source deactivate```
 
-### Additional environments for RiboZINB, SPECtre and SRA download <a name="add_envs"></a>
+### Additional environments for RiboZINB, SPECtre and SRA download
 
 For some tools, we needed to construct separate environments with different versions of the underlying tools. For all 
 the other tools, the proteoformer environment is used.
@@ -492,7 +488,7 @@ Input arguments:
 | --work_dir   | CWD env setting                | The working directory                               |
 | --tmp        | work_dir/tmp                   | The temporary files folder                          |
 | --in_sqlite  | SQLite/results.db              | The SQLite results database from previous steps     |
-| --out_sqlite | The same as in_sqlite atrgument | The SQLite results database to store all results in |
+| --out_sqlite | The same as in_sqlite argument | The SQLite results database to store all results in |
 | --ens_db     | Mandatory                      | The Ensembl database with annotation info           |
 | --help       |                                | Generate help message                               |
 
@@ -509,7 +505,7 @@ Another way to call transcripts, is by using the [RiboZINB](https://github.com/B
 of the zero-inflated binomial model to determine actively translated transcript isoforms. RiboZINB was directly included 
 in the PROTEOFORMER pipeline. **The RiboZINB tool itself is still in beta and statistics are still in development and validation.**
 
-The RiboZINB tool requires its own [earlier installed](#add_envs) Conda environment to run:
+The RiboZINB tool requires its own Conda environment to run:
 
 ```source activate ribozinb```
 
@@ -540,80 +536,11 @@ Output table structure in the SQLite results database:
 | 173461        | ENST00000314167 | 4   | 131552        | -1                | 849278           | 932298         | 1513        | 0.340612336785    | protein_coding | NA            | Yes       | CCDS3340 | ENSG00000178950 | 19.3450784708 |
 | ...           | ...             | ... | ...           | ...               | ...              | ...            | ...         | ...               | ...            | ...           | ...       | ...      | ...             | ...           |
 
-### ORF calling <a name="orf_calling"></a>
-
-Based on the translated transcripts, you can search for the translatiion product candidates. Three methods are currently 
-implemented: [PROTEOFORMER classic ORF calling](#classic_orf_calling), [PRICE](#price) and [SPECtre](#spectre). For an 
-overview of all analyses that you performed, an [overview table](#tis_overview) for all the analysis ID's can be generated.
-
-#### PROTEOFORMER classic ORF calling <a name="classic_orf_calling"></a>
-
-A first method to determine the candidate translation products based on ribosome profiling is PROTEOFORMER classic method. 
-This method is rule-based and therefore does not work based on a score. However, this method is developped with MS validation 
-afterwards in mind. Therefore, defaultly it works quite unstringent, allowing to filter stringently later on during MS. As this 
-method is also based on TIS calling, it needs a initiation ribosome profile to work (i.e. a second sample treated with 
-LTM or HARR). The classic ORF calling can be separated in three subsequent steps: [TIS calling](#tis_calling), 
-[SNP calling](#snp_calling) and [ORF assembly](#assembly). The SNP calling step is optional.
-
-##### TIS calling <a name="tis_calling"></a>
-
-First step of this method determines the translation initiation sites based on the initiation profile (HARR/LTM).
-
-An example of how to run this tool:
-
-```perl TIScalling_categorised --sqlite_db SQLite/results.db```
-
-Input arguments:
-
-| Argument           | Default         | Description                                                                                   |
-|--------------------|-----------------|----------------------------------------------------------------------------------------------- |
-| --dir              | CWD env setting | The working directory                                                                         |
-| --tmp              | work_dir/tmp    | The temporary files folder                                                                    |
-| --sqlite_db        | Mandatory       | The SQLite results database with all mapping and translated transcript calling results        |
-| --local_max        | 1               | The range wherein the local maximum can be located (e.g. 1 means +/- one triplet)             |
-| --min_count_aTIS   | 5               | The minimum count of ribosome profiling reads that need to map to the aTIS                    |
-| --R_aTIS           | 0.01            | The Rltm - Rchx value threshold for aTIS ORFs                                                 |
-| --min_count_5      | 10              | The minimum count of ribosome profiling reads that need to map to a 5'UTR ORF TIS             |
-| --R_5              | 0.05            | The Rltm - Rchx value threshold for 5'UTR ORFs                                                |
-| --min_count_CDS    | 15              | The minimum count of ribosome profiling reads that need to map to a CDS ORF TIS               |
-| --R_CDS            | 0.15            | The Rltm - Rchx value threshold for CDS ORFs                                                  |
-| --min_count_3      | 10              | The minimum count of ribosome profiling reads that need to map to a 3'UTR ORF TIS             |
-| --R_3              | 0.05            | The Rltm - Rchx value threshold for 3'UTR ORFs                                                |
-| --min_count_ntr    | 10              | The minimum count of ribosome profiling reads that need to map to a non-codign region ORF TIS |
-| --R_ntr            | 0.05            | The Rltm - Rchx value threshold for non-coding region ORFs                                    |
-| --out_sqlite       | /               | Parameter is only used in Galaxy, not in CLI                                                  |
-| --transcriptfilter | none            | Use certain filters at transcript level (options: none, canonical, ccds)                      |
-
-
-##### SNP calling <a name="snp_calling"></a>
-
-
-
-
-##### ORF assembly <a name="assembly"></a>
-
-
-Which filters?
-
-#### PRICE <a name="price"></a>
-
-#### SPECtre <a name="spectre"></a>
-
-
-
-SPECtre needs its own [earlier installed](#add_envs) Conda environment to run:
-
-```source activate spectre```
-
-#### Analysis ID overview table <a name="tis_overview"></a>
-
-
-
 ## Copyright <a name="copyright"></a>
 
 Copyright (C) 2014 G. Menschaert, J.Crappé, E. Ndah, A. Koch & S. Steyaert
 
-Later updates: 2019 (in submission) S. Verbruggen, G. Menschaert, E. Ndah
+Later updates: S. Verbruggen, G. Menschaert, E. Ndah
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
