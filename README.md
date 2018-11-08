@@ -62,7 +62,7 @@ The pipeline
 Most modules of this pipeline are provided with a built-in help message. Execute the script of choice with the `-h` or 
 `--help` to get the full help message printed in the command line.
 
-PROTEOFORMER is also available in galaxy: http://galaxy.ugent.be
+PROTEOFORMER is also available in galaxy: [http://galaxy.ugent.be](http://galaxy.ugent.be)
 
 ## Dependencies <a name="dependencies"></a>
 
@@ -82,22 +82,30 @@ conda config --add channels bioconda
 
 Then you can install all dependencies based on the yml file in the `dependency_envs` folder of this GitHub repository with following command:
 
-```conda env create -f Dependency_envs/proteoformer.yml```
+```
+conda env create -f Dependency_envs/proteoformer.yml
+```
 
 This installs a new Conda environment in which all needed Conda dependencies are installed and available, including Perl
 and Python. If not mentioned otherwise, all tools of the PROTEOFORMER pipeline should be executed in this environment.
  To activate this new Conda environment:
 
-```source activate proteoformer```
+```
+source activate proteoformer
+```
 
 Some Perl packages are not included in Conda, so after installation and first activation of the new environment,
  execute following script:
 
-```perl install_add_perl_tools.pl```
+```
+perl install_add_perl_tools.pl
+```
 
 If you want to exit the proteoformer Conda environment:
 
-```source deactivate```
+```
+source deactivate
+```
 
 ### Additional environments for RiboZINB, SPECtre and SRA download <a name="add_envs"></a>
 
@@ -231,7 +239,9 @@ the proteoformer conda environment, so you do not need to download it separately
 
 For example, to run it on 20 cores:
 
-```fastqc yourdata.fastq -t 20```
+```
+fastqc yourdata.fastq -t 20
+```
 
 This generates an HTML output report with figures for assessing the quality and general features and a ZIP file 
 (for exporting the results to another system). More information about the tool can be found on the [help page](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/Help/)
@@ -408,7 +418,9 @@ Furthermore, BED and BedGraph files are generated, which allow visualizing these
 the `Additional_tools` folder. As input, it takes the different original BedGraph files and library sizes of both samples 
 (i.e. the total mapped reads against the genomic reference, which can be found in the statistics table of the results database).
 
-```bash normBedgraph --untrs output/untreat_sense.bedgraph --untras output/untreat_antisense.bedgraph --nttrs output/treat_sense.bedgraph --nttras output/treat_antisense.bedgraph --libuntr 37873493 --libtr 45427218```
+```
+bash normBedgraph --untrs output/untreat_sense.bedgraph --untras output/untreat_antisense.bedgraph --nttrs output/treat_sense.bedgraph --nttras output/treat_antisense.bedgraph --libuntr 37873493 --libtr 45427218
+```
 
 ### General quality check: fastQC <a name="fastqc2"></a>
 
@@ -483,18 +495,20 @@ transcripts (`exon_coverage = Yes` in the output table).
 
 An example of how to run this tool:
 
-```perl ribo_translation.pl --in_sqlite SQLite/results.db --out_sqlite SQLite/results.db --ens_db ENS_hsa_92.db```
+```
+perl ribo_translation.pl --in_sqlite SQLite/results.db --out_sqlite SQLite/results.db --ens_db ENS_hsa_92.db
+```
 
 Input arguments:
 
-| Argument     | Default                        | Description                                         |
-|--------------|--------------------------------|-----------------------------------------------------|
-| --work_dir   | CWD env setting                | The working directory                               |
-| --tmp        | work_dir/tmp                   | The temporary files folder                          |
-| --in_sqlite  | SQLite/results.db              | The SQLite results database from previous steps     |
+| Argument     | Default                         | Description                                         |
+|--------------|---------------------------------|-----------------------------------------------------|
+| --work_dir   | CWD env setting                 | The working directory                               |
+| --tmp        | work_dir/tmp                    | The temporary files folder                          |
+| --in_sqlite  | SQLite/results.db               | The SQLite results database from previous steps     |
 | --out_sqlite | The same as in_sqlite atrgument | The SQLite results database to store all results in |
-| --ens_db     | Mandatory                      | The Ensembl database with annotation info           |
-| --help       |                                | Generate help message                               |
+| --ens_db     | Mandatory                       | The Ensembl database with annotation info           |
+| --help       |                                 | Generate help message                               |
 
 Output table structure in the SQLite results database:
 
@@ -511,11 +525,15 @@ in the PROTEOFORMER pipeline. **The RiboZINB tool itself is still in beta and st
 
 The RiboZINB tool requires its own [earlier installed](#add_envs) Conda environment to run:
 
-```source activate ribozinb```
+```
+source activate ribozinb
+```
 
 An example of how to run this tool:
 
-```python RiboZINB.py -p SQLite/results.db```
+```
+python RiboZINB.py -p SQLite/results.db
+```
 
 Input arguments:
 
@@ -566,7 +584,9 @@ value needs to be above the threshold set for its annotation class.
 
 An example of how to run this tool:
 
-```perl TIScalling_categorised --sqlite_db SQLite/results.db```
+```
+perl TIScalling_categorised --sqlite_db SQLite/results.db
+```
 
 Input arguments:
 
@@ -608,7 +628,9 @@ also be included in the analysis.
 
 An example of how to run this tool:
 
-```bash snp_calling --sqlitein path/to/results/database.db --sqliteout path/to/output/database.db --removeduplicates [y|n] --picardpath /path/to/picardmap --snpdbselected [y|n] --snpdb path/to/snpdb --toolsdir /path/to/tooldir --reads path/to/mapped/reads.sam --mincoverage 3 --maxcoverage 100 --high_af 0.95 --lower_af 0.3 --upper_af 0.7```
+```
+bash snp_calling --sqlitein path/to/results/database.db --sqliteout path/to/output/database.db --removeduplicates [y|n] --picardpath /path/to/picardmap --snpdbselected [y|n] --snpdb path/to/snpdb --toolsdir /path/to/tooldir --reads path/to/mapped/reads.sam --mincoverage 3 --maxcoverage 100 --high_af 0.95 --lower_af 0.3 --upper_af 0.7
+```
 
 Input arguments:
 
@@ -645,12 +667,46 @@ set to 0.0.
 
 ##### ORF assembly <a name="assembly"></a>
 
-Information about called TIS's and SNPs can be used to construct the candidate translation products *in silico*.
+Information about called TIS's and SNPs can be used to construct the candidate translation products *in silico*. In this 
+process, the program keeps track of the exonic structure of the transcript and known selenocysteines (encoded by an 'UGA'
+codon, which can also function as a STOP signal). Both the translation product with the selenocysteine and the earlier 
+terminated product will be kept. For near-cognate start sites, the first codon is replace for a cognate
+methionine. Furthermore, translation products will only be outputted if the translation stops at a valid stop signal.
 
+An example of how to run this tool:
 
+```
+perl assembly.pl --sqliteRES SQLite/results.db --snp samtools_dbSNP --tis_ids 1
+```
 
+Input arguments:
 
-Which filters?
+| Argument         | Default                     | Description                                                                                   |
+|------------------|-----------------------------|-----------------------------------------------------------------------------------------------|
+| --dir            | CWD env setting             | The working directory                                                                         |
+| --tmp            | work_dir/tmp                | The temporary files folder                                                                    |
+| --sqliteRES      | Mandatory                   | The SQLite results database with all previous results                                         |
+| --local_max      | 1                           | The range wherein the local maximum can be located (e.g. 1 means +/- one triplet)             |
+| --min_count_aTIS | 5                           | The minimum count of ribosome profiling reads that need to map to the aTIS                    |
+| --R_aTIS         | 0.05                        | The Rltm - Rchx value threshold for aTIS ORFs                                                 |
+| --min_count_5    | 10                          | The minimum count of ribosome profiling reads that need to map to a 5'UTR ORF TIS             |
+| --R_5            | 0.05                        | The Rltm - Rchx value threshold for 5'UTR ORFs                                                |
+| --min_count_CDS  | 15                          | The minimum count of ribosome profiling reads that need to map to a CDS ORF TIS               |
+| --R_CDS          | 0.15                        | The Rltm - Rchx value threshold for CDS ORFs                                                  |
+| --min_count_3    | 10                          | The minimum count of ribosome profiling reads that need to map to a 3'UTR ORF TIS             |
+| --R_3            | 0.05                        | The Rltm - Rchx value threshold for 3'UTR ORFs                                                |
+| --min_count_ntr  | 10                          | The minimum count of ribosome profiling reads that need to map to a non-codign region ORF TIS |
+| --R_ntr          | 0.05                        | The Rltm - Rchx value threshold for non-coding region ORFs                                    |
+| --out_sqlite     | same as sqliteRES parameter | The SQLite database holding all output                                                        |
+| --snp            | NO                          | The applied SNP algorithm. Options: 'NO', 'samtools', 'samtools_dbSNP'                        |
+| --tis_ids        | Mandatory                   | List of the analysis ids (one integer or a comma-separated list of integers)                  |
+
+Candidate translation products are stored in the SQLite results database in following table format:
+
+| tr_stable_id    | chr | strand | start     | start_codon | stop      | starts_list                                                                                         | ends_list                                                                                           | dist_to_transcript_start | dist_to_aTIS | annotation | aTIS_call | peak_shift | count  | Rltm_min_Rchx | coverage          | FPKM             | SNP         | INDEL | secs | tr_seq                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | aa_seq                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+|-----------------|-----|--------|-----------|-------------|-----------|-----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|--------------------------|--------------|------------|-----------|------------|--------|---------------|-------------------|------------------|-------------|-------|------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ENST00000368236 | 1   | 1      | 156581365 | ATG         | 156586550 | 156581365_156582231_156583042_156583338_156583797_156584877_156585125_156585713_156585949_156586469 | 156582070_156582434_156583170_156583450_156583895_156584974_156585231_156585826_156586045_156586550 | 37                       | 0            | aTIS       | no_data   | NA         | 2164.0 | NA            | 0.183533447684391 | 9.89861772252107 | 692_A_G_0.5 |       |      | ATGTCTTCCCCCAACCCTGAGGATGTGCCCCGGAGGCCAGAACCTGAGCCCTCAAGCTCCAATAAGAAAAAGAAGAAAAGAAAGTGGCTGCGGCAAGAAGCCAGCATCCAAGCCCTCACCAGGGCTGGCCATGGGGCCCTTCAGGCTGGCCAGAACCATGAAGCCTTGAACAACTTCCAGAGGGCCTTCCTTCTGGCCTCCAAGGCCCCACAAACCAGGGATACCCCTGTGCTCCAGGCCTGCGCCTTCAACCTGGGGGCTGCCTATGTGGAGACTGGGGACCCAGCCAGAGGCCTTGAGCTACTCCTGCGAGCCCACCCTGAAGAGAAGGCACAGGGCAGGCGACACGGCGACCAATGTTTCAATGTGGCTTTGGCCTACCATGCCCTCGGCGAGCTGCCTCAAGCTTTGGCCTGGTACCACAGGGCCCTGGGCCACTACCAGCCACAGGGTGACCAGGGAGAAGCCTGGGCAAAAATGGGAGCCTGCTACCAGGCTCTGGGACAGCCTGAGCTAGCAGCCCACTGCCTGCAGGAAGCAAGCCAGGCCTATGCTCAAGAGAGACAGCTGCGGGCCGCAGCCCTGGCACTGGGGGCTGCGGCAGGATGTATGCTGAAGAGTGGGCGGCATCGGGTGGGGGAAGTTGTGCAGGTGCTGGAGAAAAGCCGGAGGCTTGCCGAGAGGAGCACTGGGAGGCGACTGCTGGGGCACCTCTATAACGATCTAGGCCTGGGCTACTCCCAGCTCCAGCTGTTCCCGCTGGCCGTGGAGGCCTTCCTGCAGGCCCTGCCCCTGTGCTGGGTGCCAGGAGAGCAGGCCACAGTGCTAAGAAACCTCGGGATGGCCCACAATGCCCTCGGCAACTATCAGGAAGCTCGGGAGTTTCACCAGAAGGCTGCTGACCTACACGGCTCTGTGGGGCAGCGGTGGGAGCAGGGCCGGAGCTTTGGCAGCCTGGCCTTTGCATTGAGCCAGCTGGGGGACCACAAGGCTGCCAGAGACAACTACCTGCATGCCCTGCAGGCTGCCCGGGACTCTGGGGACATGAAGGGACAGTGGCAGGCCTGTGAGGGTCTGGGGGCTGCTGCAGCCAGGCTGGGGCAGTATGACCAGGCCTTGAAGTACTATAAGGAAGCACTGGCCCAGTGTCAGAAGGAGCCAGATTCTGTGCGAGAACGGCTGGTGGCCAAGCTGGCAGACACCGTGAGGACGCGCTTGGCCCAGGTGGGGCTGGTCCAGACTCACACCCTGACTTCGGCTCCGGGAAGACTCCAGGCTCCAGGTGGGGCCAGCCAGGCGGAGGGGACCCCAGCAAAGGCAGGAAGCAGCACAGCAGGTGTCCAGCACAGATCTTCCAGTGGGTGGGAAGATGAAGAGTTTGAGGAGGGCCACCAGAAGAAAAAAGAGGAGAGGTCGGCAAACGTTCCGGTGAGGGCTGGGCCGGGAAGACCAGAGCTGTGTTTCCTTCCAGGCACAGTGAATCATTCGCACCATCTAGCTTCTAGTTGCCCCACGTTTACCAAGCACACGCCCTGCAGAGGGACAGTCCTCGGCAAAGCCTCCATCTATAGTCCAGGACCCAGGGCCCATCTTCCATTTGTAGGTCCAGGCCCTCCCAGAGCGGAGTACCCTAGCATCTTGGTACCCAATGGCCCTCAAGCCAATAGGTCATCCAGGTGGCCCAGGGAAAGCCTCAGCAGGAGCCGCCAGAGGAGACCCATGGAGTCGGGCATCTGCACTATTGTGTGA | MSSPNPEDVPRRPEPEPSSSNKKKKKRKWLRQEASIQALTRAGHGALQAGQNHEALNNFQRAFLLASKAPQTRDTPVLQACAFNLGAAYVETGDPARGLELLLRAHPEEKAQGRRHGDQCFNVALAYHALGELPQALAWYHRALGHYQPQGDQGEAWAKMGACYQALGQPELAAHCLQEASQAYAQERQLRAAALALGAAAGCMLKSGRHRVGEVVQVLEKSRRLAERSTGRRLLGHLYNDLGLGYSQLQLFPLAVEAFLQALPLCWVPGEQATVLRNLGMAHNALGNYQEAREFHQKAADLHGSVGQRWEQGRSFGSLAFALSQLGDHKAARDNYLHALQAARDSGDMKGQWQACEGLGAAAARLGQYDQALKYYKEALAQCQKEPDSVRERLVAKLADTVRTRLAQVGLVQTHTLTSAPGRLQAPGGASQAEGTPAKAGSSTAGVQHRSSSGWEDEEFEEGHQKKKEERSANVPVRAGPGRPELCFLPGTVNHSHHLASSCPTFTKHTPCRGTVLGKASIYSPGPRAHLPFVGPGPPRAEYPSILVPNGPQANRSSRWPRESLSRSRQRRPMESGICTIV* |
+| ...             | ... | ...    | ...       | ...         | ...       | ...                                                                                                 | ...                                                                                                 | ...                      | ...          | ...        | ...       | ...        | ...    | ...           | ...               | ...              | ...         | ...   | ...  | ...                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
 #### PRICE <a name="price"></a>
 
@@ -660,7 +716,9 @@ Which filters?
 
 SPECtre needs its own [earlier installed](#add_envs) Conda environment to run:
 
-```source activate spectre```
+```
+source activate spectre
+```
 
 #### Analysis ID overview table <a name="tis_overview"></a>
 
