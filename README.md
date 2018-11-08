@@ -571,7 +571,7 @@ An example of how to run this tool:
 Input arguments:
 
 | Argument           | Default         | Description                                                                                   |
-|--------------------|-----------------|----------------------------------------------------------------------------------------------- |
+|--------------------|-----------------|-----------------------------------------------------------------------------------------------|
 | --dir              | CWD env setting | The working directory                                                                         |
 | --tmp              | work_dir/tmp    | The temporary files folder                                                                    |
 | --sqlite_db        | Mandatory       | The SQLite results database with all mapping and translated transcript calling results        |
@@ -598,10 +598,56 @@ Called TIS's are saved in the SQLite results database in following table format:
 
 ##### SNP calling <a name="snp_calling"></a>
 
-SNP calling
+Additional to the information about called TIS positions, it is also possible to search for SNP positions based on the 
+ribosome profilng data.
+More information about the SNP calling can be found in its separate [README file](https://github.com/Biobix/proteoformer/blob/master/4_ORF_calling/using_treated_TIS_calling/4b_variation_calling/SNPanalysis/READMEsnpcalling.txt).
 
+With [Picard tools](https://broadinstitute.github.io/picard/)(for removing duplicates) and [SAM tools](http://www.htslib.org), SNP positions 
+will be called based on the aligned ribosome profiling data. Data from [SNPdb](https://www.ncbi.nlm.nih.gov/snp) can 
+also be included in the analysis.
+
+An example of how to run this tool:
+
+```bash snp_calling --sqlitein path/to/results/database.db --sqliteout path/to/output/database.db --removeduplicates [y|n] --picardpath /path/to/picardmap --snpdbselected [y|n] --snpdb path/to/snpdb --toolsdir /path/to/tooldir --reads path/to/mapped/reads.sam --mincoverage 3 --maxcoverage 100 --high_af 0.95 --lower_af 0.3 --upper_af 0.7```
+
+Input arguments:
+
+| Argument           | Default                             | Description                                                                                                                                                                              |
+|--------------------|-------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -s / --sqlitein    | Mandatory                           | Path to the database with results from previous steps                                                                                                                                    |
+| --sqliteout        | Mandatory                           | Path to store the database with all results after this step                                                                                                                              |
+| --removeduplicates | Mandatory                           | 'y' (yes) or 'n' (no), whether to remove duplicate reads with Picard                                                                                                                     |
+| --picardpath       | Mandatory if previous option is 'y' | Path to the Picard tools jar file                                                                                                                                                        |
+| --snpdbselected    | Mandatory                           | 'y' (yes) or 'n' (no), whether he mapped reads will be searched for known SNPs data                                                                                                      |
+| --snpdb            | Mandatory if previous option is 'y' | Path to the SNPdb                                                                                                                                                                        |
+| --toolsdir         | Mandatory                           | Path to the folder where filterSAMfile.pl, snpIndexBuilder.pl and splitVCFaltRecords.pl are                                                                                              |
+| -r / --reads       | Mandatory                           | Path to the SAM file containing alignments ('untreated')                                                                                                                                 |
+| --mincoverage      | 3                                   | SAMtools parameter, the minimal number of reads that need to map at a location so that a SNP can be called there                                                                         |
+| --maxcoverage      | 100                                 | SAMtools parameter, the maximal number of reads that need to map at a location so that a SNP can be called there                                                                         |
+| --high_af          | 0.95                                | High, lower and upper allelic frequency, input variables for mergeVCFfiles.pl, select SNPs & INDELS when their allelic frequency is between lower_af and upper_af or higher than high_af |
+| --lower_af         | 0.3                                 | Lower allelic frequency                                                                                                                                                                  |
+| --upper_af         | 0.7                                 | Upper allelic frequency                                                                                                                                                                  |
+
+The reasoning behind the high, lower and upper allelic frequency is providing the ability to select both hetero- and
+monozygotic SNP variations.
+
+Called SNPs are stored in the SQLite results database in following table format:
+
+| id           | chr | pos    | ref | alt | dp  | af  | new | seq_region_id |
+|--------------|-----|--------|-----|-----|-----|-----|-----|---------------|
+| 100001506993 | 10  | 150699 | A   | C   | 1   | 0.5 | m   | 131544        |
+| ...          | ... | ...    | ... | ... | ... | ... | ... | ...           |
+
+The column "new" is added when the results are compared to SNPdb. A "y" (yes) indicates that a variant was new, ie NOT
+found in SNPdb. A "n" (no) means not new (ie found in SNPdb) and an "m" (mismatch) is used for those mismatches in the 
+mapped reads that were found in SNPdb. There is no allelic frequency information for the "m" variants, so this has been
+set to 0.0.
 
 ##### ORF assembly <a name="assembly"></a>
+
+Information about called TIS's and SNPs can be used to construct the candidate translation products *in silico*.
+
+
 
 
 Which filters?
@@ -641,6 +687,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## More information <a name="moreinformation"></a>
 
-For more (contact) information visit http://www.biobix.be/PROTEOFORMER
+For more (contact) information visit [http://www.biobix.be/PROTEOFORMER](http://www.biobix.be/PROTEOFORMER)
 
 
