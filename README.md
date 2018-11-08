@@ -28,7 +28,7 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
         2. [PRICE](#price)
         3. [SPECtre](#spectre_tool)
         4. [Analysis ID overview table](#tis_overview)
-    7. Fasta file generation
+    7. [Fasta file generation](#fasta_generation)
 5. Optional steps
     1. ORF-based counts
     2. FLOSS calculation
@@ -168,6 +168,7 @@ The tool currently supports following species:
 | Arabidopsis thaliana                                                | arabidopsis                  |
 | Caenorhabditis elegans                                              | c.elegans                    |
 | Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344 | SL1344                       |
+| Mycobacterium abscessus atcc 19977                                  | MYC_ABS_ATCC_19977           |
 
 
 ### Ensembl download <a name="ensembl"></a>
@@ -190,15 +191,15 @@ Input arguments:
 
 Currently supported species:
 
-| Species                  | Input value species argument |
-|--------------------------|------------------------------|
-| Homo sapiens             | human                        |
-| Mus musculus             | mouse                        |
-| Drosophila melanogaster  | fruitfly                     |
-| Saccharomyces cerevisiae | yeast                        |
-| Caenorhabditis elegans   | c.elegans                    |
-
-The Ensembl database for SL1344 (Salmonella) is available under request.
+| Species                                                             | Input value species argument |
+|---------------------------------------------------------------------|------------------------------|
+| Homo sapiens                                                        | human                        |
+| Mus musculus                                                        | mouse                        |
+| Drosophila melanogaster                                             | fruitfly                     |
+| Saccharomyces cerevisiae                                            | yeast                        |
+| Caenorhabditis elegans                                              | c.elegans                    |
+| Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344 | SL1344                       |
+| Mycobacterium abscessus atcc 19977                                  | MYC_ABS_ATCC_19977           |
 
 ### UTR simulation for Prokaryotes <a name="prokaryotutr"></a>
 
@@ -821,6 +822,73 @@ The overview table has following format:
 | ... | ...       | ...            | ...    | ...            | ...    | ...           | ...   | ...            | ...    | ...           | ...   | ...       | ...         | ...            | ...   | ...    | ...        | ...         |
 
 This table will be outputted as a tab separated text file.
+
+###FASTA file generation <a name="fasta_generation"></a>
+
+Translation products estimated in a particular analysis ID can be outputted in FASTA file format. This allows to submit 
+them in a proteomics analysis as search space. During this output generation, additional processes can be executed. The 
+candidate translation products can be mapped to reference information and redundancy on subsequence level in between 
+translation products can be removed.
+
+An example of how to run this program for analysis ID 1:
+
+```
+perl generate_translation_db.pl --result_db SQLite/results.db --tis_ids 1 --mflag 4 
+```
+
+Input arguments:
+
+| Argument            | Default                                       | Description                                                                                                                                                                                                                                  |
+|---------------------|-----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --work_dir          | CWD env setting                               | Working directory                                                                                                                                                                                                                            |
+| --result_db         | Mandatory                                     | SQLite database holding all results                                                                                                                                                                                                          |
+| --tis_ids           | Mandatory                                     | Analysis IDs for which an output file needs to be generated. Either an integer with one ID, a comma-separated list of IDs or 'all', leading to a FASTA/PEFF for all of the analysis IDs available                                            |
+| --mslength          | 6                                             | Minimum sequence length allowed in the output FASTA/PEFF file                                                                                                                                                                                |
+| --translation_db    | species_TIS_analysisID_transcripts.fasta/peff | Name of the output translation database file (FASTA/PEFF)                                                                                                                                                                                    |
+| --var_file          | species_TIS_analysisID_transcripts_VAR.txt    | File to store SNP and indel information of sequences in the translation database                                                                                                                                                             |
+| --tis_call          | Y                                             | Whether annotated TISs that did not pass the TIS calling algorithm are allowed in the output file. Possible options: Yes ('Y') or No ('N')                                                                                                   |
+| --peff              | N                                             | Generate PEFF instead of FASTA format. Options: Yes ('Y') or No ('N')                                                                                                                                                                        |
+| --mflag             | 4                                             | Flag describing the additional tasks that will be performed: 1 = remote BioMart mapping, 2 = local file BioMart mapping, 3 = sequence based blast mapping, 4 = no mapping, only redundancy removal, 5 = no mapping and no redundancy removal |
+| --mapping           | Mandatory if mflag=1 or 2                     | Ensembl database to download BioMart mapped transcripts or local file to map data                                                                                                                                                            |
+| --db_config_version | Mandatory if mflag=1                          | Ensembl database configuration version                                                                                                                                                                                                       |
+| --external_ref      | Mandatory if mflag=1                          | External reference in biomart to map transcripts to                                                                                                                                                                                          |
+| --blast_pgm         | ublast                                        | BLAST program to map based on sequence. Possible options: 'ublast' and 'blastp'                                                                                                                                                              |
+| --blastdb           | Mandatory if mflag=3                          | The UBLAST or BLASTP formatted database                                                                                                                                                                                                      |
+| --evalue            | 1e-10                                         | BLAST e-value                                                                                                                                                                                                                                |
+| --min_blast_length  | 32                                            | Minimum sequence length to perform BLAST                                                                                                                                                                                                     |
+| --identity          | 75                                            | Minimum alignment score for BLAST                                                                                                                                                                                                            |
+| --coverage          | 30                                            | Minimum number of identical positions for BLAST                                                                                                                                                                                              |
+| --word_size         | 3                                             | Minimum word size for BLAST                                                                                                                                                                                                                  |
+| --gapopen           | 11                                            | Cost of gap open in BLAST                                                                                                                                                                                                                    |
+| --gapextend         | 1                                             | Gap extension penalty for BLAST                                                                                                                                                                                                              |
+| --matrix            | BLOSUM62                                      | Matrix for the BLAST search                                                                                                                                                                                                                  |
+
+Redundancy will be default removed unless mflag 5 is selected or if a PEFF file is generated instead of a FASTA file.
+Mapping can be done based on [BioMart](https://www.ensembl.org/biomart) (remote or with a local file) or sequence-based
+using [UBLAST](https://drive5.com/usearch/manual/ublast_algo.html) or 
+[BLASTP](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE=Proteins). After mapping, inherent redundancy (also on sub-string
+level) will be removed if desired. A VAR file will also be generated, next to the FASTA file in order to better describe 
+which SNPs are linked to which SNP IDs.
+
+Another option is to generated a [PEFF file](http://www.psidev.info/peff), an extended FASTA format for proteogenomics 
+recently devised by the HUPO-PSI. When the PEFF option is turned on, redundancy will not be removed but schematically 
+included in the PEFF tags.
+
+
+
+
+
+
+
+
+FASTA output example
+
+PEFF output example
+
+
+
+
+
 
 ## Copyright <a name="copyright"></a>
 
