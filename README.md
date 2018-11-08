@@ -587,7 +587,7 @@ Input arguments:
 
 ##### SNP calling <a name="snp_calling"></a>
 
-
+SNP calling
 
 
 ##### ORF assembly <a name="assembly"></a>
