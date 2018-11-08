@@ -557,7 +557,12 @@ LTM or HARR). The classic ORF calling can be separated in three subsequent steps
 
 ##### TIS calling <a name="tis_calling"></a>
 
-First step of this method determines the translation initiation sites based on the initiation profile (HARR/LTM).
+The first step of this method determines the translation initiation sites based on the initiation profile (HARR/LTM).
+Only (near-)cognate start codons are considered as a possible translation initiation site (TIS). This means that a codon 
+can only differ in one base from the canonical 'ATG' start codon to be considered as a possible TIS. Furthermore, a local 
+max in the initiation profile counts needs to be observable in the inputted `local_max` range. The TIS peak needs also to 
+contain more counts than the `min_count` parameter for its annotation class to be called and the R<sub>LTM</sub>-R<sub>CHX</sub>
+value needs to be above the threshold set for its annotation class.
 
 An example of how to run this tool:
 
@@ -584,6 +589,12 @@ Input arguments:
 | --out_sqlite       | /               | Parameter is only used in Galaxy, not in CLI                                                  |
 | --transcriptfilter | none            | Use certain filters at transcript level (options: none, canonical, ccds)                      |
 
+Called TIS's are saved in the SQLite results database in following table format:
+
+| transcript_id | stable_id       | biotype        | chr | strand | start    | dist_to_transcript_start | dist_to_aTIS | annotation | exon | aTIS_call | start_codon | peak_shift | count | Rltm_min_Rchx     |
+|---------------|-----------------|----------------|-----|--------|----------|--------------------------|--------------|------------|------|-----------|-------------|------------|-------|-------------------|
+| 669998        | ENST00000337132 | protein_coding | 1   | 1      | 16440762 | 91                       | 0            | aTIS       | 1    | True      | ATG         | +1 0 -1    | 130.0 | 0.961529860001382 |
+| ...           | ...             | ...            | ... | ...    | ...      | ...                      | ...          | ...        | ...  | ...       | ...         | ...        | ...   | ...               |
 
 ##### SNP calling <a name="snp_calling"></a>
 
