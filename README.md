@@ -667,7 +667,7 @@ set to 0.0.
 
 ##### ORF assembly <a name="assembly"></a>
 
-Information about called TIS's and SNPs can be used to construct the candidate translation products *in silico*. In this 
+Information about called [TIS's](#tis_calling) and [SNPs](#snp_calling) can be used to construct the candidate translation products *in silico*. In this 
 process, the program keeps track of the exonic structure of the transcript and known selenocysteines (encoded by an 'UGA'
 codon, which can also function as a STOP signal). Both the translation product with the selenocysteine and the earlier 
 terminated product will be kept. For near-cognate start sites, the first codon is replace for a cognate
@@ -719,7 +719,9 @@ PROTEOFORMER contains a wrapper that fully executes PRICE and uses its results i
 product table similar to the assembly table. PRICE does not account for selenocysteines, so these cannot be included 
 with this methodology. Execution of PRICE comprises genome reference preparation, the actual PRICE run and conversion of 
 the output CIT file. Afterwards the output of PRICE will be combined with information from Ensembl in order to obtain all
-needed features of the translation product table. All these steps are included in the PROTEOFORMER wrapper program.
+needed features of the translation product table. All these steps are included in the PROTEOFORMER wrapper program. The 
+wrapper let PRICE use both treatment samples if they are available but it is also possible to run the PRICE wrapper with 
+only an untreated/CHX sample.
 
 An example of how to run this wrapper:
 
@@ -747,7 +749,10 @@ The output table has the following format:
 
 #### SPECtre <a name="spectre"></a>
 
-
+A third method is based on [SPECtre](https://github.com/mills-lab/spectre). SPECtre is a tool for searching actively 
+translated regions in ribosome profiling using a spectral coherence classifier. SPECtre runs solely based on an 
+untreated/CHX sample, so no initiation profile is necessary. However, SPECtre starts from the reference information in the
+GTF file and is therefore less suited to pick up unknown new ORFs.
 
 SPECtre needs its own [earlier installed](#add_envs) Conda environment to run:
 
@@ -755,9 +760,67 @@ SPECtre needs its own [earlier installed](#add_envs) Conda environment to run:
 source activate spectre
 ```
 
+In this environment, a PROTEOFORMER wrapper for SPECtre can run. The wrapper runs SPECtre in the background, multithreaded
+over all chromosomes and merges all results afterwards. Next, these results are parsed and supplied with information from 
+Ensembl to obtain all features needed for the PROTEOFORMER translation product table. Furthermore, SPECtre takes 
+selenocysteines into account.
+
+An example of how to run the SPECtre wrapper:
+
+```
+python SPECtre.py -r SQLite/results.db -o 28:12,29:12,30:12 -c 20 -x 1
+```
+
+Input arguments:
+
+| Argument               | Default                   | Description                                                                                                       |
+|------------------------|---------------------------|-------------------------------------------------------------------------------------------------------------------|
+| -w/--workdir           | CWD env setting           | The working directory                                                                                             |
+| -t/--tmp               | workdir/tmp               | The temporary files folder                                                                                        |
+| -r/--result_db         | Mandatory                 | SQLite database with results from mapping and translated transcript calling                                       |
+| -b/--untr_bam          | Get from results database | BAM file of the untreated/CHX sample                                                                              |
+| -o/--offsets           | Get from results database | Custom list of offsets, but defaultly the program takes these from the results database                           |
+| -c/--cores             | Get from results database | Defaultly taken from the results database, but you can suggest a different amount of cores especially for SPECtre |
+| -x/--threads_per_chrom | 1                         | The number of threads used per chromosome to run SPECtre                                                          |
+| -f/--fdr               | 0.05                      | FDR threshold used in SPECtre                                                                                     |
+| -h/--help              | /                         | Show help message                                                                                                 |
+
+**Caution:** SPECtre is currently not suited to work with large offset list like outputted by Plastid. Therefore, it is 
+advisable to only use a list of the P-site offsets of the most abundant RPF lengths.
+
+The output table has the following format:
+
+| tr_stable_id    | chr | strand | start   | start_codon | stop    | starts_list                                             | ends_list                                               | dist_to_transcript_start | dist_to_aTIS | annotation | biotype        | aTIS_call | peak_shift | count   | Rltm_min_Rchx | coverage       | FPKM          | SNP | INDEL | secs  | tr_seq                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | aa_seq                                                                                                                                                                                                                                              | spectre_id |
+|-----------------|-----|--------|---------|-------------|---------|---------------------------------------------------------|---------------------------------------------------------|--------------------------|--------------|------------|----------------|-----------|------------|---------|---------------|----------------|---------------|-----|-------|-------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| ENST00000588919 | 19  | 1      | 1104125 | ATG         | 1106766 | 1104125_1105186_1105366_1105658_1106242_1106378_1106540 | 1104127_1105280_1105510_1105809_1106266_1106459_1106766 | 53                       | 0            | aTIS       | protein_coding | NA        | NA         | 27921.0 | NA            | 0.552812071331 | 277.962315247 |     |       | 97_96 | ATGTGCGCGTCCCGGGACGACTGGCGCTGTGCGCGCTCCATGCACGAGTTTTCCGCCAAGGACATCGACGGGCACATGGTTAACCTGGACAAGTACCGGGGCTTCGTGTGCATCGTCACCAACGTGGCCTCCCAGTGAGGCAAGACCGAAGTAAACTACACTCAGCTCGTCGACCTGCACGCCCGATACGCTGAGTGTGGTTTGCGGATCCTGGCCTTCCCGTGTAACCAGTTCGGGAAGCAGGAGCCAGGGAGTAACGAAGAGATCAAAGAGTTCGCCGCGGGCTACAACGTCAAATTCGATATGTTCAGCAAGATCTGCGTGAACGGGGACGACGCCCACCCGCTGTGGAAGTGGATGAAGATCCAACCCAAGGGCAAGGGCATCCTGGGAAATGCCATCAAGTGGAACTTCACCAAGTTTGGACACCGTCTCTCCACAGTTCCTCATCGACAAGAACGGCTGCGTGGTGAAGCGCTACGGACCCATGGAGGAGCCCCTGGTGATAGAGAAGGACCTGCCCCACTATTTCTAGCTCCACAAGTGTGTGGCCCCGCCCGAGCCCCTGCCCACGCCCTTGGAGCCTTCCACCGGCACTCATGACGGCCTGCCTGCAAACCTGCTGGTGGGGCAGACCCGAAAATCCAGCGTGCACCCCGCCGGAGGAAGGTCCCATGGCCTGCTGGGCTTGGCTCGGCGCCCCCACCCCTGGCTACCTTGTGGGAATAA | MCASRDDWRCARSMHEFSAKDIDGHMVNLDKYRGFVCIVTNVASQUGKTEVNYTQLVDLHARYAECGLRILAFPCNQFGKQEPGSNEEIKEFAAGYNVKFDMFSKICVNGDDAHPLWKWMKIQPKGKGILGNAIKWNFTKFGHRLSTVPHRQERLRGEALRTHGGAPGDREGPAPLFLAPQVCGPARAPAHALGAFHRHSURPACKPAGGADPKIQRAPRRRKVPWPAGLGSAPPPLATLWE* | 55220      |
+| ...             | ... | ...    | ...     | ...         | ...     | ...                                                     | ...                                                     | ...                      | ...          | ...        | ...            | ...       | ...        | ...     | ...           | ...            | ...           | ... | ...   | ...   | ...                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | ...                                                                                                                                                                                                                                                 | ...        |
+
 #### Analysis ID overview table <a name="tis_overview"></a>
 
+Over the different analysis strategies ([translated transcript calling](#transcriptcalling) and [ORF calling](#orf_calling)),
+the applied parameters are kept in a TIS overview table. For each analysis executed and stored in a certain SQLite results 
+database, PROTEOFORMER keeps track of this analysis ID and its corresponding parameters in a separate table. At any time,
+the content of this analysis ID table can be printed in a tab file using following program:
 
+```
+perl TIS_overview.pl --sqlite_db SQLite/results.db
+```
+Input arguments:
+
+| Argument           | Default                      | Description                      |
+|--------------------|------------------------------|----------------------------------|
+| --work_dir         | CWD env setting              | Working directory                |
+| --sqlite_db        | Mandatory                    | SQLite results database          |
+| --out_tis_overview | work_dir/SQLite/overview.tis | Analysis ID overview output file |
+
+The overview table has following format:
+
+| ID  | local_max | min_count_aTIS | R_aTis | min_count_5UTR | R_5UTR | min_count_CDS | R_CDS | min_count_3UTR | R_3UTR | min_count_ntr | R_ntr | PRICE_FDR | SPECTRE_FDR | SNP            | indel | filter | tr_calling | TIS_calling |
+|-----|-----------|----------------|--------|----------------|--------|---------------|-------|----------------|--------|---------------|-------|-----------|-------------|----------------|-------|--------|------------|-------------|
+| 1   | 1         | 5              | 0.01   | 10             | 0.05   | 15            | 0.15  | 10             | 0.05   | 10            | 0.05  |           |             | samtools_dbSNP | NO    | none   | rule_based | Yes         |
+| ... | ...       | ...            | ...    | ...            | ...    | ...           | ...   | ...            | ...    | ...           | ...   | ...       | ...         | ...            | ...   | ...    | ...        | ...         |
+
+This table will be outputted as a tab separated text file.
 
 ## Copyright <a name="copyright"></a>
 
