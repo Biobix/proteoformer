@@ -97,7 +97,7 @@ def main():
     sys.stdout.flush()
 
     #Check if bam files are indexed
-    index_bams(table_args.bam_untr, table_args.bam_tr)
+    index_bams(table_args.bam_untr, table_args.bam_tr, table_args.readtype)
 
     #Define gtf file path
     gtf_file = table_args.igenomes_root+"/"+speciesLatin+"/Ensembl/"+assembly+"/Annotation/Genes/genes_"+str(table_args.ens_v)+".gtf"
@@ -1360,12 +1360,16 @@ def get_arguments(db):
     return igenomes_root, species, version, ens_db, readtype, bam_untr, bam_tr, cores, tr_calling_method, run_name, mapper, uniq
 
 #Index bams if needed
-def index_bams(bam_untr, bam_tr):
+def index_bams(bam_untr, bam_tr, readtype):
 
-    for bam in [bam_untr, bam_tr]:
-        #Check if indexed file already exists
-        if not os.path.isfile(bam+".bai"):
-            #If not: index bam file with samtools
+    if readtype=='ribo':
+        for bam in [bam_untr, bam_tr]:
+            #Check if indexed file already exists
+            if not os.path.isfile(bam+".bai"):
+                #If not: index bam file with samtools
+                os.system("samtools index "+bam)
+    elif readtype=='ribo_untr':
+        if not os.path.isfile(bam_untr+".bai"):
             os.system("samtools index "+bam)
 
     return
