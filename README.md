@@ -29,7 +29,7 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
         3. [SPECtre](#spectre_tool)
         4. [Analysis ID overview table](#tis_overview)
     7. [Fasta file generation](#fasta_generation)
-5. Optional steps
+5. [Optional steps](#optional)
     1. ORF-based counts
     2. FLOSS calculation
     3. Feature summarization
@@ -940,8 +940,9 @@ MLADRRKNLRLGRRKG
 >gen:ENST00000000412-4 \PName=Alternative reading frame product of mannose-6-phosphate receptor, cation dependent  \GName=mannose-6-phosphate receptor, cation dependent  \NcbiTaxId=9606 \TaxName=Homo sapiens \Length=56  \Proteoform=(ENST00000000412_12_8943516_CDS_pf4.0|1-56||canonical form)
 MRSVAKSKIVSTSLRWIAAWPVHQRSPTSVWVPSYLSRLHHWLLFMLLGGSYTSDW
 ```
+# Optional steps
 
-## Copyright <a name="copyright"></a>
+# Copyright <a name="copyright"></a>
 
 Copyright (C) 2014 G. Menschaert, J.Crappé, E. Ndah, A. Koch & S. Steyaert
 
@@ -960,7 +961,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-## More information <a name="moreinformation"></a>
+# More information <a name="moreinformation"></a>
 
 For more (contact) information visit [http://www.biobix.be/PROTEOFORMER](http://www.biobix.be/PROTEOFORMER)
 
