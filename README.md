@@ -33,9 +33,12 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
     1. [ORF-based counts](#orfbasedcounts)
     2. [FLOSS calculation](#floss)
     3. [Feature summarization](#feature)
-6. MS validation
-    1. SearchGUI and PeptideShaker
-    2. MaxQuant
+    4. [Database combinations](#database_combinations)
+        1. [Different analysis IDs](#analysisIDs)
+        2. [With UniProt](#withUniprot)
+6. [MS validation](#MSvalidation)
+    1. [SearchGUI and PeptideShaker](#searchgui)
+    2. [MaxQuant](#maxquant)
 7. [Copyright](#copyright)
 8. [More information](#moreinformation)
 
@@ -947,42 +950,6 @@ MRSVAKSKIVSTSLRWIAAWPVHQRSPTSVWVPSYLSRLHHWLLFMLLGGSYTSDW
 ```
 ## Optional steps <a name="optional"></a>
 
-### ORF-based counts <a name="orfbasedcounts"></a>
-
-An optional module was written in order to fetch the read counts for each identified open reading frame (ORF).
-In this tool, there is an option to trim off counts at the start and end of the ORF (as it has been seen that artefacts 
-can occur at the borders of ORFs due to the RIBO-Seq protocol). The trim length of these regions can be set in both an absolute or relative (percentage 
-in function of the ORF length) fashion. Attention though, for small ORFs with absolute trimming, trimming will be performed 
-however relative as the trimming length could become larger than the actual ORF length otherwise. ORF read counts can 
-then be used to do differential expression analysis with packages like 
-[DESeq](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) or 
-[EdgeR](https://bioconductor.org/packages/release/bioc/html/edgeR.html).
-
-An example of how to run this program:
-
-```
-python ORFbasedCounts.py --sqlitedb SQLite/results.db --tis_ids 1 --trim absolute --nt_trim 15 --ltm n --rna /data2/steven/eIF1/NTmRNA/SQLite/results.db
-```
-
-Input arguments:
-
-| Argument      | Default                                                   | Description                                                                                                                                                                   |
-|---------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| -w/--work_dir | CWD env setting                                           | The working directory                                                                                                                                                         |
-| -s/--sqlitedb | Mandatory                                                 | The SQLite results database with results from former steps                                                                                                                    |
-| -t/--tis_ids  | Mandatory                                                 | The TIS ID or a comma-separated list of analysis IDs for which the ORF-based counts need to be determined                                                                     |
-| -c/--trim     | relative                                                  | Whether ORFs should be trimmed. Options: absolute, relative, none                                                                                                             |
-| -n/--nt_trim  | '15' for absolute trimming, '0.025' for relative trimming | For absolute trimming, you can here suggest the trimming length. For relative trimming, you can here suggest the part that will be trimmed off in function of the ORF length. |
-| -l/--ltm      | n                                                         | Whether the program should make an ORF based counts table for the 'treated' data. Options: 'y' (yes) or 'n' (no).                                                             |
-| -r/--rna      | n                                                         | Whether the program should make an ORF based counts table for RNA data. Options: 'n' (No) or suggest the SQLite table where RNA results are stored                            |
-
-ORF based counts results will be saved in the SQLite results database in following format:
-
-| ORF_ID                   | tr_stable_id    | start    | chr | strand | trim | start_main_orf | end_main_orf | pre_count | count | post_count |
-|--------------------------|-----------------|----------|-----|--------|------|----------------|--------------|-----------|-------|------------|
-| ENST00000307677_31722851 | ENST00000307677 | 31722851 | 20  | -1     | 6    | 31722723       | 31722845     | 22.0      | 936.0 | 23.0       |
-| ...                      | ...             | ...      | ... | ...    | ...  | ...            | ...          | ...       | ...   | ...        |
-
 ### FLOSS calculation <a name="floss"></a>
 
 The fragment length organization similarity score (FLOSS) measures the similarity between the fragment length distribution 
@@ -1027,14 +994,192 @@ The results table is in the following format:
 | 1        | ENST0000042332 | 2522.0 | 0.8456787728763 | Good          |
 | ...      | ...            | ...    | ...             | ...           |
 
+### ORF-based counts <a name="orfbasedcounts"></a>
+
+An optional module was written in order to fetch the read counts for each identified open reading frame (ORF).
+In this tool, there is an option to trim off counts at the start and end of the ORF (as it has been seen that artefacts 
+can occur at the borders of ORFs due to the RIBO-Seq protocol). The trim length of these regions can be set in both an absolute or relative (percentage 
+in function of the ORF length) fashion. Attention though, for small ORFs with absolute trimming, trimming will be performed 
+however relative as the trimming length could become larger than the actual ORF length otherwise. ORF read counts can 
+then be used to do differential expression analysis with packages like 
+[DESeq](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) or 
+[EdgeR](https://bioconductor.org/packages/release/bioc/html/edgeR.html).
+
+An example of how to run this program:
+
+```
+python ORFbasedCounts.py --sqlitedb SQLite/results.db --tis_ids 1 --trim absolute --nt_trim 15 --ltm n --rna /data2/steven/eIF1/NTmRNA/SQLite/results.db
+```
+
+Input arguments:
+
+| Argument      | Default                                                   | Description                                                                                                                                                                   |
+|---------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -w/--work_dir | CWD env setting                                           | The working directory                                                                                                                                                         |
+| -s/--sqlitedb | Mandatory                                                 | The SQLite results database with results from former steps                                                                                                                    |
+| -t/--tis_ids  | Mandatory                                                 | The TIS ID or a comma-separated list of analysis IDs for which the ORF-based counts need to be determined                                                                     |
+| -c/--trim     | relative                                                  | Whether ORFs should be trimmed. Options: absolute, relative, none                                                                                                             |
+| -n/--nt_trim  | '15' for absolute trimming, '0.025' for relative trimming | For absolute trimming, you can here suggest the trimming length. For relative trimming, you can here suggest the part that will be trimmed off in function of the ORF length. |
+| -l/--ltm      | n                                                         | Whether the program should make an ORF based counts table for the 'treated' data. Options: 'y' (yes) or 'n' (no).                                                             |
+| -r/--rna      | n                                                         | Whether the program should make an ORF based counts table for RNA data. Options: 'n' (No) or suggest the SQLite table where RNA results are stored                            |
+
+ORF based counts results will be saved in the SQLite results database in following format:
+
+| ORF_ID                   | tr_stable_id    | start    | chr | strand | trim | start_main_orf | end_main_orf | pre_count | count | post_count |
+|--------------------------|-----------------|----------|-----|--------|------|----------------|--------------|-----------|-------|------------|
+| ENST00000307677_31722851 | ENST00000307677 | 31722851 | 20  | -1     | 6    | 31722723       | 31722845     | 22.0      | 936.0 | 23.0       |
+| ...                      | ...             | ...      | ... | ...    | ...  | ...            | ...          | ...       | ...   | ...        |
+
 ### Feature summarization <a name="feature"></a>
 
+Next to ORF based counts, counts can also be summarized for other features:
+* genes
+* transcripts
+* exons
+* promotors
 
+Based on annotation, features will be calculated by another tool of the PROTEOFORMER pipeline. Results can afterwards be 
+used in differential expression tools.
 
-Analysis ID combinations
-Uniprot combinations
-SearchGUI peptideshaker
-Maxquant
+An example of how to run this tool:
+
+```
+python summarize_feature.py --sqliteC SQLite/results.db --sqliteE SQLite/ENS_hsa_82.db --feature transcript --transcripts all --data ribo
+```
+
+Input arguments:
+
+| Argument               | Default                              | Description                                                                                  |
+|------------------------|--------------------------------------|----------------------------------------------------------------------------------------------|
+| -w/--work_dir          | CWD env setting                      | Working directory                                                                            |
+| -c/--sqliteC           | Mandatory                            | The SQLite database holding count data                                                       |
+| -e/--sqliteE           | Mandatory                            | The SQLite database holding Ensembl annotation                                               |
+| -f/--feature           | Mandatory                            | The annotation feature at what level to summarize. Options: exon, transcript, gene, promotor |
+| -d/--data              | Mandatory                            | The type of data used to generate counts. Options: ribo, rna, rrbs                           |
+| -m/--mapping           | unique, mandatory for rrbs data      | The type of read mapping. Options: unique, multi                                             |
+| -t/--transcripts       | all                                  | The type of transcripts to process. Options: all, canonical                                  |
+| -r/--rrbs              | Mandatory for promotor summarization | The table holding the rrbs count data                                                        |
+| -o/--five_prime_offset | 0                                    | The 5'offset for feature boundaries used for gene features                                   |
+
+Output table format:
+
+| feature_stable_id | counts_sum | counts_n |
+|-------------------|------------|----------|
+| ENST0000052565    | 230.0      | 45.0     |
+| ...               | ...        | ...      |
+
+### Database combinations <a name="database_combinations"></a>
+
+The [FASTA files](#fasta_generation) per TIS ID can be further combined with other FASTA files. Tools to do so are present
+in the 'additional_tools' folder of this GitHub repo.
+
+####Different analysis IDs <a name="analysisIDs"></a>
+
+The [FASTA files](#fasta_generation) generated per TIS ID can be combined in order to get a total FASTA file of multiple 
+analyses together. Bincodes will be generated per sequence in order to represent in which analysis ID the sequence is 
+occurring. An overview file clearly reports the composition of this bincode and the total sequence counts per bincode.
+Venn diagrams will also be generated, showing the overlap between the analysis sets.
+
+If a sequence occurred in different analyses, the ID of the sequence in other analyses will be kept at the end of the 
+description line if the verbose output is turned on.
+
+This tool has a great internal help message:
+
+```
+python combine_dbs.py --help
+```
+```
+usage: combine_dbs.py --in_files [COMMA-SEPARATED LIST] [--help]
+                      [--workdir [FOLDER]] [--output_file [PATH]]
+                      [--overview_file [PATH]] [--venn_diagram [PATH]]
+                      [--verbose_output [Y/N]]
+
+Mandatory parameters:
+  --in_files [COMMA-SEPARATED LIST], -i [COMMA-SEPARATED LIST]
+                        Comma-separated list of all paths to all input fasta
+                        files (mandatory)
+
+Optional parameters:
+  --help, -h            Show help message and exit
+  --workdir [FOLDER], -w [FOLDER]
+                        Working directory (default: CWD)
+  --output_file [PATH], -o [PATH]
+                        Path of the combined output fasta file(default:
+                        outpub_combined_dbs.fa)
+  --overview_file [PATH], -t [PATH]
+                        Path to a file where information about the input files
+                        and the database combinations with their binary codes
+                        will be stored (default: fasta_file_overview.txt)
+  --venn_diagram [PATH], -d [PATH]
+                        Path to a png file where the Venn diagram will be
+                        stored (default: venn_diagram.png)
+  --verbose_output [Y/N], -v [Y/N]
+                        Whether the output fasta should give the full list of
+                        accessions per combination. If not, redundant
+                        accessions between input files, will be omitted
+                        (default: Y)
+```
+
+The combined fasta file can then be converted to an SQLite database in order to investigate the overlap between the 
+initial FASTA files with SQL query language. For more information:
+
+```
+python combfasta2sqlite.py --help
+```
+
+#### With UniProt <a name="withUniprot"></a>
+
+FASTA files per TIS ID or combined FASTA files can lateron combined with UniProt FASTA files. The origin of the files is
+clear from the structure of the ID, so no bincodes are needed here. An overview file still reports the counts and counts 
+are also plotted in Venn diagrams. With verbose output, redundant sequences will keep all their IDs in the description 
+lines, at the end. The UniProt ID will be privileged however for becoming the main ID.
+
+The tool has a great internal help message:
+
+```
+python combine_with_uniprot.py --help
+```
+```
+usage: combine_with_uniprot.py --fasta [PATH] --uniprot [PATH] [--help]
+                               [--workdir [FOLDER]] [--output_fasta [PATH]]
+                               [--overview_file [PATH]]
+                               [--venn_diagram [PATH]]
+
+Mandatory parameters:
+  --fasta [PATH], -f [PATH]
+                        Input (combined) fasta file (mandatory)
+  --uniprot [PATH], -u [PATH]
+                        Input UniProt fasta file (mandatory)
+
+Optional parameters:
+  --help, -h            Show help message and exit
+  --workdir [FOLDER], -w [FOLDER]
+                        Working directory (default: CWD)
+  --output_fasta [PATH], -o [PATH]
+                        Output fasta file with combination of data of Uniprot
+                        and PROTEOFORMER (default:
+                        comb_fasta_uniprot_proteoformer.fasta)
+  --overview_file [PATH], -t [PATH]
+                        Path to a file where information about the input files
+                        and the database combinations are stored (default:
+                        uniprot_proteoformer_overview.txt)
+  --venn_diagram [PATH], -d [PATH]
+                        Path to a png file where the Venn diagram will be
+                        stored (default: venn_diagram.png)
+```
+
+The combined fasta file can then be converted to an SQLite database in order to investigate the overlap between the 
+initial FASTA files with SQL query language. For more information:
+
+```
+python combuniprot2sqlite.py --help
+```
+
+## MS Validation <a name="MSvalidation"></a>
+
+###SearchGUI and Peptideshaker <a name="searchgui"></a>
+
+###MaxQuant <a name="maxquant"></a>
 
 ## Copyright <a name="copyright"></a>
 
