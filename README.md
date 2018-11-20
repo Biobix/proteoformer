@@ -1073,7 +1073,7 @@ Output table format:
 The [FASTA files](#fasta_generation) per TIS ID can be further combined with other FASTA files. Tools to do so are present
 in the 'additional_tools' folder of this GitHub repo.
 
-####Different analysis IDs <a name="analysisIDs"></a>
+#### Different analysis IDs <a name="analysisIDs"></a>
 
 The [FASTA files](#fasta_generation) generated per TIS ID can be combined in order to get a total FASTA file of multiple 
 analyses together. Bincodes will be generated per sequence in order to represent in which analysis ID the sequence is 
@@ -1129,7 +1129,7 @@ python combfasta2sqlite.py --help
 
 #### With UniProt <a name="withUniprot"></a>
 
-FASTA files per TIS ID or combined FASTA files can lateron combined with UniProt FASTA files. The origin of the files is
+[FASTA file](#fasta_generation) per TIS ID or [combined FASTA files](#analysisIDs) can lateron combined with UniProt FASTA files. The origin of the files is
 clear from the structure of the ID, so no bincodes are needed here. An overview file still reports the counts and counts 
 are also plotted in Venn diagrams. With verbose output, redundant sequences will keep all their IDs in the description 
 lines, at the end. The UniProt ID will be privileged however for becoming the main ID.
