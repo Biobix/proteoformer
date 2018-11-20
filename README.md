@@ -4,7 +4,7 @@ Proteoformer
 A proteogenomic pipeline that delineates true *in vivo* proteoforms and generates a protein sequence
  search space for peptide to MS/MS matching.
 
-## Table of contents
+# Table of contents
 1. [Introduction](#introduction)
 2. [Dependencies](#dependencies)
 3. [Prepations](#preparations)
