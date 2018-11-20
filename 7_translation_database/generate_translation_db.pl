@@ -431,7 +431,7 @@ sub generate_peff {
     
     #Print header into file
     open(my $FWheader, '>', $tmp_folder."/header.peff");
-    my $header = "# PEFF 1.0.\n# //\n# DbName=genericDB\n# DbSource=http://www.biobix.be/proteoform/\n# DbVersion=".$ymd."\n# HasAnnotationIdentifiers=true \n# ProteoformDb=true\n# Prefix=gen\n# NumberOfEntries=".$number_of_entries."\n# SequenceType=AA\n# GeneralComment=Proteogenomics application to generate protein sequences from RIBO-seq\n# //\n";
+    my $header = "# PEFF 1.0\n# //\n# DbName=genericDB\n# DbSource=http://www.biobix.be/proteoform/\n# DbVersion=".$ymd."\n# HasAnnotationIdentifiers=true \n# ProteoformDb=true\n# Prefix=gen\n# NumberOfEntries=".$number_of_entries."\n# SequenceType=AA\n# GeneralComment=Proteogenomics application to generate protein sequences from RIBO-seq\n# //\n";
     print $FWheader $header;
     close($FWheader);
     
@@ -595,7 +595,7 @@ sub write_chr_tmp_output {
             }
             
             #Build accession string
-            my $accession_string = ">gen:".$transcript_id."-".$struct_id." \\DbUniqueId=".$transcript_id."-".$struct_id." \\PName=".$pname." \\GName=".$gene_name." \\NcbiTaxId=".$taxid." \\TaxName=".$species_peff." \\Length=".length($proteoformGenerals->{$transcript_id}->{$struct_id}->{'main_seq'})." ".$simpleVarStr.$complexVarStr." \\Proteoform=".$proteoformStr;
+            my $accession_string = ">gen:".$transcript_id."-".$struct_id." \\PName=".$pname." \\GName=".$gene_name." \\NcbiTaxId=".$taxid." \\TaxName=".$species_peff." \\Length=".length($proteoformGenerals->{$transcript_id}->{$struct_id}->{'main_seq'})." ".$simpleVarStr.$complexVarStr." \\Proteoform=".$proteoformStr;
             
             #Write to output
             print $FW $accession_string."\n";
