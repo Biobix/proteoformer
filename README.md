@@ -62,7 +62,11 @@ The pipeline
 Most modules of this pipeline are provided with a built-in help message. Execute the script of choice with the `-h` or 
 `--help` to get the full help message printed in the command line.
 
-PROTEOFORMER is also available in galaxy: [http://galaxy.ugent.be](http://galaxy.ugent.be)
+PROTEOFORMER is also available in for Galaxy environments. Galaxy files (tool XML wrappers, general tool and tool data 
+config XML files and LOC files) are available. The tool-specific XML files are present in the directories of the different 
+modules in this GitHub repo. The general Galaxy config files are present 'Galaxy files' folder of this GitHub repo.
+
+We set up our own Galaxy environment at: [http://galaxy.ugent.be](http://galaxy.ugent.be)
 
 ## Dependencies <a name="dependencies"></a>
 
@@ -433,6 +437,7 @@ during the mapping step, quality will normally have remarkably improved.
 fastqc output/untreat.sam -t 20
 fastqc output/treat.sam -t 20
 ```
+FastQC is available in the Galaxy tool shed and can be added easily to the general workflow in Galaxy.
 
 ### Specific ribosome profiling quality check: mappingQC <a name="mappingqc"></a>
 
@@ -980,7 +985,56 @@ ORF based counts results will be saved in the SQLite results database in followi
 
 ### FLOSS calculation <a name="floss"></a>
 
+The fragment length organization similarity score (FLOSS) measures the similarity between the fragment length distribution 
+of an ORF and the averaged fragment length distribution of a set of reference ORFs. This statistic was first described by 
+[Ingolia et al. (2014)](https://doi.org/10.1016/j.celrep.2014.07.045). The FLOSS formula can also be found in this manuscript.
+
+FLOSS calculation is embedded in the PROTEOFORMER pipeline. A tool is included that:
+1. Calculates the fragment length distribution of the reference set (the canonical translation regions of all Ensembl 
+nuclear protein-coding genes, except those that are overlapping with non-coding regions). Reference distribution will 
+be stored in the results database for further use.
+2. Calculates smoother data for the reference set. For all canonical coding reference ORFs (step 1), a FLOSS score can be
+calculated. Then, using a sliding window approach (range 200) over the FLOSS scores ranked by the increasing amount of 
+reads of the underlying reference ORFs. For each window the first (Q<sub>1</sub>) and third quantile (Q<sub>3</sub>) are
+used to calculate the raw extreme (Q<sub>3</sub> + 3 . (Q<sub>3</sub>-Q<sub>1</sub>)). Based on all raw extremes, a 
+Loess smoother is fitted, using R. R is also used for generating some plots. Smoother results will be stored in the 
+results database for further use.
+3. For the candidate ORFs, FLOSS scores can be calculated and based on the amount of reads of the candidate ORF, its 
+FLOSS score can be compared to the cutoff smoother, enabling a FLOSS classification of the candidate ORF. 'Good' means 
+that the ORF has a good coding probability. 'Extreme' is used for ORF which are probably non-coding. 'Not in cutoff range' 
+means that the amount of reads of the ORF is outside of the smoother range (due to the sliding window approach). All 
+classification results will be stored in a separate table of the results database.
+
+An example of how to run this tool:
+
+```
+perl FlossProteoformer.pl --sqlite_db SQLite/results.db --tis_ids 1
+```
+
+Input arguments:
+
+| Argument    | Default         | Description                                                                         |
+|-------------|-----------------|-------------------------------------------------------------------------------------|
+| --dir       | CWD env setting | Path to the working directory                                                       |
+| --tmp       | dir/tmp         | Temporary files folder                                                              |
+| --sqlite_db | Mandatory       | SQLite results database with mapping, translated transcript and ORF calling results |
+| --tis_ids   | Mandatory       | List of analysis IDs                                                                |
+
+The results table is in the following format:
+
+| Table ID | TIS ID         | nreads | FLOSS           | classfication |
+|----------|----------------|--------|-----------------|---------------|
+| 1        | ENST0000042332 | 2522.0 | 0.8456787728763 | Good          |
+| ...      | ...            | ...    | ...             | ...           |
+
 ### Feature summarization <a name="feature"></a>
+
+
+
+Analysis ID combinations
+Uniprot combinations
+SearchGUI peptideshaker
+Maxquant
 
 ## Copyright <a name="copyright"></a>
 
