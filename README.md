@@ -30,9 +30,9 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
         4. [Analysis ID overview table](#tis_overview)
     7. [Fasta file generation](#fasta_generation)
 5. [Optional steps](#optional)
-    1. ORF-based counts
-    2. FLOSS calculation
-    3. Feature summarization
+    1. [ORF-based counts](#orfbasedcounts)
+    2. [FLOSS calculation](#floss)
+    3. [Feature summarization](#feature)
 6. MS validation
     1. SearchGUI and PeptideShaker
     2. MaxQuant
@@ -942,7 +942,45 @@ MRSVAKSKIVSTSLRWIAAWPVHQRSPTSVWVPSYLSRLHHWLLFMLLGGSYTSDW
 ```
 ## Optional steps <a name="optional"></a>
 
+### ORF-based counts <a name="orfbasedcounts"></a>
 
+An optional module was written in order to fetch the read counts for each identified open reading frame (ORF).
+In this tool, there is an option to trim off counts at the start and end of the ORF (as it has been seen that artefacts 
+can occur at the borders of ORFs due to the RIBO-Seq protocol). The trim length of these regions can be set in both an absolute or relative (percentage 
+in function of the ORF length) fashion. Attention though, for small ORFs with absolute trimming, trimming will be performed 
+however relative as the trimming length could become larger than the actual ORF length otherwise. ORF read counts can 
+then be used to do differential expression analysis with packages like 
+[DESeq](https://bioconductor.org/packages/release/bioc/html/DESeq2.html) or 
+[EdgeR](https://bioconductor.org/packages/release/bioc/html/edgeR.html).
+
+An example of how to run this program:
+
+```
+python ORFbasedCounts.py --sqlitedb SQLite/results.db --tis_ids 1 --trim absolute --nt_trim 15 --ltm n --rna /data2/steven/eIF1/NTmRNA/SQLite/results.db
+```
+
+Input arguments:
+
+| Argument      | Default                                                   | Description                                                                                                                                                                   |
+|---------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -w/--work_dir | CWD env setting                                           | The working directory                                                                                                                                                         |
+| -s/--sqlitedb | Mandatory                                                 | The SQLite results database with results from former steps                                                                                                                    |
+| -t/--tis_ids  | Mandatory                                                 | The TIS ID or a comma-separated list of analysis IDs for which the ORF-based counts need to be determined                                                                     |
+| -c/--trim     | relative                                                  | Whether ORFs should be trimmed. Options: absolute, relative, none                                                                                                             |
+| -n/--nt_trim  | '15' for absolute trimming, '0.025' for relative trimming | For absolute trimming, you can here suggest the trimming length. For relative trimming, you can here suggest the part that will be trimmed off in function of the ORF length. |
+| -l/--ltm      | n                                                         | Whether the program should make an ORF based counts table for the 'treated' data. Options: 'y' (yes) or 'n' (no).                                                             |
+| -r/--rna      | n                                                         | Whether the program should make an ORF based counts table for RNA data. Options: 'n' (No) or suggest the SQLite table where RNA results are stored                            |
+
+ORF based counts results will be saved in the SQLite results database in following format:
+
+| ORF_ID                   | tr_stable_id    | start    | chr | strand | trim | start_main_orf | end_main_orf | pre_count | count | post_count |
+|--------------------------|-----------------|----------|-----|--------|------|----------------|--------------|-----------|-------|------------|
+| ENST00000307677_31722851 | ENST00000307677 | 31722851 | 20  | -1     | 6    | 31722723       | 31722845     | 22.0      | 936.0 | 23.0       |
+| ...                      | ...             | ...      | ... | ...    | ...  | ...            | ...          | ...       | ...   | ...        |
+
+### FLOSS calculation <a name="floss"></a>
+
+### Feature summarization <a name="feature"></a>
 
 ## Copyright <a name="copyright"></a>
 
