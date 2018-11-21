@@ -1177,9 +1177,58 @@ python combuniprot2sqlite.py --help
 
 ## MS Validation <a name="MSvalidation"></a>
 
-###SearchGUI and Peptideshaker <a name="searchgui"></a>
+All different FASTA (and PEFF) files can be used as a search space in mass spectrometry-based validation. Different 
+programs and search engines are available for analysis.
 
-###MaxQuant <a name="maxquant"></a>
+### SearchGUI and Peptideshaker <a name="searchgui"></a>
+
+[SearchGUI](http://compomics.github.io/projects/searchgui.html) is a user-friendly open-source graphical user interface, 
+enabling running different proteomics identification search engines, including:
+* X! Tandem
+* MS-GF+
+* MS Amanda
+* MyriMatch
+* Comet
+* Tide
+* Andromeda
+* OMSSA
+* Novor
+* DirecTag
+
+The tool is available in both a command line and a graphical user interface version. All details on installation and 
+usage can be found [here](http://compomics.github.io/projects/searchgui.html).
+
+### MaxQuant <a name="maxquant"></a>
+
+[MaxQuant](http://www.coxdocs.org/doku.php?id=maxquant:start) is a proteomics software package, specifically aimed at 
+high-resolution MS data. Several labeling techniques as well as label-free quantification is supported. The package 
+includes both the Andromeda search engine as the viewer application for inspecting raw data, identification and 
+quantification results. The tool is available as a graphical user interface. More information (download info, manual,
+tutorials, forums) can be found [here](http://www.coxdocs.org/doku.php?id=maxquant:start).
+
+In the folder `Additional_tools/MaxQuant_results_parsing` of this GitHub repo, some additional scripts can be found to 
+parse the output of the MaxQuant searches. Essential output files of MaxQuant that are needed in this results parsing, 
+can be found in the `combined/txt` of the MaxQuant output folder and include:
+* `proteinGroups.txt`
+* `peptides.txt`
+* `msms.txt`
+
+Based on these files, results parsing scripts can be run.
+
+The `parse_maxquant.py` script analyses the part of each ORF calling method in the final MS identified output of MaxQuant.
+The `parse_maxquant_uniprot.py` script analyses the part of the total PROTEOFORMER pipeline in the final MS identified 
+output of MaxQuant compared to the part of UniProt. This generates a max_protein_db database. Based on this database, a 
+third script can be run (`analyse_proteoforms.py`). This script classifies all new found proteoforms of PROTEOFORMER 
+based on the nature of their variation. For this last script, the [ClustalOmega](http://www.clustal.org/omega/) tool 
+needs to be installed on your system.
+
+For more information about the usage of these scripts, use their help command:
+
+```
+python parse_maxquant.py --help
+python parse_maxquant_uniprot.py --help
+python analyse_proteoforms.py --help
+```
 
 ## Copyright <a name="copyright"></a>
 
