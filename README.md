@@ -1071,7 +1071,7 @@ Output table format:
 ### Database combinations <a name="database_combinations"></a>
 
 The [FASTA files](#fasta_generation) per TIS ID can be further combined with other FASTA files. Tools to do so are present
-in the 'additional_tools' folder of this GitHub repo.
+in the `Additional_tools` folder of this GitHub repo.
 
 #### Different analysis IDs <a name="analysisIDs"></a>
 
