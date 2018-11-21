@@ -1,3 +1,7 @@
+<p align="right">
+<img src="https://github.com/Biobix/proteoformer/blob/master/proteoformerLogo.jpg" width="70" title="mQC logo">
+</p>
+
 Proteoformer
 ============
 
