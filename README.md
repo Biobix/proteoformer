@@ -1,5 +1,5 @@
 <p align="right">
-<img src="https://github.com/Biobix/proteoformer/blob/master/proteoformerLogo.jpg" width="70" title="mQC logo">
+<img src="https://github.com/Biobix/proteoformer/blob/master/LogoBanner/proteoformerLogo.jpg" width="70" title="PROTEOFORMER logo">
 </p>
 
 Proteoformer
@@ -1258,3 +1258,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 For more (contact) information visit [http://www.biobix.be/PROTEOFORMER](http://www.biobix.be/PROTEOFORMER)
 
 
+<p align="center">
+<img src="https://github.com/Biobix/proteoformer/blob/master/LogoBanner/Banner_proteoformer20.jpg" title="PROTEOFORMER banner">
+</p>
