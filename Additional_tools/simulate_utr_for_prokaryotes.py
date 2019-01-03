@@ -21,7 +21,6 @@ __copyright__ = "Copyright 2016, Lance Parsons, Princeton University"
 __license__ = \
     "BSD 2-Clause License http://www.opensource.org/licenses/BSD-2-Clause"
 
-#test
 
 def main(args, loglevel):
 
