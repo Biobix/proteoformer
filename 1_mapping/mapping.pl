@@ -1196,7 +1196,7 @@ sub check_STAR_index {
     my $starIndexDirComplete = $ref_loc.$starIndexDir;
     my $genomeSAindexNbases;
 
-	if ($species == 'MYC_ABS_ATCC_19977'){
+	if ($species eq 'MYC_ABS_ATCC_19977'){
 		$genomeSAindexNbases = 4;
 	}
 	else {
