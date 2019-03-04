@@ -836,7 +836,7 @@ The overview table has following format:
 
 This table will be outputted as a tab separated text file.
 
-###FASTA file generation <a name="fasta_generation"></a>
+### FASTA file generation <a name="fasta_generation"></a>
 
 Translation products estimated in a particular analysis ID can be outputted in FASTA file format. This allows to submit 
 them in a proteomics analysis as search space. During this output generation, additional processes can be executed. The 
