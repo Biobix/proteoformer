@@ -50,7 +50,7 @@ ARGUMENTS
                                                 (default mappingQC_out_(un)treated.html)
     -z | --outzip                           The output zip file name
                                                 (default mappingQC_(un)treated.zip)
-    -p | --plastid_option                   Origin of offsets (plastid, standard or from_file)
+    -p | --plastid_option                   Origin of offsets (plastid, standard, from_file, cst_5prime or cst_3prime)
                                                 (default: plastid)
     -i | --plastid_img                      Path to the plastid offset image
                                                 (mandatory if plastid option equals 'plastid')
@@ -229,8 +229,8 @@ def main():
                 print "Could not extract zip file name out of given path (" + outzip + ")"
     if plastid_option == '':
         plastid_option='plastid'
-    elif plastid_option!='standard' and plastid_option!='plastid' and plastid_option!='from_file':
-        print "ERROR: plastid option should be 'plastid', 'standard' or 'from_file'!"
+    elif plastid_option!='standard' and plastid_option!='plastid' and plastid_option!='from_file' and plastid_option!='cst_5prime' and plastid_option!='cst_3prime':
+        print "ERROR: plastid option should be 'plastid', 'standard', 'from_file', 'cst_5prime' or 'cst_3prime'!"
         sys.exit()
     if plastid_option == 'plastid':
         if plastid_img == '':
@@ -1044,6 +1044,7 @@ def triplet_plots(data, outputfolder):
     grid = GridSpec(8, 9) #Construct grid for subplots
     grid_i = -1 #Grid coordinates
     grid_j = 0
+    ax = 0 #Init
     for triplet in sorted(data.keys(), key=lambda e: (get_AA(e), e)):
         grid_i += 1
         if grid_i == 8:

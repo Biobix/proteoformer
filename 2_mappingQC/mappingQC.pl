@@ -98,10 +98,10 @@ if ($ens_db){
     die "\nDon't forget to pass the Ensembl DB!\n\n";
 }
 if ($offset_option) {
-    if ($offset_option eq "standard" || $offset_option eq "from_file" || $offset_option eq "plastid") {
+    if ($offset_option eq "standard" || $offset_option eq "from_file" || $offset_option eq "plastid" || $offset_option eq "cst_5prime" || $offset_option eq "cst_3prime") {
         print "Offset source                                            : $offset_option\n";
     } else {
-        die "Offset argument needs to be \" standard\", \"from_file\" or \"plastid\"!";
+        die "Offset argument needs to be \" standard\", \"from_file\", \"plastid\", \"cst_5prime\" or \"cst_3prime\"!";
     }
 } else {
     $offset_option = "standard";
@@ -174,7 +174,7 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Get arguments vars
-my ($species,$version,$IGENOMES_ROOT,$mapping_unique,$firstRankMultiMap,$maxmultimap,$mapper,$min_l_parsing,$max_l_parsing) = get_ARG_vars($resultdb,$us_sqlite_results,$pw_sqlite_results);
+my ($species,$version,$IGENOMES_ROOT,$mapping_unique,$firstRankMultiMap,$maxmultimap,$mapper,$min_l_parsing,$max_l_parsing,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset) = get_ARG_vars($resultdb,$us_sqlite_results,$pw_sqlite_results,$offset_option);
 
 # Igenomes
 print "The following igenomes folder is used                    : $IGENOMES_ROOT\n";
@@ -204,12 +204,11 @@ if($mapping_unique eq 'N'){
     
 # Cores
 if ($cores) {
-    print "Number of cores to use for analysis			: $cores\n";
+    print "Number of cores to use for analysis			 : $cores\n";
 } else {
     $cores = 5;
-    print "Number of cores to use for analysis			: $cores\n";
+    print "Number of cores to use for analysis			 : $cores\n";
 }
-
 
 #Conversion for species terminology
 my $spec = ($species eq "mouse") ? "Mus_musculus" : (uc($species) eq "SL1344") ? "SL1344" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
@@ -338,6 +337,20 @@ if($offset_option eq "plastid"){
                 $offset_hash->{"max"} = $length;
             }
         }
+    }
+} elsif($offset_option eq "cst_5prime"){
+    #Define constant 5prime offsets
+    $offset_hash->{"min"} = $min_cst_prime_offset;
+    $offset_hash->{"max"} = $max_cst_prime_offset;
+    for(my $rpf = $offset_hash->{"min"}; $rpf<=$offset_hash->{"max"}; $rpf++){
+        $offset_hash->{$rpf} = $cst_prime_offset;
+    }
+} elsif($offset_option eq "cst_3prime"){
+    #Translate constant 3 prime offsets into 5 prime-based offsets
+    $offset_hash->{"min"} = $min_cst_prime_offset;
+    $offset_hash->{"max"} = $max_cst_prime_offset;
+    for(my $rpf = $offset_hash->{"min"}; $rpf<=$offset_hash->{"max"}; $rpf++){
+        $offset_hash->{$rpf} = $rpf - $cst_prime_offset - 1;
     }
 } else {
     #min and max offset from arguments table
@@ -2176,6 +2189,7 @@ sub get_ARG_vars{
     my $db_ribo = $_[0];
     my $user = $_[1];
     my $pw = $_[2];
+    my $offset_option = $_[3];
     
     my ($query,$sth);
     
@@ -2238,10 +2252,33 @@ sub get_ARG_vars{
     my $max_l_parsing = $sth->fetch()->[0];
     $sth->finish();
     
+    my $cst_prime_offset = 0;
+    my $min_cst_prime_offset = 0;
+    my $max_cst_prime_offset = 0;
+    if($offset_option eq "cst_5prime" || $offset_option eq "cst_3prime"){
+        $query = "select value from arguments where variable = \'cst_prime_offset\'";
+        $sth = $dbh_results->prepare($query);
+        $sth->execute();
+        $cst_prime_offset = $sth->fetch()->[0];
+        $sth->finish();
+        
+        $query = "select value from arguments where variable = \'min_cst_prime_offset\'";
+        $sth = $dbh_results->prepare($query);
+        $sth->execute();
+        $min_cst_prime_offset = $sth->fetch()->[0];
+        $sth->finish();
+        
+        $query = "select value from arguments where variable = \'max_cst_prime_offset\'";
+        $sth = $dbh_results->prepare($query);
+        $sth->execute();
+        $max_cst_prime_offset = $sth->fetch()->[0];
+        $sth->finish();
+    }
+    
     $dbh_results -> disconnect();
     
     # Return ARG variables
-    return($species,$version,$IGENOMES_ROOT,$unique,$firstRankMultiMap,$maxmultimap,$mapper,$min_l_parsing,$max_l_parsing);
+    return($species,$version,$IGENOMES_ROOT,$unique,$firstRankMultiMap,$maxmultimap,$mapper,$min_l_parsing,$max_l_parsing,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset);
 } # Close sub
 
 ## GET seq_region_id ##
@@ -2365,6 +2402,8 @@ sub print_help_text {
                                         - plastid: use the offsets calculated with plastid (Dunn et al. 2016) during PROTEOFORMER mapping step
                                         - standard: use the standard offsets from the paper of Ingolia et al. (2012)
                                         - from_file: use offsets from an input file
+                                        - cst_5prime: use constant 5prime offsets
+                                        - cst_3prime: use constant 3prime offsets (constant relative to the 3prime end of the read)
     --offset_file                   the offsets input file (cfr. supra) (mandatory if offset=from_file)
     --offset_img                    the offsets image from plastid generated during mapping (mandatory if offset=plastid)
     --output_folder                 the output folder for storing output files (default: work_dir/mappingQC_output)
