@@ -42,7 +42,7 @@ use Cwd;
 #mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$suite,$suite_tools_loc);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset,$suite,$suite_tools_loc);
 my $help;
 
 GetOptions(
@@ -90,10 +90,15 @@ GetOptions(
 "firstrankmultimap=s" =>\$FirstRankMultiMap,  # Only retain the first ranked alignment of multimapper (Y or N)           optional argument (default = N)
 "rpf_split=s" =>\$rpf_split,                 #If the program needs to construct RPF specific bedgraph files (Y or N)     optional argument (default = N)
 "price_files=s" =>\$price_files,             #If the program needs to generate sam files specifically for PRICE (Y or N)    optional argument (default = N)
-"suite=s" =>\$suite,                       #Option to execute different mapping modules all together for ribo data ('custom', 'standard', 'plastid')     optional argument (default = custom)
+"cst_prime_offset=i" =>\$cst_prime_offset,        #The constant 5' or 3' offset when using those kind of offsets (calculated starting from that side (5 or 3'))  optional argument (default = 12)
+"min_cst_prime_offset=i" =>\$min_cst_prime_offset,            #The minimum RPF length for which a constant offset will be calculated      optional argument (default = 22)
+"max_cst_prime_offset=i" =>\$max_cst_prime_offset,            #The maximum RPF length for which a constant offset will be calculated      optional argument (default = 40)
+"suite=s" =>\$suite,                       #Option to execute different mapping modules all together for ribo data ('custom', 'standard', 'plastid', 'cst_5prime', 'cst_3prime')     optional argument (default = custom)
                                                         #Custom: only mapping, other modules manually afterwards
                                                         #Standard: mapping + parsing with standard offset
                                                         #Plastid: mapping + default p offset calculation with plastid + parsing based on these offsets
+                                                        #cst_5prime: use offsets with constant 5' distance
+                                                        #cst_3prime: use offsets with constant 3' distance
 "suite_tools_loc=s" =>\$suite_tools_loc,    #The folder with script of subsequent tools when using a suite                  optional argument (default = workdir)
 "help" => \$help                            # Help text option
 );
@@ -346,8 +351,22 @@ if ($price_files ne 'Y' && $price_files ne 'N'){
     print "Price file generation option should be Y or N!\n";
     die;
 }
+unless ($cst_prime_offset){
+    $cst_prime_offset = 12;
+}
+unless ($min_cst_prime_offset){
+    $min_cst_prime_offset = 22;
+}
+unless ($max_cst_prime_offset){
+    $max_cst_prime_offset = 40;
+}
+if ($suite eq "cst_5prime" || $suite eq "cst_3prime"){
+    print "Constant prime ofset                                      : $cst_prime_offset\n";
+    print "Minimum RPF length for constant prime offsets             : $min_cst_prime_offset\n";
+    print "Maximum RPF length for constant prime offsets             : $max_cst_prime_offset\n";
+}
 if($readtype eq "ribo" || $readtype eq "ribo_untr"){
-    if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid"){
+    if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
         print "Mapping suite                                               : $suite\n";
         if ($suite_tools_loc){
             print "Mapping suite tools folder                                       : $suite_tools_loc\n";
@@ -355,7 +374,7 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
             $suite_tools_loc = $work_dir;
             print "Mapping suite tools folder                                       : $suite_tools_loc\n";
         }
-        if($suite eq "standard"){
+        if($suite eq "standard" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
             if(!-e $suite_tools_loc."/mapping_parsing.pl"){
                 die "Parsing script not found!!!";
             }
@@ -371,7 +390,7 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
         print "Mapping suite                                               : $suite\n";
     }
 } else {
-    if($suite eq "standard" || $suite eq "plastid"){
+    if($suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
         die "Standard and plastid suite only for RIBO data!";
     } elsif (!defined($suite)){
         $suite = "custom";
@@ -509,8 +528,7 @@ my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 
 # Store input arguments
-store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr, $price_files);
-
+store_input_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name_short,$ensemblversion,$species,$mapper,$unique,$adaptorSeq,$readlength,$readtype,$IGENOMES_ROOT,$cores, $seqFileName1, $seqFileName2,$rpf_split,$FirstRankMultiMap,$truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$maxmultimap,$out_bam_untr,$out_bam_tr,$min_l_plastid,$max_l_plastid,$min_l_parsing,$max_l_parsing,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr, $price_files, $cst_prime_offset, $min_cst_prime_offset, $max_cst_prime_offset, $suite);
 
 ############
 ## MAPPING
@@ -606,7 +624,7 @@ foreach (@loopfastQ) {
 
 
 ### Suite options ###
-if($suite eq "standard"){
+if($suite eq "standard" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
     system("perl ".$suite_tools_loc."/mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
 } elsif ($suite eq "plastid"){
@@ -1719,6 +1737,10 @@ sub store_input_vars {
     my $price_sam_tr = $_[33];
     my $price_bam_tr = $_[34];
     my $price_files = $_[35];
+    my $cst_prime_offset = $_[36];
+    my $min_cst_prime_offset = $_[37];
+    my $max_cst_prime_offset = $_[38];
+    my $suite = $_[39];
 
     my $dbh_sqlite_results = dbh($dsn,$us,$pw);
 
@@ -1826,6 +1848,17 @@ sub store_input_vars {
         $dbh_sqlite_results->do($query);
         
         $query = "INSERT INTO arguments (variable,value) VALUES (\'price_bam_tr\',\'".$price_bam_tr."\')";
+        $dbh_sqlite_results->do($query);
+    }
+    
+    if($suite eq 'cst_5prime' || $suite eq 'cst_3prime'){
+        $query = "INSERT INTO arguments (variable,value) VALUES (\'cst_prime_offset\',\'".$cst_prime_offset."\')";
+        $dbh_sqlite_results->do($query);
+        
+        $query = "INSERT INTO arguments (variable,value) VALUES (\'min_cst_prime_offset\',\'".$min_cst_prime_offset."\')";
+        $dbh_sqlite_results->do($query);
+        
+        $query = "INSERT INTO arguments (variable,value) VALUES (\'max_cst_prime_offset\',\'".$max_cst_prime_offset."\')";
         $dbh_sqlite_results->do($query);
     }
 }
@@ -2042,10 +2075,15 @@ Example:
             --firstrankmultimap                 Only retain the first ranked alignment when non-uniquely mapped (Y or N) (default: N)
             --rpf_split                         If the program needs to construct RPF specific bedgraph files (Y or N) (default: N)
             --price_files                       If the program needs to generate sam files specifically for PRICE (Y or N) (default: N)
-            --suite                             Option to execute different mapping modules all together for ribo data (custom, standard, plastid) (default: custom)
+            --cst_prime_offset                  The constant 5prime or 3prime offset when using those kind of offsets (calculated starting from that side (5 or 3prime)) (default = 12)
+            --min_cst_prime_offset              The minimum RPF length for which a constant offset will be calculated (default = 22)
+            --max_cst_prime_offset              The maximum RPF length for which a constant offset will be calculated (default = 40)
+            --suite                             Option to execute different mapping modules all together for ribo data (custom, standard, plastid, cst_5prime, cst_3prime) (default: custom)
                                                     Custom: only mapping, other modules manually afterwards
                                                     Standard: mapping + parsing with standard offset
                                                     Plastid: mapping + default p offset calculation with plastid + parsing based on these offsets
+                                                    cst_5prime: use offsets with constant 5prime distance
+                                                    cst_3prime: use offsets with constant 3prime distance
             --suite_tools_loc                   The folder with script of subsequent tools when using a suite (default: workdir)
             --help                              Help text option\n
 ";
