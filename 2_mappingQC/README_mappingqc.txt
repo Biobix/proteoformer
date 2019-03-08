@@ -35,6 +35,8 @@ INPUT PARAMETERS
 			- standard: use the standard offsets from the paper of Ingolia et al. (2012) (default)
 			- from_file: use offsets from an input file
 				The offsets input file should be given in the —offset_file argument
+			- cst_5prime: use 5 prime offsets
+			- cst_3prime: use 3 prime offsets
 * output_folder: the folder to store the output files (default: work_dir/mappingQC_output)
 * tool_dir: folder with necessary additional mappingQC tools. More information below in the ‘dependencies’ section. (default: work_dir/mqc_tools)
 * plotrpftool: the module that will be used for plotting the RPF-phase figure
