@@ -127,6 +127,7 @@ my $transcript_create = "CREATE TABLE IF NOT EXISTS $table_ribo_trans (
 		ccds VARCHAR(20) NOT NULL,
 		gene_stable_id VARCHAR(100) NOT NULL,
         FPKM FLOAT NOT NULL,
+        coverage FLOAT NOT NULL,
 		PRIMARY KEY (stable_id,gene_stable_id)
 		)";
 $dbh_create->do($transcript_create);
@@ -151,14 +152,15 @@ print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
 print "Number of cores to use for analysis			: $cores\n";
 
 #Conversion for species terminology
-my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
-my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
+my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : ($species eq "SL1344") ? "SL1344" : "";
+my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : ($species eq "SL1344") ? "SL1344" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
 my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "MOUSE" && $version < 70 ) ? "NCBIM37"
 : (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
+: (uc($species) eq "SL1344") ? "ASM21085v2"
 : (uc($species) eq "FRUITFLY" && $version < 79) ? "BDGP5"
 : (uc($species) eq "FRUITFLY" && $version >= 79) ? "BDGP6" : "";
 
@@ -232,7 +234,7 @@ sub get_chr{
     # Catch
     my $chromosome_sizes = $_[0];
     my $species = $_[1];
-
+    
     # Work
     my @chr;
     my $count = 0;
@@ -318,6 +320,7 @@ sub translation_per_chr{
 			$seq_region = $result1[0];
 		}
 		$execute1->finish();
+        
 		####
 		# Get all genes and corresponding transcripts for specific chromosome from joined tables 'gene', 'transcript' and 'translation'
 		####
@@ -333,6 +336,7 @@ sub translation_per_chr{
 
 		my %gene_count;
 		my %transcript_count;
+        my %transcript_covered_positions;
 		my %transcript_id;
 		my %transcript_coding;
 		my %gene_id;
@@ -347,9 +351,10 @@ sub translation_per_chr{
 			$transcript_id{$result2[2]} = [$result2[6],$result2[11],$result2[3],$result2[4]];
 			$transcript_coding{$result2[2]} = [$result2[1],$result2[5],$result2[7],$result2[8],$result2[9],$result2[10]];
 			$transcript_count{$result2[1]}{$result2[2]} = 0; # Initialize count hash
-				# Attr1 = canonical; Attr2 = ccds
-				my $canonical = ($result2[2] eq $result2[12]) ? "Yes" : "No";
-				my $ccds = "No";
+            $transcript_covered_positions{$result2[1]}{$result2[2]} = 0; # Initialize cov positions hash
+            # Attr1 = canonical; Attr2 = ccds
+            my $canonical = ($result2[2] eq $result2[12]) ? "Yes" : "No";
+            my $ccds = "No";
 			$transcript_attributes{$result2[2]} = [$canonical,$ccds];
 		}
 		$execute2->finish();
@@ -392,9 +397,10 @@ sub translation_per_chr{
 			$transcript_id{$result3[2]} = [$result3[6],$result3[7],$result3[3],$result3[4]];
 			$transcript_noncoding{$result3[2]} = [$result3[1],$result3[5]];
 			$transcript_count{$result3[1]}{$result3[2]} = 0; # Initialize count hash
+            $transcript_covered_positions{$result3[1]}{$result3[2]} = 0; # Initialize cov positions hash
 			# Attr1 = canonical; Attr2 = ccds
-				my $canonical = ($result3[2] eq $result3[8]) ? "Yes" : "No";
-				my $ccds  = "No";
+            my $canonical = ($result3[2] eq $result3[8]) ? "Yes" : "No";
+            my $ccds  = "No";
 			$transcript_attributes{$result3[2]} = [$canonical,$ccds];
 		}
 		$execute3->finish();
@@ -677,7 +683,7 @@ sub translation_per_chr{
 		####
 		# For each ribo_read, look if it falls in an exon en make a read_count for each gene as well as for each transcript
 		####
-		my $query8 = "SELECT chr,strand,start,count FROM $table_ribo WHERE chr = '$chr'";
+        my $query8 = "SELECT chr,strand,start,count FROM $table_ribo WHERE chr = '$chr'";
 		my $execute8 = $dbh2->prepare($query8);
 		$execute8->execute();
 
@@ -690,8 +696,10 @@ sub translation_per_chr{
 					foreach my $transcript(keys %{$exon_gene_transcript{$ribo}{$gene}}){
 						if($strand == 1 && $result8[1] == 1){
 							$transcript_count{$gene}{$transcript} += $result8[3];
+                            $transcript_covered_positions{$gene}{$transcript} += 1;
 						}elsif($strand == -1 && $result8[1] == -1){
 							$transcript_count{$gene}{$transcript} += $result8[3];
+                            $transcript_covered_positions{$gene}{$transcript} += 1;
 						}
 
 						foreach my $exon(keys %{$exon_gene_transcript{$ribo}{$gene}{$transcript}}){
@@ -706,7 +714,7 @@ sub translation_per_chr{
 			}
 		}
 		$execute8->finish();
-        
+
         #Get the sequencing depth for calculating FPKM
         my $query9 = "SELECT mapped_T FROM statistics WHERE sample='".$sample_name."' AND type='genomic';";
         my $execute9 = $dbh2->prepare($query9);
@@ -727,10 +735,12 @@ sub translation_per_chr{
 			foreach my $transcript(keys %{$transcript_count{$gene}}){
 				# Transcript_info
 				my $transcount = $transcript_count{$gene}{$transcript};
+                my $trans_cov_pos = $transcript_covered_positions{$gene}{$transcript};
 				my $length = $transcript_length{$transcript};
                 my $lengthK = $length/1000; #Length in kilobases
                 my $transFPM = $transcount/$seq_depthM; #Fragments per million reads sequence depth
                 my $transFPKM = $transFPM/$lengthK; #Fragments per kilo read length and millions sequence depth
+                my $trans_cov = (1.0 * $trans_cov_pos)/$length;
 
 				# Now normalize for each transcript separately -> transcript_count/transcript_length
 				my $norm_transcount = $transcount/$length;
@@ -769,10 +779,9 @@ sub translation_per_chr{
 						$exon_premise = "Yes";
 					}
 				}
-
 				# Write to csv-file
 				if($transcount > 0){
-					print TMPtrans $transcript.",".$transcript_id{$transcript}[0].",".$chr.",".$seq_region.",".$gene_id{$gene}[1].",".$transcript_id{$transcript}[2].",".$transcript_id{$transcript}[3].",".$transcount.",".$norm_transcount.",".$transcript_id{$transcript}[1].",".$exon_premise.",".$transcript_attributes{$transcript}[0].",".$transcript_attributes{$transcript}[1].",".$gene.",".$transFPKM."\n";
+					print TMPtrans $transcript.",".$transcript_id{$transcript}[0].",".$chr.",".$seq_region.",".$gene_id{$gene}[1].",".$transcript_id{$transcript}[2].",".$transcript_id{$transcript}[3].",".$transcount.",".$norm_transcount.",".$transcript_id{$transcript}[1].",".$exon_premise.",".$transcript_attributes{$transcript}[0].",".$transcript_attributes{$transcript}[1].",".$gene.",".$transFPKM.",".$trans_cov."\n";
 				}
 			}
 		}
@@ -806,7 +815,7 @@ sub make_sqlite_dumpfile{
 		# Transcripts
 		my $temp_trans_csv = $tmpfolder."fastq1_transcript_".$chr."_tmp.csv";
 		system("cat ".$temp_trans_csv." >> ".$temp_trans_csv_all);
-		system("rm -rf ".$temp_trans_csv);
+        system("rm -rf ".$temp_trans_csv);
 	}
 
 } # Close sub
@@ -821,7 +830,7 @@ sub import_sqlite_dumpfile{
 
 	# Remove temporary SQLite dump-files
 
-	system("rm -rf ".$temp_trans_csv_all);
+    system("rm -rf ".$temp_trans_csv_all);
 
 	print "DONE!\n";
 } # Close sub
