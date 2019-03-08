@@ -86,10 +86,10 @@ if ($work_dir){
 if (!defined($out_sqlite))     		{$out_sqlite        = $work_dir."/SQLite/results.db";}
 print "SQLite database                                          : $out_sqlite\n";
 if ($offset_option) {
-    if ($offset_option eq "standard" || $offset_option eq "from_file" || $offset_option eq "plastid") {
+    if ($offset_option eq "standard" || $offset_option eq "from_file" || $offset_option eq "plastid" || $offset_option eq "cst_5prime" || $offset_option eq "cst_3prime") {
         print "Offset source                                            : $offset_option\n";
     } else {
-        die "Offset argument needs to be \" standard\", \"from_file\" or \"plastid\"!";
+        die "Offset argument needs to be \" standard\", \"from_file\", \"plastid\", \"cst_5prime\" or \"cst_3prime\"!";
     }
 } else {
     $offset_option = "standard";
@@ -104,13 +104,14 @@ my $dsn_sqlite_results = "DBI:SQLite:dbname=$db_sqlite_results";
 my $us_sqlite_results  = "";
 my $pw_sqlite_results  = "";
 # Get arguments vars
-my ($species,$ensemblversion,$IGENOMES_ROOT,$cores,$seqFileName1,$seqFileName2,$mapper,$unique,$rpf_split,$FirstRankMultiMap,$truseq,$readtype,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count) = get_ARG_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
+my ($species,$ensemblversion,$IGENOMES_ROOT,$cores,$seqFileName1,$seqFileName2,$mapper,$unique,$rpf_split,$FirstRankMultiMap,$truseq,$readtype,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset) = get_ARG_vars($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$offset_option);
+
 # Get executables
 my $sqlite_loc = "sqlite3";
 
 if ($offset_option eq "from_file"){
     if ($offset_file_untr) {
-        print "Offset input file untreated                                 : $offset_file_untr\n";
+        print "Offset input file untreated                              : $offset_file_untr\n";
     } else {
         die "Do not forget the offset untreated input file if offset argument is \"from_file\"!";
     }
@@ -119,7 +120,7 @@ if ($offset_option eq "from_file"){
 }
 if ($offset_option eq "from_file" && $readtype eq 'ribo'){
     if ($offset_file_tr) {
-        print "Offset input file treated                                    : $offset_file_tr\n";
+        print "Offset input file treated                                 : $offset_file_tr\n";
     } else {
         die "Do not forget the offset treated input file if offset argument is \"from_file\" and readtype is \"ribo\"!";
     }
@@ -129,10 +130,10 @@ if ($offset_option eq "from_file" && $readtype eq 'ribo'){
 
 
 #Comment on input variables from argument table
-print "The following species is used                  : $species\n";
-print "The following Ensembl version is used            : $ensemblversion\n";
-print "The following igenomes folder is used			: $IGENOMES_ROOT\n";
-print "Number of cores to use for analysis			: $cores\n";
+print "The following species is used                            : $species\n";
+print "The following Ensembl version is used                    : $ensemblversion\n";
+print "The following igenomes folder is used			 : $IGENOMES_ROOT\n";
+print "Number of cores to use for analysis			 : $cores\n";
 
 #Conversion for species terminology
 my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" : (uc($species) eq "RAT") ? "Rattus_norvegicus" : (uc($species) eq "SL1344") ? "SL1344" : (uc($species) eq "HUMAN") ? "Homo_sapiens" : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" : (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
@@ -195,8 +196,8 @@ foreach (@loopfastQ) {
         print "Mapping parsing of TopHat2\n";
         my $start = time;
         if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr") {
-            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file_untr,$offset_file_tr,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species); # Only A-site parsing if RIBO-seq
-            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file_untr,$offset_file_tr,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species)}
+            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file_untr,$offset_file_tr,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset); # Only A-site parsing if RIBO-seq
+            if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file_untr,$offset_file_tr,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset)}
         }
         if (uc($readtype) eq "SE_POLYA") {
             RNA_parse_store($_,$fastqName, $unique, $truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap);
@@ -213,8 +214,8 @@ foreach (@loopfastQ) {
 		print "Mapping parsing of STAR\n";
         my $start = time;
         if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr") {
-            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file_untr,$offset_file_tr,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species); # Only A-site parsing if RIBO-seq
-			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file_untr,$offset_file_tr,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species)}
+            RIBO_parse_store($_,$fastqName, 'Y', $rpf_split,$offset_option,$offset_file_untr,$offset_file_tr,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset); # Only A-site parsing if RIBO-seq
+			if ($unique eq "N" && $FirstRankMultiMap eq "N") {RIBO_parse_store($_,$fastqName, $unique, $rpf_split,$offset_option,$offset_file_untr,$offset_file_tr,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$species,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset)}
         }
         if (uc($readtype) eq "SE_POLYA") {
 			RNA_parse_store($_,$fastqName, $unique, $truseq,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap);
@@ -281,7 +282,9 @@ sub RIBO_parse_store {
     my $min_l_count = $_[15];
     my $max_l_count = $_[16];
     my $species = $_[17];
-    
+    my $cst_prime_offset = $_[18];
+    my $min_cst_prime_offset = $_[19];
+    my $max_cst_prime_offset = $_[20];
 
     my $bedgr_s = ($seqFileName  eq 'fastq1') ? $out_bg_s_untr : $out_bg_s_tr;
     my $bedgr_as = ($seqFileName  eq 'fastq1') ? $out_bg_as_untr : $out_bg_as_tr;
@@ -387,6 +390,20 @@ sub RIBO_parse_store {
                     $offset_hash->{"max"} = $length;
                 }
             }
+        }
+    } elsif($offset_option eq "cst_5prime"){
+        #Define constant 5prime offsets
+        $offset_hash->{"min"} = $min_cst_prime_offset;
+        $offset_hash->{"max"} = $max_cst_prime_offset;
+        for(my $rpf = $offset_hash->{"min"}; $rpf<=$offset_hash->{"max"}; $rpf++){
+            $offset_hash->{$rpf} = $cst_prime_offset;
+        }
+    } elsif($offset_option eq "cst_3prime"){
+        #Translate constant 3 prime offsets into 5 prime-based offsets
+        $offset_hash->{"min"} = $min_cst_prime_offset;
+        $offset_hash->{"max"} = $max_cst_prime_offset;
+        for(my $rpf = $offset_hash->{"min"}; $rpf<=$offset_hash->{"max"}; $rpf++){
+            $offset_hash->{$rpf} = $rpf - $cst_prime_offset - 1;
         }
     } else {
         #Standard offset options from Ingolia paper
@@ -1627,6 +1644,7 @@ sub get_ARG_vars{
     my $dsn = $_[0];
     my $user = $_[1];
     my $pw = $_[2];
+    my $offset_option = $_[3];
     
     my ($query,$sth);
     
@@ -1765,11 +1783,35 @@ sub get_ARG_vars{
     $sth->execute();
     my $max_l_count = $sth->fetch()->[0];
     $sth->finish();
+    
+    #Init
+    my $cst_prime_offset = 0;
+    my $min_cst_prime_offset = 0;
+    my $max_cst_prime_offset = 0;
+    if($offset_option eq "cst_5prime" || $offset_option eq "cst_3prime"){
+        $query = "select value from arguments where variable = \'cst_prime_offset\'";
+        $sth = $dbh_results->prepare($query);
+        $sth->execute();
+        $cst_prime_offset = $sth->fetch()->[0];
+        $sth->finish();
+        
+        $query = "select value from arguments where variable = \'min_cst_prime_offset\'";
+        $sth = $dbh_results->prepare($query);
+        $sth->execute();
+        $min_cst_prime_offset = $sth->fetch()->[0];
+        $sth->finish();
+        
+        $query = "select value from arguments where variable = \'max_cst_prime_offset\'";
+        $sth = $dbh_results->prepare($query);
+        $sth->execute();
+        $max_cst_prime_offset = $sth->fetch()->[0];
+        $sth->finish();
+    }
 
     $dbh_results -> disconnect();
     
     # Return ARG variables
-    return($species,$version,$IGENOMES_ROOT,$cores,$seqFileName1,$seqFileName2,$mapper,$unique,$rpf_split,$FirstRankMultiMap,$truseq,$readtype,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count);
+    return($species,$version,$IGENOMES_ROOT,$cores,$seqFileName1,$seqFileName2,$mapper,$unique,$rpf_split,$FirstRankMultiMap,$truseq,$readtype,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$run_name,$maxmultimap,$min_l_count,$max_l_count,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset);
 }
 
 ##Help text##
@@ -1790,6 +1832,8 @@ Input arguments:
                                             Standard: if you use the standard offset lengths used by Ingolia et al. (2009)
                                             From_file: from tab separated txt file with rpf_length-tab-offset format
                                             Plastid: if you have run the mapping_plastid module first
+                                            cst_5prime: use constant offsets relative to the 5prime read end
+                                            cst_3prime: use constant offsets relative to the 3prime read end
         --offset_file_untr              Offset input file for untreated data (mandatory if offset=from_file)
         --offset_file_tr                Offset input file for treated data (mandatory if offset=from_file)
         --help                          Print help message
