@@ -181,12 +181,27 @@ def main():
 
 #Output identifications
 def output_csv(identifications, csv_file):
-
-    with open(csv_file, 'w') as FW:
-        for protein_group in identifications:
-           FW.write(protein_group+","+identifications[protein_group]['classification']+"\n")
-
-    return
+	
+	id=0
+	with open(csv_file, 'w') as FW:
+		keys = ["base_proteoform","classification","annotations","bin_codes","gene_ids","max_proteins","protein_group"]
+		header_string= "id"+","+(','.join(keys))+"\n"
+		FW.write(header_string)
+		for protein_group in identifications:
+			value_string = str(identifications[protein_group][keys[0]])
+			for key in keys[1:]:
+				if type(identifications[protein_group][key]) is list:
+					value_string = value_string+','+str("|".join(identifications[protein_group][key]))
+				else:
+					if re.search(', ', str(identifications[protein_group][key])):
+						value = re.sub(', ', '|', str(identifications[protein_group][key]))
+						value_string = value_string+','+value
+					else:
+						value_string = value_string+','+str(identifications[protein_group][key])
+			FW.write(str(id)+','+value_string+"\n")
+			id+=1
+	
+	return
 
 #Construct distribution plot
 def construct_plot(counts, output_file):
@@ -280,7 +295,7 @@ def construct_plot(counts, output_file):
     c = np.copy(colors[-1, :])
     colors[3, :] = np.copy(c)
     colors[-1, :] = np.copy(b)
-    patches, texts, autotexts = ax1.pie(df['count'], explode=explode_tuple, autopct='%.1f%%', colors=colors, textprops={'fontsize':18}, pctdistance=0.85, labels = labels_list, labeldistance=1.05)
+    patches, texts, autotexts = ax1.pie(df['count'], explode=explode_tuple, autopct='%.1f%%', colors=colors, textprops={'fontsize':24}, pctdistance=0.85, labels = labels_list, labeldistance=1.05)
     #Label size
     for i in range(0, len(texts)):
         texts[i].set_fontsize(18)
@@ -291,7 +306,7 @@ def construct_plot(counts, output_file):
                      box.width, box.height])
     lgd_labels = df['classification'].values.tolist()
     handles, labels = ax1.get_legend_handles_labels() #Get legend information of last ax object
-    leg = ax1.legend(handles, lgd_labels, fontsize=18, loc='upper center', bbox_to_anchor = (.5, 0), ncol=4)
+    leg = ax1.legend(handles, lgd_labels, fontsize=24, loc='upper center', bbox_to_anchor = (.5, 0), ncol=3)
 
     #Small plot 1
     df = pd.DataFrame.from_dict(splice_counts, orient="index")
@@ -300,12 +315,12 @@ def construct_plot(counts, output_file):
     labels_list = df['count'].values.tolist()
     ax2 = plt.subplot2grid((2,3), (0,2))
     colors = get_greens(df['classification'].values.tolist())
-    df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax2, colors=colors, textprops={'fontsize':15}, fontsize=15, pctdistance=0.85, labels = labels_list, labeldistance=1.05)
+    df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax2, colors=colors, textprops={'fontsize':24}, fontsize=24, pctdistance=0.7, labels = labels_list, labeldistance=1.05)
     ax2.set_ylabel("")
     ax2.set_title("Splice variants", {'fontsize': 36})
     lgd_labels = df['classification'].values.tolist()
     handles, labels = ax2.get_legend_handles_labels()  # Get legend information of last ax object
-    leg = ax2.legend(handles, lgd_labels, fontsize=18, loc='upper center', bbox_to_anchor=(.5, 0.075), ncol=2)
+    leg = ax2.legend(handles, lgd_labels, fontsize=24, loc='upper center', bbox_to_anchor=(.5, 0.075), ncol=2)
 
     #Small plot 2
     df = pd.DataFrame.from_dict(ntr_counts, orient="index")
@@ -314,23 +329,23 @@ def construct_plot(counts, output_file):
     labels_list = df['count'].values.tolist()
     ax3 = plt.subplot2grid((2, 3), (1, 2))
     colors = get_reds(df['classification'].values.tolist())
-    df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax3, colors=colors, textprops={'fontsize':15}, fontsize=15, pctdistance=0.85, labels = labels_list, labeldistance=1.05)
+    df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax3, colors=colors, textprops={'fontsize':24}, fontsize=24, pctdistance=0.7, labels = labels_list, labeldistance=1.05)
     ax3.set_ylabel("")
     ax3.set_title("Non-coding region proteoforms", {'fontsize':36})
     lgd_labels = rewrite_labels(df['classification'].values.tolist())
     handles, labels = ax3.get_legend_handles_labels()  # Get legend information of last ax object
-    leg = ax3.legend(handles, lgd_labels, fontsize=18, loc='upper center', bbox_to_anchor=(.5, 0.075), ncol=2)
+    leg = ax3.legend(handles, lgd_labels, fontsize=24, loc='upper center', bbox_to_anchor=(.5, 0.075), ncol=2)
 
     #Connecting arrows
     (x,y) = texts[0].get_position()
-    xy0 = (x, y+0.04)
+    xy0 = (x+0.08, y+0.04)
     xyEnd = (-1.2, 0.5)
     con = ConnectionPatch(xyA=xy0, xyB=xyEnd, coordsA="data", coordsB="data",
                       axesA=ax1, axesB=ax2, arrowstyle=ArrowStyle.CurveFilledB(head_length=2, head_width=1), color='black', linewidth=4)
     ax1.add_artist(con)
 
     (x, y) = texts[-1].get_position()
-    xy0 = (x + 0.08, y)
+    xy0 = (x + 0.06, y)
     xyEnd = (-1.2, 0.7)
     con = ConnectionPatch(xyA=xy0, xyB=xyEnd, coordsA="data", coordsB="data",
                           axesA=ax1, axesB=ax3, arrowstyle=ArrowStyle.CurveFilledB(head_length=2, head_width=1),
@@ -338,7 +353,7 @@ def construct_plot(counts, output_file):
     ax1.add_artist(con)
 
     #Output
-    fig.suptitle('Classification of PROTEOROMER-only identified proteoforms', fontsize=54)
+    fig.suptitle('Classification of PROTEOFORMER-only identified proteoforms', fontsize=54)
     fig.savefig(output_file, dpi=1200)
 
     return
@@ -494,6 +509,8 @@ def analyze_identifications(workdir, identifications, mapping_dict, fasta_sequen
                     identifications[protein_group]['classification'] = "dORF"
         #For extensions and truncations
         else:
+            if base_canonical not in fasta_sequences:
+                print "Base canonical not found: "+base_canonical+" for protein group "+protein_group
             base_canonical_seq = fasta_sequences[base_canonical]
             #Align with ClustalO
             #Prepare fasta
@@ -745,7 +762,7 @@ def classify_proteoform(proteoform_peptides, aligned_base_proteoform, aligned_ba
                 if check_only_sav(aligned_base_proteoform, aligned_base_canonical):
                     classification = "Only amino acid substitutions"
                 else:
-                    classification = "Exon substitution"
+                    classification = "Multiple variations"
     else:
         #No homolog sequence
         # Get transcript id of base proteoform
