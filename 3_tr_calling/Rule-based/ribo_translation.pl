@@ -176,7 +176,12 @@ $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/
 @ch = @{get_chr($chromosome_sizes,$species)};
 print Dumper (@ch);
 #@ch = ("Y","MT");
-$coord_system_id = get_coord_system_id($db_ensembl,$assembly);
+$coord_system_id = get_coord_system_id($db_ensembl,$assembly,'chromosome');
+my $coord_system_id_plasmid = '';
+# Get coord system id for the SL1344 plasmids, if necessary
+if(uc($species) eq "SL1344"){
+    $coord_system_id_plasmid = get_coord_system_id($ens_db,$assembly,'plasmid');
+}
 
 # Store used path of ENSEMBL db in arguments table
 store_ENS_var($db_ribo,$user,$pw,$db_ensembl);
@@ -264,13 +269,14 @@ sub get_coord_system_id{
 	# Catch
 	my $db_ensembl = $_[0];
 	my $assembly = $_[1];
+    my $name = $_[2];
 
 	# Connect to ensembl sqlite database
 	my $dbh  = DBI->connect('DBI:SQLite:'.$db_ensembl,$user,$pw,
 						{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
 
 	# Get correct coord_system_id
-	my $query = "SELECT coord_system_id FROM coord_system WHERE name = 'chromosome' AND version = '$assembly'";
+	my $query = "SELECT coord_system_id FROM coord_system WHERE name = '$name' AND version = '$assembly'";
 	my $execute = $dbh->prepare($query);
 	$execute->execute();
 
@@ -310,7 +316,12 @@ sub translation_per_chr{
 								{ RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
 
 		# Get seq_region_id for specific chromosome from table 'seq_region'
-		my $query1 = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
+        my $query1 = "";
+        if ($chr =~ m/.+_SL1344$/){
+            $query1 = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id_plasmid' AND name = '$chr'";
+        } else {
+            $query1 = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
+        }
 		my $execute1 = $dbh->prepare($query1);
 		$execute1->execute();
 

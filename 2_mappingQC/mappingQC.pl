@@ -231,7 +231,12 @@ $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/
 ## Get chromosome sizes and cDNA identifiers #############
 print "Getting chromosome sizes and cDNA to chromosome mappings ...\n";
 my %chr_sizes = %{get_chr_sizes($chromosome_sizes)};
-$coord_system_id = get_coord_system_id($ens_db,$assembly);
+$coord_system_id = get_coord_system_id($ens_db,$assembly,'chromosome');
+my $coord_system_id_plasmid = '';
+# Get coord system id for the SL1344 plasmids, if necessary
+if(uc($species) eq "SL1344"){
+    $coord_system_id_plasmid = get_coord_system_id($ens_db,$assembly,'plasmid');
+}
 
 my $chrom_dir = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes";
 my $BIN_chrom_dir = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes_BIN";
@@ -385,7 +390,7 @@ foreach my $chr (keys %chr_sizes){
     my $dbh = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
     
     ### RIBO parsing
-    RIBO_parsing_genomic_per_chr($work_dir,$sam,$chr,$ens_db,$coord_system_id, $offset_hash, $treated);
+    RIBO_parsing_genomic_per_chr($work_dir,$sam,$chr,$ens_db,$coord_system_id,$coord_system_id_plasmid, $offset_hash, $treated);
     
     ### Finish
     print "* Finished chromosome ".$chr."\n";
@@ -534,12 +539,12 @@ my $treated_meta_gene;
 
 print "\n\n";
 print "# Gene distribution #\n";
-gene_distribution($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id, $treated, $mapping_unique, $unique);
+gene_distribution($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique);
 
 print "\n\n";
 print "# Metagenic classification #\n";
 # Metagenic classification
-metagenic_analysis($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id, $treated, $mapping_unique, $unique);
+metagenic_analysis($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique);
  
 print "\n\n";
 print "# Run plot generation and output HTML file creation module #\n";
@@ -573,9 +578,10 @@ sub metagenic_analysis_chr {
     my $resultdb = $_[1];
     my $chr = $_[2];
     my $coord_system_id = $_[3];
-    my $treated = $_[4];
-    my $mapping_unique = $_[5];
-    my $unique = $_[6];
+    my $coord_system_id_plasmid = $_[4];
+    my $treated = $_[5];
+    my $mapping_unique = $_[6];
+    my $unique = $_[7];
     
     #####
     # Ensembl info
@@ -590,7 +596,12 @@ sub metagenic_analysis_chr {
     {RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
     
     #Get seq_region_id
-    my $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
+    my $query = '';
+    if ($chr =~ m/.+_SL1344$/){
+        $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id_plasmid' AND name = '$chr'";
+    } else {
+        $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr'";
+    }
     my $execute = $dbh->prepare($query);
     $execute->execute();
     my $seq_region;
@@ -1012,9 +1023,10 @@ sub metagenic_analysis {
     my $tool_dir = $_[3];
     my $resuldb = $_[4];
     my $coord_system_id = $_[5];
-    my $treated = $_[6];
-    my $mapping_unique = $_[7];
-    my $unique = $_[8];
+    my $coord_system_id_plasmid = $_[6];
+    my $treated = $_[7];
+    my $mapping_unique = $_[8];
+    my $unique = $_[9];
     
     #Ensembl options
     my $us_ENS = "";
@@ -1051,7 +1063,7 @@ sub metagenic_analysis {
         $pm->start and next;
         
         #main loop
-        metagenic_analysis_chr($ens_db, $resultdb, $chr, $coord_system_id, $treated, $mapping_unique, $unique);
+        metagenic_analysis_chr($ens_db, $resultdb, $chr, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique);
         
         #Finish process
         $pm->finish;
@@ -1104,9 +1116,10 @@ sub gene_distribution_chr {
     my $resultdb = $_[1];
     my $chr = $_[2];
     my $coord_system_id = $_[3];
-    my $treated = $_[4];
-    my $mapping_unique = $_[5];
-    my $unique = $_[6];
+    my $coord_system_id_plasmid = $_[4];
+    my $treated = $_[5];
+    my $mapping_unique = $_[6];
+    my $unique = $_[7];
     
     #Open files
     my $out_chr_table = $TMP."/mappingqc_".$treated."/genedistribution_".$chr.".txt";
@@ -1119,7 +1132,7 @@ sub gene_distribution_chr {
     my $dbh = dbh($dsn_ENS, $us_ENS, $pw_ENS);
     
     #Get seq region id
-    my $seq_region = get_seq_region_id($dbh, $chr, $coord_system_id);
+    my $seq_region = get_seq_region_id($dbh, $chr, $coord_system_id, $coord_system_id_plasmid);
     
     #Get all genes with start and stop position
     my $query1 = "SELECT stable_id,seq_region_start,seq_region_end,seq_region_strand FROM gene WHERE seq_region_id = '$seq_region'";
@@ -1254,9 +1267,10 @@ sub gene_distribution {
     my $tool_dir = $_[3];
     my $resultdb= $_[4];
     my $coord_system_id = $_[5];
-    my $treated = $_[6];
-    my $mapping_unique = $_[7];
-    my $unique = $_[8];
+    my $coord_system_id_plasmid = $_[6];
+    my $treated = $_[7];
+    my $mapping_unique = $_[8];
+    my $unique = $_[9];
     
     # Open files
     my $out_table = $TMP."/mappingqc_".$treated."/genedistribution.txt";
@@ -1277,7 +1291,7 @@ sub gene_distribution {
         $pm->start and next;
         
         #Chromosomal gene distribution construction
-        gene_distribution_chr($ens_db, $resultdb, $chr, $coord_system_id, $treated, $mapping_unique, $unique);
+        gene_distribution_chr($ens_db, $resultdb, $chr, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique);
         
         # Close process
         $pm->finish;
@@ -1391,8 +1405,9 @@ sub RIBO_parsing_genomic_per_chr {
     my $chr = $_[2];
     my $ens_db = $_[3];
     my $coord_system_id = $_[4];
-    my $offset_hash = $_[5];
-    my $treated = $_[6];
+    my $coord_system_id_plasmid = $_[5];
+    my $offset_hash = $_[6];
+    my $treated = $_[7];
     
     my @splitsam = split(/\//, $sam );
     my $samFileName = $splitsam[$#splitsam];
@@ -1400,7 +1415,7 @@ sub RIBO_parsing_genomic_per_chr {
     $samFileName = $splitsam[0];
     
     #Construct phase library
-    my ($phase_lib, $triplet_lib) = construct_phase_lib($chr, $ens_db, $coord_system_id);
+    my ($phase_lib, $triplet_lib) = construct_phase_lib($chr, $ens_db, $coord_system_id,$coord_system_id_plasmid);
     
     #Initialize
     my ($genmatchL,$offset,$start,$intron_total,$extra_for_min_strand);
@@ -1508,6 +1523,7 @@ sub construct_phase_lib{
     my $chr = $_[0];
     my $eDB = $_[1];
     my $coord_system_id = $_[2];
+    my $coord_system_id_plasmid = $_[3];
     
     #Init
     my $phase_lib = {};
@@ -1520,7 +1536,7 @@ sub construct_phase_lib{
     my $dbh_ens = dbh($dsn_sqlite_ens,$us_sqlite_ens,$pw_sqlite_ens);
     
     #Get seq_region_id
-    my $seq_region_id = get_seq_region_id($dbh_ens, $chr, $coord_system_id);
+    my $seq_region_id = get_seq_region_id($dbh_ens, $chr, $coord_system_id,$coord_system_id_plasmid);
     
     #Get transcripts (canonical protein-coding)
     my $transcripts = get_can_transcripts($dbh_ens, $seq_region_id);
@@ -2045,6 +2061,7 @@ sub get_coord_system_id{
     # Catch
     my $db_ensembl = $_[0];
     my $assembly = $_[1];
+    my $name = $_[2];
     
     my $user = "";
     my $pw = "";
@@ -2054,7 +2071,7 @@ sub get_coord_system_id{
     { RaiseError => 1},) || die "Database connection not made: $DBI::errstr";
     
     # Get correct coord_system_id
-    my $query = "SELECT coord_system_id FROM coord_system WHERE name = 'chromosome' AND version = '$assembly'";
+    my $query = "SELECT coord_system_id FROM coord_system WHERE name = '$name' AND version = '$assembly'";
     my $execute = $dbh->prepare($query);
     $execute->execute();
     
@@ -2288,11 +2305,17 @@ sub get_seq_region_id{
     my $dbh = $_[0];
     my $chr = $_[1];
     my $coord_system_id = $_[2];
+    my $coord_system_id_plasmid = $_[3];
     
     #Init
     my $seq_region_id;
     
-    my $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr';";
+    my $query = "";
+    if($chr =~ m/.+_SL1344$/){
+        $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id_plasmid' AND name = '$chr';";
+    } else {
+        $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr';";
+    }
     my $sth = $dbh->prepare($query);
     $sth->execute();
     $seq_region_id = $sth->fetch()->[0];
