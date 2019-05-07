@@ -44,7 +44,8 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
     1. [SearchGUI and PeptideShaker](#searchgui)
     2. [MaxQuant](#maxquant)
 7. [Copyright](#copyright)
-8. [More information](#moreinformation)
+8. [Publications](#publications)
+9. [More information](#moreinformation)
 
 
 ## Introduction <a name="introduction"></a>
@@ -1237,11 +1238,16 @@ python parse_maxquant_uniprot.py --help
 python analyse_proteoforms.py --help
 ```
 
+## Publications <a name="publications"></a>
+
+- Crappé, J., Ndah, E., Koch, A., Steyaert, S., Gawron, D., De Keulenaer, S., De Meester, E., De Meyer, T., Van Criekinge, W., Van Damme, P., and Menschaert, G. (2014) PROTEOFORMER: deep proteome coverage through ribosome profiling and MS integration. Nucleic Acids Res. 43, e29
+- Verbruggen S., Ndah E., Van Criekinge W., Gessulat S., Kuster B., Wilhelm M., Van Damme P. and Menschaert G. (2019). Molecular and Cellular Proteomics, [https://doi.org/10.1074/mcp.RA118.001218](https://doi.org/10.1074/mcp.RA118.001218)
+
 ## Copyright <a name="copyright"></a>
 
 Copyright (C) 2014 G. Menschaert, J.Crappé, E. Ndah, A. Koch & S. Steyaert
 
-Later updates: 2019 (in submission) S. Verbruggen, G. Menschaert, E. Ndah
+Later updates: Copyright (C) 2019  S. Verbruggen, G. Menschaert, E. Ndah
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
