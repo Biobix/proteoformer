@@ -1370,7 +1370,7 @@ def index_bams(bam_untr, bam_tr, readtype):
                 os.system("samtools index "+bam)
     elif readtype=='ribo_untr':
         if not os.path.isfile(bam_untr+".bai"):
-            os.system("samtools index "+bam)
+            os.system("samtools index "+bam_untr)
 
     return
 
