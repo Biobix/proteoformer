@@ -121,10 +121,12 @@ def main():
     speciesLatin = "Mus_musculus" if table_args.species == "mouse" else \
         "Homo_sapiens" if table_args.species == "human" else \
         "Arabidopsis_thaliana" if table_args.species == "arabidopsis" else \
+        "Caenorhabditis_elegans" if table_args.species == "c.elegans" else \
         "Drosophila_melanogaster" if table_args.species == "fruitfly" else ""
     speciesShort = "mmu" if table_args.species == "mouse" else \
         "hsa" if table_args.species == "human" else \
         "ath" if table_args.species == "arabidopsis" else \
+        "cel" if table_args.species == "c.elegans" else \
         "dme" if table_args.species == "fruitfly" else ""
     # Assembly
     assembly = "GRCm38" if table_args.species == "mouse" and table_args.ens_v >= 70 else \
@@ -132,6 +134,7 @@ def main():
         "GRCh38" if table_args.species == "human" and table_args.ens_v > 75 else \
         "GRCh37" if table_args.species == "human" and table_args.ens_v <= 75 else \
         "TAIR10" if table_args.species == "arabidopsis" else \
+        "WBcel235" if table_args.species == "c.elegans" else \
         "BDGP5" if table_args.species == "fruitfly" else ""
 
     # GTF file
