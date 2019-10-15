@@ -81,7 +81,7 @@ We set up our own Galaxy environment at: [http://galaxy.ugent.be](http://galaxy.
 Proteoformer is built in Perl 5, Python 2.7 and Bash. All necessary scripts are included in this GitHub repository.
 
 To prevent problems with missing dependencies, we included all necessary dependencies in a [Conda](https://conda.io/docs/) environment.
-For more information about Conda installation, click [here](https://conda.io/docs/user-guide/install/index.html).
+For more information about Conda installation, click [here](https://docs.conda.io/projects/conda/en/latest/user-guide/index.htmll).
 
 Once conda is installed, make sure to have the right channel order by executing following commands in the same order as listed here:
 
