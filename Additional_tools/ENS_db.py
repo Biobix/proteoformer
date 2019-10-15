@@ -22,6 +22,7 @@ ARGUMENTS:
                                             caenorhabditis_elegans      |   c.elegans
                                             SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
                                             MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
+                                            CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
 
 -h | --help                                 Print this useful help message
 
@@ -105,7 +106,7 @@ def main():
                    'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel','rat': 'rnv',
                    'rattus_norvegicus': 'rnv',
                    'MYC_ABS_ATCC_19977': 'MYC_ABS_ATCC_19977', 'mycobacterium_abscessus_atcc_19977': 'MYC_ABS_ATCC_19977',
-                   'SL1344': 'SL1344'};
+                   'SL1344': 'SL1344', 'CNECNA3' : 'CNECNA3', 'Cryptococcus_neoformans_var_grubii_h99_gca_000149245' : 'CNECNA3'};
 
 
     #
@@ -221,9 +222,15 @@ def main():
     elif (species=='MYC_ABS_ATCC_19977' or species=='mycobacterium_abscessus_atcc_19977'):
         core = 'bacteria_16_collection_core_' + ens_v +'_' + canEns_v + '_1.sql.gz'
         download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/bacteria//mysql/bacteria_16_collection_core_' + ens_v +'_' + canEns_v + '_1/', core)
+    elif (species=='CNECNA3' or species=='Cryptococcus_neoformans_var_grubii_h99_gca_000149245'):
+        core = 'fungi_basidiomycota1_collection_core_' + ens_v +'_' + canEns_v + '_1.sql.gz'
+        download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/fungi/mysql/fungi_basidiomycota1_collection_core_' + ens_v +'_' + canEns_v + '_1/', core)
+
+
+
     else:
         print("Error: unsupported species: " +species )
-        print("Supported species: human, fruitfy, mouse, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977")
+        print("Supported species: human, fruitfy, mouse, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977, CNECNA3, Cryptococcus_neoformans_var_grubii_h99_gca_000149245")
         sys.exit()
 
     #
@@ -449,6 +456,7 @@ ARGUMENTS:
                                             caenorhabditis_elegans      |   c.elegans
                                             SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
                                             MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
+                                            CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
 
 -h | --help                                 Print this useful help message
 
