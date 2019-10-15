@@ -32,6 +32,7 @@ __author__ = 'SV'
     c.elegans                   |   Caenorhabditis_elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
     MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
+    CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
     
     EXAMPLE:
     
@@ -120,9 +121,9 @@ def main():
         if(ens_v>31):
             print("Error: latest Ensembl Plants version is 29!")
             sys.exit()
-    elif(species =='SL1344' or species =='MYC_ABS_ATCC_19977'):
-        if(ens_v>40):
-            print("Error: latest Ensembl Bacteria version is 40!")
+    elif(species =='SL1344' or species =='MYC_ABS_ATCC_19977' or species =='CNECNA3'):
+        if(ens_v>45):
+            print("Error: latest Ensembl Bacteria/Fungi version is 45!")
             sys.exit()
     else:
         if(ens_v>89):
@@ -199,14 +200,17 @@ def main():
         speciesLong='SL1344'
         assembly='ASM21085v2'
     elif(species=='MYC_ABS_ATCC_19977'):
-        speciesLong='mycobacterium_abscessus_atcc_19977'
+        speciesLong='Mycobacterium_abscessus_atcc_19977'
         assembly='ASM6918v1'
+    elif(species=='CNECNA3'):
+        speciesLong='Cryptococcus_neoformans_var_grubii_h99_gca_000149245'
+        assembly='CNA3'
     else:
-        print("Species has to be one of the following list: human, mouse, fruitfly, yeast, zebrafish, arabidopsis, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344")
+        print("Species has to be one of the following list: human, mouse, fruitfly, yeast, zebrafish, arabidopsis, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344, cryptococcus_neoformans_var_grubii_h99_gca_000149245, CNECNA3")
         sys.exit()
 
     print("Assembly                                    : " + assembly)
-    if(species!='arabidopsis' and species!='SL1344' and species!='MYC_ABS_ATCC_19977'):
+    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3'):
         print("UCSC code                                   : " + ucscCode)
     print("")
 
@@ -299,6 +303,36 @@ def main():
             m = pattern.search(line)
             if m:
                 chromList[m.group(1)]=m.group(2)
+    elif(species=='CNECNA3'):
+        #For Fungi, chromosome sizes can be fetched out of the files where the Ensembl DB is build from
+        collection = '1'
+        canEns_v=str(ens_v+53) #Bacteria Ensembl releases are 53 less than the other species.
+        #first, search coord system id
+        print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
+        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
+        print ("gzip -d coord_system.txt.gz")
+        os.system("gzip -d coord_system.txt.gz")
+        coord_system_id=0
+        input = open('coord_system.txt', 'r')
+        if (species=='CNECNA3'):
+            for line in input: #For CNECNA3 we take the chromosome as coord_system (corresponds to "1" as last field)
+                pattern = re.compile('^(\d+)\t\d+\t\w+\t(\w+)\t1')
+                m = pattern.search(line)
+                if m:
+                    if(m.group(2)==assembly):
+                        coord_system_id=m.group(1)
+                        print (m.group(1)+" "+m.group(2))
+        #Then search for the chromosome in seq_region.txt
+        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/seq_region.txt.gz")
+        os.system("gzip -d seq_region.txt.gz")
+        input = open('seq_region.txt', 'r')
+        regex = r"\b(?=\w)^\d+\t(\w+)\t"+re.escape(coord_system_id)+r"\t(\d+)\b(?!\w)"
+        for line in input:
+            pattern = re.compile(regex)
+            m = pattern.search(line)
+            if m:
+                chromList[m.group(1)]=m.group(2)
+
     else:
         #Other species: download from UCSC
         os.system("wget -q ftp://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz")
@@ -324,7 +358,7 @@ def main():
     outFile.close()
     if(species=='arabidopsis'):
         os.system("rm -rf seq_region.txt")
-    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977'):
+    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977' or species=='CNECNA3'):
         os.system("rm -rf coord_system.txt")
         os.system("rm -rf seq_region.txt")
     else:
@@ -378,6 +412,9 @@ def main():
     elif(species=='MYC_ABS_ATCC_19977'):
         os.system("wget -q ftp://ftp.ensemblgenomes.org:21//pub/release-"+stringEns_v+"/bacteria/gtf/bacteria_16_collection/mycobacterium_abscessus_atcc_19977/Mycobacterium_abscessus_atcc_19977."+assembly+"."+stringEns_v+".gtf.gz")
         os.system("mv Mycobacterium_abscessus_atcc_19977."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
+    elif(species=='CNECNA3'):
+        os.system("wget -q ftp://ftp.ensemblgenomes.org:21//pub/release-"+stringEns_v+"/fungi/gtf/fungi_basidiomycota1_collection/cryptococcus_neoformans_var_grubii_h99_gca_000149245/Cryptococcus_neoformans_var_grubii_h99_gca_000149245."+assembly+"."+stringEns_v+".gtf.gz")
+        os.system("mv Cryptococcus_neoformans_var_grubii_h99_gca_000149245."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     else:
         os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     os.system("gunzip genesTmp.gtf.gz")
@@ -423,6 +460,8 @@ def main():
         readmeFile.write("Gene annotation files were downloaded from Ensembl Plants release "+stringEns_v+".")
     elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977'):
         readmeFile.write("Gene annotation files were downloaded from Ensembl Bacteria release "+stringEns_v+".")
+    elif(species=='CNECNA3' or species=='cryptococcus neoformans_var_grubii_h99_gca_000149245'):
+        readmeFile.write("Gene annotation files were downloaded from Ensembl Fungi release "+stringEns_v+".")
     else:
         readmeFile.write("Gene annotation files were downloaded from Ensembl release "+stringEns_v+".")
     readmeFile.close()
@@ -473,6 +512,12 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
             os.system("gunzip Mycobacterium_abscessus_atcc_19977."+assembly+".dna.toplevel.fa.gz")
             print(chr+"\n")
             os.system("mv Mycobacterium_abscessus_atcc_19977."+assembly+".dna.toplevel.fa "+chr+".fa")
+#    elif(species=='CNECNA3'):
+#            print("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/cryptococcus_neoformans_var_grubii_h99_gca_000149245/dna/Cryptococcus_neoformans_var_grubii_h99_gca_000149245."+assembly+".dna.toplevel.fa.gz")
+#            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/cryptococcus_neoformans_var_grubii_h99_gca_000149245/dna/Cryptococcus_neoformans_var_grubii_h99_gca_000149245."+assembly+".dna.toplevel.fa.gz")
+#            os.system("gunzip Cryptococcus_neoformans_var_grubii_h99_gca_000149245."+assembly+".dna.toplevel.fa.gz")
+#            print(chr+"\n")
+#            os.system("mv Cryptococcus_neoformans_var_grubii_h99_gca_000149245."+assembly+".dna.toplevel.fa "+chr+".fa")
     else:#use rsync for other species
         if(chr=='MT' or chr=='M'):
             if(species=='fruitfly'):#Other name 'dmel_mitochondrion_genome' for fruitfly
@@ -493,6 +538,11 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 else:
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 os.system("gunzip MT.fa.gz")
+            elif(species=='CNECNA3'): # MT for cryptococcus but wget rather than rsync protocol
+                print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz ")
+                os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz ")
+                os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz")
+                os.system("mv "+speciesLong+"."+assembly+".dna.chromosome.MT.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa")
             else:#MT for other species
                 if(ens_v>75):
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
@@ -500,12 +550,21 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 os.system("gunzip MT.fa.gz")
         else:
-            if(ens_v>75):
-                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+            if (species=='CNECNA3'):
+                print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
+                os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
+                os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")
+                os.system("mv "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa")
             else:
-                os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
-            os.system("gunzip "+chr+".fa.gz")
+                if(ens_v>75):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                os.system("gunzip "+chr+".fa.gz")
         print("\t\t*) Chromosome "+chr+" finished")
+
+
+
     return
 
 def print_help():
