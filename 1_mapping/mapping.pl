@@ -21,7 +21,6 @@
 ## 	For more (contact) information visit http://www.biobix.be/PROTEOFORMER
 #####################################
 
-#TEST
 $|=1;
 
 use strict;
