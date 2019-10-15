@@ -539,7 +539,7 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MtDNA.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 os.system("gunzip MT.fa.gz")
             elif(species=='CNECNA3'): # MT for cryptococcus but wget rather than rsync protocol
-                print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz ")
+                #print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz ")
                 os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz ")
                 os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz")
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome.MT.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa")
@@ -551,7 +551,7 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 os.system("gunzip MT.fa.gz")
         else:
             if (species=='CNECNA3'):
-                print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
+                #print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
                 os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
                 os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa")
