@@ -149,7 +149,7 @@ my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "SL1344") ? "ASM21085v2"
 : (uc($species) eq "ZEBRAFISH") ? "GRCz10"
 : (uc($species) eq "YEAST") ? "R64-1-1"
-: (uc($species) eq "CNECNA3" ? "CNA3"
+: (uc($species) eq "CNECNA3") ? "CNA3"
 : (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
 : (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
