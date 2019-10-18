@@ -230,6 +230,7 @@
                 <param name="adaptor" size="45" type="select" label="enter the adaptor sequence that needs to be clipped" multiple="false">
                     <option value="CTGTAGGCACCATCAAT" selected="true">CTGTAGGCACCATCAAT</option>
                     <option value="AGATCGGAAGAGCACAC">AGATCGGAAGAGCACAC</option>
+                    <option value="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA​">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA​</option>
                 </param>
                 <param name="readlength" value="36" type="integer" label="choose the read length"/>
                 <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
