@@ -211,8 +211,8 @@ if ($cores) {
 }
 
 #Conversion for species terminology
-my $spec = ($species eq "mouse") ? "Mus_musculus" : (uc($species) eq "SL1344") ? "SL1344" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
-my $spec_short = ($species eq "mouse") ? "mmu" : (uc($species) eq "SL1344") ? "sl1344" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
+my $spec = ($species eq "mouse") ? "Mus_musculus" : (uc($species) eq "SL1344") ? "SL1344" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
+my $spec_short = ($species eq "mouse") ? "mmu" : (uc($species) eq "SL1344") ? "sl1344" : (uc($species) eq "CNECNA3") ? "cnecna3" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
 my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "MOUSE" && $version < 70 ) ? "NCBIM37"
@@ -220,6 +220,7 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
 : (uc($species) eq "SL1344") ? "ASM21085v2"
+: (uc($species) eq "CNECNA3") ? "CNA3"
 : (uc($species) eq "FRUITFLY" && $version < 79) ? "BDGP5"
 : (uc($species) eq "FRUITFLY" && $version >= 79) ? "BDGP6" : "";
 

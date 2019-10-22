@@ -1271,8 +1271,8 @@ sub get_multiprocess_info{
     my ($ensemblversion,$ens_db,$species,$IGENOMES_ROOT,$cores) = get_arguments($dbh_results);
     
     #Conversion for species terminology
-    my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
-    my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
+    my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
+    my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : (uc($species) eq "CNECNA3") ? "cnecna3" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
     
     #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
     my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
@@ -1280,6 +1280,7 @@ sub get_multiprocess_info{
     : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
     : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
     : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
+    : (uc($species) eq "CNECNA3") ? "CNA3"
     : (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
     : (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
     
@@ -1967,6 +1968,7 @@ sub convert_species {
     my $species_peff = (uc($species) eq "MOUSE") ? "Mus musculus"
     : (uc($species) eq "HUMAN") ? "Homo sapiens"
     : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis thaliana"
+    : (uc($species) eq "CNECNA3") ? "Cryptococcus neoformans var. grubii H99"
     : (uc($species) eq "FRUITFLY") ? "Drosophila melanogaster" : "";
     #Error check
     if ($species_peff eq ""){
