@@ -989,7 +989,7 @@ def combine_data(all, filtered):
         orfs[id]['start_codon'] = all[orf]['start_codon']
         orfs[id]['price_annotation'] = all[orf]['price_annotation']
         orfs[id]['pval'] = filtered[orf]['pval']
-        orfs[id]['tr_stable_id'] = id.split('_')[0]
+        orfs[id]['tr_stable_id'] = id.rsplit('_',2)[0]
         #Parse location string
         m = re.search('^(.+)([\+\-]):(.+)',all[orf]['location'])
         if m:
