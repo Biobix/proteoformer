@@ -134,6 +134,7 @@
             <option value="human">human</option>
             <option value="fruitfly">fruitfly</option>
             <option value="arabidopsis">arabidopsis</option>
+            <option value="C.ELEGANS">C.elegans</option>
         </param>
         <param name="ensembl"  size="5"   value="86"             type="integer"   label="select the ensembl annotation version"/>
 
