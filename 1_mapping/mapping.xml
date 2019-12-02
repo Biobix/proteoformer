@@ -191,6 +191,7 @@
                     <option value="CTGTAGGCACCATCAAT" selected="true">CTGTAGGCACCATCAAT</option>
                     <option value="AGATCGGAAGAGCACAC">AGATCGGAAGAGCACAC</option>
                     <option value="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA​</option>
+                    <option value="TGGAATTCTC">TGGAATTCTC</option>
                 </param>
                 <param name="readlength" value="36" type="integer" label="choose the read length"/>
                 <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
