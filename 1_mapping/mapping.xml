@@ -187,12 +187,7 @@
             <when value="ribo">
                 <param name="input_file1" type="data" format="fastq" label="choose the FASTQ file (untreated RIBO-seq: no drug or CHX or Single End RNA-seq or Paired End RNA-seq file 1)" help="Must have ASCII encoded quality scores"/>
                 <param name="input_file2" type="data" format="fastq" label="choose the FASTQ file (treated RIBO-seq: PUR, LTM, HAR or Paired End RNA-seq file 1)" help="Must have ASCII encoded quality scores"/>
-                <param name="adaptor" size="45" type="select" label="enter the adaptor sequence that needs to be clipped" multiple="false">
-                    <option value="CTGTAGGCACCATCAAT" selected="true">CTGTAGGCACCATCAAT</option>
-                    <option value="AGATCGGAAGAGCACAC">AGATCGGAAGAGCACAC</option>
-                    <option value="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA​</option>
-                    <option value="TGGAATTCTC">TGGAATTCTC</option>
-                </param>
+                <param name="adaptor" value="CTGTAGGCACCATCAAT" type="text" size="45" label="enter the adaptor sequence that needs to be clipped"/>
                 <param name="readlength" value="36" type="integer" label="choose the read length"/>
                 <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
                     <option value="Y">Yes</option>
@@ -230,11 +225,7 @@
             
             <when value="ribo_untr">
                 <param name="input_file1" type="data" format="fastq" label="Choose the FASTQ file (untreated RIBO-seq: no drug or CHX)" help="Must have ASCII encoded quality scores"/>
-                <param name="adaptor" size="45" type="select" label="enter the adaptor sequence that needs to be clipped" multiple="false">
-                    <option value="CTGTAGGCACCATCAAT" selected="true">CTGTAGGCACCATCAAT</option>
-                    <option value="AGATCGGAAGAGCACAC">AGATCGGAAGAGCACAC</option>
-                    <option value="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</option>
-                </param>
+                <param name="adaptor" value="CTGTAGGCACCATCAAT" type="text" size="45" label="enter the adaptor sequence that needs to be clipped"/>
                 <param name="readlength" value="36" type="integer" label="choose the read length"/>
                 <param name="phix" type="select" label="Premapping on pHix sequence" multiple="false">
                     <option value="Y">Yes</option>
