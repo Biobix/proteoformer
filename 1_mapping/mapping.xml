@@ -81,7 +81,7 @@
             --out_bg_as_untr $PE_polyA_as_bg
             --out_sam_untr $PE_polyA_sam
             --out_sqlite $PE_polyA_out_sqlite
-            --truseq $readtype.$truseq
+            --truseq $readtype.truseq
 
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${PE_polyA_bam_tr}"
@@ -94,7 +94,7 @@
             --out_bg_as_untr $PE_total_as_bg
             --out_sam_untr $PE_total_sam
             --out_sqlite $PE_total_out_sqlite
-            --truseq $readtype.$truseq
+            --truseq $readtype.truseq
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${PE_total_bam_tr}"
 			#end if
@@ -105,7 +105,7 @@
             --out_sqlite $SE_polyA_out_sqlite
             --out_bg_s_untr $SE_polyA_s_bg
             --out_bg_as_untr $SE_polyA_as_bg
-            --truseq $readtype.$truseq
+            --truseq $readtype.truseq
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${SE_polyA_bam_tr}"
 			#end if
@@ -116,7 +116,7 @@
             --out_sqlite $SE_total_out_sqlite
             --out_bg_s_untr $SE_total_s_bg
             --out_bg_as_untr $SE_total_as_bg
-            --truseq $readtype.$truseq
+            --truseq $readtype.truseq
 			#if $choose.tr_coord == "Y"
             	--out_bam_tr_untr "${SE_total_bam_tr}"
 			#end if
