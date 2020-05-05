@@ -138,6 +138,13 @@ conda env create -f Dependency_envs/spectre.yml
 source activate spectre
 ```
 
+#### PRICE
+
+```
+conda env create -f Dependency_envs/price.yml
+source activate price
+```
+
 #### SRA download
 
 ```
@@ -731,7 +738,11 @@ Candidate translation products are stored in the SQLite results database in foll
 Another method uses the [PRICE](https://github.com/erhard-lab/gedi/wiki/Price) algorithm to pick up translation from 
 ribosome profiling data. PRICE (Probabilistic inference of codon activities by an EM algorithm) is a method to identify
 translated ORFs. Make sure you have the right Java distribution as stated on the 
-[wiki](https://github.com/erhard-lab/gedi/wiki/Price) of PRICE.
+[wiki](https://github.com/erhard-lab/gedi/wiki/Price) of PRICE. The right Java distribution is also available in a separate Conda [environment](#add_envs). You can activate this environment with following command:
+
+```
+source activate price
+```
 
 PROTEOFORMER contains a wrapper that fully executes PRICE and uses its results in order to obtain a candidate translation 
 product table similar to the assembly table. PRICE does not account for selenocysteines, so these cannot be included 
