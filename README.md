@@ -86,6 +86,7 @@ For more information about Conda installation, click [here](https://docs.conda.i
 Once conda is installed, make sure to have the right channel order by executing following commands in the same order as listed here:
 
 ```
+conda config --add channels gtcg
 conda config --add channels r
 conda config --add channels defaults
 conda config --add channels conda-forge
