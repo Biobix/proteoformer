@@ -359,10 +359,12 @@ unless ($min_cst_prime_offset){
 unless ($max_cst_prime_offset){
     $max_cst_prime_offset = 40;
 }
-if ($suite eq "cst_5prime" || $suite eq "cst_3prime"){
-    print "Constant prime ofset                                      : $cst_prime_offset\n";
-    print "Minimum RPF length for constant prime offsets             : $min_cst_prime_offset\n";
-    print "Maximum RPF length for constant prime offsets             : $max_cst_prime_offset\n";
+if($readtype eq "ribo" || $readtype eq "ribo_untr"){
+    if ($suite eq "cst_5prime" || $suite eq "cst_3prime"){
+        print "Constant prime ofset                                      : $cst_prime_offset\n";
+        print "Minimum RPF length for constant prime offsets             : $min_cst_prime_offset\n";
+        print "Maximum RPF length for constant prime offsets             : $max_cst_prime_offset\n";
+    }
 }
 if($readtype eq "ribo" || $readtype eq "ribo_untr"){
     if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
@@ -389,10 +391,10 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
         print "Mapping suite                                               : $suite\n";
     }
 } else {
-    if($suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
-        die "Standard and plastid suite only for RIBO data!";
-    } elsif (!defined($suite)){
+    if(!defined($suite)){
         $suite = "custom";
+    } elsif($suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
+        die "Standard and plastid suite only for RIBO data!";
     }
     print "Mapping suite                                               : $suite\n";
 }
@@ -1613,7 +1615,7 @@ sub store_statistics {
 
     ###############
     ## STATISTICS
-    ##
+    ###############
 
     # Print
     print "Processing statistics!\n";
@@ -1657,7 +1659,25 @@ sub store_statistics {
     }
 
     close(IN);
-    print Dumper ($stat);
+    
+    #Print statistics to stdout
+    print "\nMapping statistics:\n";
+    my @possible_refs = ("phix","rRNA","snRNA","tRNA","genomic");
+    my @possible_scores = ("fastq","hit","hitU","hitM","unhit");
+    foreach my $sample (keys %$stat) {
+        print "Sample: ".$sample."\n";
+        foreach my $ref(@possible_refs){
+            if(exists($stat->{$sample}->{$ref})){
+                print "\tReference: ".$ref."\n";
+                foreach my $score(@possible_scores){
+                    if(exists($stat->{$sample}->{$ref}->{$score})){
+                        print "\t\t".$score.": ".$stat->{$sample}->{$ref}->{$score}."\n";
+                    }
+                }
+            }
+        }
+    }
+    print "\n";
 
     my $query_table = "CREATE TABLE IF NOT EXISTS `statistics` (
     `sample` varchar(200) default NULL,
@@ -1675,45 +1695,21 @@ sub store_statistics {
     $dbh_sqlite_results->do($query_table);
 
     foreach my $sample (keys %$stat){
-
-        my $prev_ref;
         foreach my $ref (keys %{$stat->{$sample}}) {
-            #The previous ma
-            if (uc($mapper) eq 'STAR' || uc($mapper) eq 'TOPHAT2' || uc($mapper) eq 'BOWTIE' || uc($mapper) eq 'BOWTIE2') {
-                if (uc($readtype) eq 'RIBO' || $readtype eq "ribo_untr") {
-                    $prev_ref = ($ref eq "genomic") ? "rRNA" : "";
-                    $total = ($ref eq "rRNA" || $ref eq "phix" || $ref eq "snRNA" || $ref eq "tRNA") ? $stat->{$sample}->{$ref}->{"fastq"} : $stat->{$sample}->{$prev_ref}->{"unhit"};
-
-                } elsif (uc($readtype) =~ m/POLYA/) {
-                    $prev_ref = "";
-                    $total = ($ref eq "genomic") ? $stat->{$sample}->{$ref}->{"fastq"} : "";
-                }
-            }
-
-            my $query;
-
-
+             my $query;
             if ((uc($mapper) eq "STAR" || uc($mapper) eq "TOPHAT2" || uc($mapper) eq 'BOWTIE' || uc($mapper) eq 'BOWTIE2') && $ref eq "genomic" ) {
-
                 my $freq_U =  $stat->{$sample}->{$ref}->{"hitU"} / $stat->{$sample}->{$ref}->{"fastq"};
                 my $freq_M =  $stat->{$sample}->{$ref}->{"hitM"} / $stat->{$sample}->{$ref}->{"fastq"};
                 my $freq_T = $freq_U + $freq_M;
                 my $map_T  = $stat->{$sample}->{$ref}->{"hitM"} + $stat->{$sample}->{$ref}->{"hitU"};
-                my $total  = $stat->{$sample}->{$ref}->{"fastq"};
-
-                $query = "INSERT INTO statistics (sample,type,total,mapped_U,mapped_M,mapped_T,unmapped,map_freq_U,map_freq_M,map_freq_T) VALUES (\'".$sample."\',\'".$ref."\',\'".$total."\',\'".$stat->{$sample}->{$ref}->{"hitU"}."\',\'".$stat->{$sample}->{$ref}->{"hitM"}."\',\'".$map_T."\',\'".$stat->{$sample}->{$ref}->{"unhit"}."\',\'".$freq_U."\',\'".$freq_M."\',\'".$freq_T."\')";
-
+                
+                $query = "INSERT INTO statistics (sample,type,total,mapped_U,mapped_M,mapped_T,unmapped,map_freq_U,map_freq_M,map_freq_T) VALUES (\'".$sample."\',\'".$ref."\',\'".$stat->{$sample}->{$ref}->{"fastq"}."\',\'".$stat->{$sample}->{$ref}->{"hitU"}."\',\'".$stat->{$sample}->{$ref}->{"hitM"}."\',\'".$map_T."\',\'".$stat->{$sample}->{$ref}->{"unhit"}."\',\'".$freq_U."\',\'".$freq_M."\',\'".$freq_T."\')";
             } else {
+                my $freq = $stat->{$sample}->{$ref}->{"hit"} / $stat->{$sample}->{$ref}->{"fastq"};
 
-                my $freq =  ($prev_ref eq "")       ? $stat->{$sample}->{$ref}->{"hit"} / $stat->{$sample}->{$ref}->{"fastq"}
-                :  ($prev_ref eq "rRNA")   ? $stat->{$sample}->{$ref}->{"hit"} / $stat->{$sample}->{$prev_ref}->{"unhit"}
-                :  ($prev_ref eq "cDNA")   ? $stat->{$sample}->{$ref}->{"hit"} / $stat->{$sample}->{$prev_ref}->{"unhit"} : "";
-
-                $query = "INSERT INTO statistics (sample,type,total,mapped_T,unmapped,map_freq_T) VALUES (\'".$sample."\',\'".$ref."\',\'".$total."\',\'".$stat->{$sample}->{$ref}->{"hit"}."\',\'".$stat->{$sample}->{$ref}->{"unhit"}."\',\'".$freq."\')";
+                $query = "INSERT INTO statistics (sample,type,total,mapped_T,unmapped,map_freq_T) VALUES (\'".$sample."\',\'".$ref."\',\'".$stat->{$sample}->{$ref}->{"fastq"}."\',\'".$stat->{$sample}->{$ref}->{"hit"}."\',\'".$stat->{$sample}->{$ref}->{"unhit"}."\',\'".$freq."\')";
             }
-
             $dbh_sqlite_results->do($query);
-
         }
     }
 
