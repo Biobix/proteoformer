@@ -17,6 +17,7 @@ ARGUMENTS:
 
                                             human                       |   homo_sapiens
                                             mouse                       |   mus_musculus
+                                            horse						|   equus_caballus
                                             fruitfly                    |   drosophila_melanogaster
                                             saccharomyces_cerevisiae    |   yeast
                                             caenorhabditis_elegans      |   c.elegans
@@ -31,7 +32,7 @@ The Ensembl database will be installed in the current directory ( directory wher
 
 EXAMPLE:
 
-python ENS_db.py -v 78 -s human
+python ENS_db.py -v 98 -s human
 
 DEPENDENCIES:
 
@@ -100,9 +101,9 @@ def main():
     # Dictionary for 3letter abbreviation for species
     #
 
-    speciesdict = {'zebrafish': 'dre','danio_rerio': 'dre','human': 'hsa', 'mouse': 'mmu', 'fruitfly': 'dme',
+    speciesdict = {'zebrafish': 'dre','danio_rerio': 'dre','human': 'hsa', 'mouse': 'mmu', 'horse': 'eca', 'fruitfly': 'dme',
                    'yeast': 'sce', 'c.elegans': 'cel',
-                   'homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'drosophila_melanogaster': 'dme',
+                   'homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'equus_caballus': 'eca', 'drosophila_melanogaster': 'dme',
                    'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel','rat': 'rnv',
                    'rattus_norvegicus': 'rnv',
                    'MYC_ABS_ATCC_19977': 'MYC_ABS_ATCC_19977', 'mycobacterium_abscessus_atcc_19977': 'MYC_ABS_ATCC_19977',
@@ -154,7 +155,7 @@ def main():
 
     canEns_v=str(int(ens_v)+53) #Plant and Bacteria Ensembl releases are 53 less than the other species.
     if (species=='human' or species=='homo_sapiens'):
-        if(int(ens_v) >= 76 and int(ens_v) <= 92):
+        if(int(ens_v) >= 76 and int(ens_v) <= 100):
              core='/homo_sapiens_core_' + ens_v + '_38.sql.gz'
              download('ftp://ftp.ensembl.org/pub/release-'+ ens_v +'/mysql/homo_sapiens_core_' + ens_v + '_38/',core)
         elif(int(ens_v) >= 74 and int(ens_v) <= 75):
@@ -162,23 +163,31 @@ def main():
              download('ftp://ftp.ensembl.org/pub/release-'+ ens_v +'/mysql/homo_sapiens_core_' + ens_v + '_37/',core)
         else:
             print("ERROR: unsupported ensembl version: " + ens_v)
-            print("supported ensembl versions: from 74 till 88")
+            print("supported ensembl versions: human from 74 till 100")
             sys.exit()
     elif (species=='rat' or species=='rattus_norvegicus'):
-        if(int(ens_v) >= 74 and int(ens_v) <= 90):
+        if(int(ens_v) >= 74 and int(ens_v) <= 100):
             core='/rattus_norvegicus_core_'+str(ens_v)+'_6.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/rattus_norvegicus_core_' + ens_v +'_6/',core)
         else:
             print("ERROR: unsupported ensembl version: " + ens_v)
-            print("supported ensembl versions: from 75 till 88")
+            print("supported ensembl versions: from 75 till 100")
             sys.exit()
     elif (species=='mouse' or species=='mus_musculus'):
-        if(int(ens_v) >= 74 and int(ens_v) <= 90):
+        if(int(ens_v) >= 74 and int(ens_v) <= 100):
             core='/mus_musculus_core_' + ens_v + '_38.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/mus_musculus_core_' + ens_v +'_38/',core)
         else:
             print("ERROR: unsupported ensembl version: " + ens_v)
-            print("supported ensembl versions: from 75 till 88")
+            print("supported ensembl versions: from 75 till 100")
+            sys.exit()
+    elif (species=='horse' or species=='equus_caballus'):
+        if(int(ens_v) >= 74 and int(ens_v) <= 100):
+            core='/equus_caballus_core_' + ens_v + '_3.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/equus_caballus_core_' + ens_v +'_3/',core)
+        else:
+            print("ERROR: unsupported ensembl version: " + ens_v)
+            print("supported ensembl versions: from 75 till 100")
             sys.exit()
     elif (species=='fruitfly' or species=='drosophila_melanogaster'):
         if(int(ens_v) >= 74 and int(ens_v) <= 90):
@@ -451,6 +460,8 @@ ARGUMENTS:
 
                                             human                       |   homo_sapiens
                                             mouse                       |   mus_musculus
+                                            rat							|   rattus_norvegicus
+                                            horse						|   equus_caballus
                                             fruitfly                    |   drosophila_melanogaster
                                             saccharomyces_cerevisiae    |   yeast
                                             caenorhabditis_elegans      |   c.elegans
@@ -465,7 +476,7 @@ The Ensembl database will be installed in the current directory ( directory wher
 
 EXAMPLE:
 
-python ENS_db.py -v 78 -s human
+python ENS_db.py -v 98 -s human
 
 DEPENDENCIES:
 
