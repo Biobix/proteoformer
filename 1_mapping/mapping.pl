@@ -443,35 +443,35 @@ my $run_name_short = $run_name;
 $run_name = $run_name."_".$mapper."_".$unique."_".$ensemblversion;
 
 #Conversion for species terminology
-my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus"
-: (uc($species) eq "RAT") ? "Rattus_norvegicus"
+my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" 
+: (uc($species) eq "RAT") ? "Rattus_norvegicus" 
+: (uc($species) eq "HORSE") ? "Equus_caballus" 
 : (uc($species) eq "C.ELEGANS") ? "Caenorhabditis_elegans"
-: (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245"
-: (uc($species) eq "SL1344") ? "SL1344"
-: (uc($species) eq "MYC_ABS_ATCC_19977") ? "mycobacterium_abscessus_atcc_19977"
-: (uc($species) eq "HUMAN") ? "Homo_sapiens"
-: (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana"
-: (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster"
-: (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae"
-: (uc($species) eq "ZEBRAFISH") ? "Danio_rerio"
-: "";
-my $spec_short = (uc($species) eq "MOUSE") ? "mmu"
-: (uc($species) eq "RAT") ? "rnor"
-: (uc($species) eq "C.ELEGANS") ? "che"
-: (uc($species) eq "CNECNA3") ? "cnecna3"
-: (uc($species) eq "SL1344") ? "sl1344"
-: (uc($species) eq "MYC_ABS_ATCC_19977") ? "MYC_ABS_ATCC_19977"
-: (uc($species) eq "HUMAN") ? "hsa"
-: (uc($species) eq "ARABIDOPSIS") ? "ath"
-: (uc($species) eq "FRUITFLY") ? "dme"
-: (uc($species) eq "YEAST") ? "sce"
-: (uc($species) eq "ZEBRAFISH") ? "dre"
-: "";
+: (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" 
+: (uc($species) eq "SL1344") ? "SL1344" 
+: (uc($species) eq "MYC_ABS_ATCC_19977") ? "mycobacterium_abscessus_atcc_19977" 
+: (uc($species) eq "HUMAN") ? "Homo_sapiens" 
+: (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" 
+: (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" 
+: (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" 
+: (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
+my $spec_short = (uc($species) eq "MOUSE") ? "mmu" 
+: (uc($species) eq "RAT") ? "rnor" 
+: (uc($species) eq "HORSE") ? "eca" 
+: (uc($species) eq "CNECNA3") ? "cnecna3" 
+: (uc($species) eq "SL1344") ? "sl1344" 
+:  (uc($species) eq "MYC_ABS_ATCC_19977") ? "MYC_ABS_ATCC_19977" 
+:(uc($species) eq "HUMAN") ? "hsa" 
+: (uc($species) eq "ARABIDOPSIS") ? "ath" 
+: (uc($species) eq "FRUITFLY") ? "dme" 
+: (uc($species) eq "YEAST") ? "sce" 
+: (uc($species) eq "ZEBRAFISH") ? "dre" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
 my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
 : (uc($species) eq "RAT" && $ensemblversion >=80 ) ? "Rnor_6.0"
 : (uc($species) eq "RAT" && $ensemblversion < 80) ? "Rnor_5.0"
+: (uc($species) eq "HORSE" && $ensemblversion > 94) ? "EquCab3.0"
 : (uc($species) eq "C.ELEGANS") ? "WBcel235"
 : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
@@ -482,8 +482,7 @@ my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "YEAST") ? "R64-1-1"
 : (uc($species) eq "CNECNA3") ? "CNA3"
 : (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
-: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6"
-: "";
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
 #Names for STAR/Bowtie2/Bowtie Indexes
 #rRNA
@@ -1055,6 +1054,7 @@ sub map_STAR {
 
                 # Rename unmapped.out.mate1 for further analysis
                 system("mv ".$work_dir."/fastq/Unmapped.out.mate1 ".$work_dir."/fastq/".$seqFileName."_norrna_nosnrna.fq"); #For further processing against genomic!!
+                print "mv ".$work_dir."/fastq/Unmapped.out.mate1 ".$work_dir."/fastq/".$seqFileName."_norrna_nosnrna.fq \n";
             }
         $fasta = $work_dir."/fastq/$seqFileName"."_norrna_nosnrna.fq";
         }
@@ -1089,7 +1089,7 @@ sub map_STAR {
 
                 # Rename unmapped.out.mate1 for further analysis
                 system("mv ".$work_dir."/fastq/Unmapped.out.mate1 ".$work_dir."/fastq/".$seqFileName."_norrna_nosnrna_notrna.fq"); #For further processing against genomic!!
-
+				print "mv ".$work_dir."/fastq/Unmapped.out.mate1 ".$work_dir."/fastq/".$seqFileName."_norrna_nosnrna_notrna.fq \n";
             }
         $fasta = $work_dir."/fastq/$seqFileName"."_norrna_nosnrna_notrna.fq";
         }
@@ -1659,7 +1659,7 @@ sub store_statistics {
     }
 
     close(IN);
-    
+
     #Print statistics to stdout
     print "\nMapping statistics:\n";
     my @possible_refs = ("phix","rRNA","snRNA","tRNA","genomic");
@@ -1678,6 +1678,7 @@ sub store_statistics {
         }
     }
     print "\n";
+    
 
     my $query_table = "CREATE TABLE IF NOT EXISTS `statistics` (
     `sample` varchar(200) default NULL,
@@ -2054,7 +2055,7 @@ Example:
             --inputfile1                        the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq (mandatory)
             --inputfile2                        the fastq file of the treated data for RIBO-seq (PUR,LTM,HARR) or the 2nd fastq for paired-end RNA-seq (mandatory)
             --name                              Name of the run (mandatory)
-            --species                           Species: mouse/rat/human/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977 (mandatory)
+            --species                           Species: mouse/rat/horse/human/c.elegans/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977 (mandatory)
             --ensembl                           Ensembl annotation version (mandatory)
             --igenomes_root                     iGenomes root folder (mandatory)
             --cores                             Number of cores to use for Bowtie Mapping (mandatory)
