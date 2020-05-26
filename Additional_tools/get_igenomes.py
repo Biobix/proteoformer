@@ -25,18 +25,19 @@ __author__ = 'SV'
     human                       |   Homo_sapiens
     mouse                       |   Mus_musculus
     rat                         |   Rattus norvegicus
+    horse                       |   Equus caballus
     fruitfly                    |   Drosophila_melanogaster
-    yeast                       |   Saccharomyces_cerevisiae
-    zebrafish                   |   Danio_rerio
-    arabidopsis                 |   Arabidopsis_thaliana
-    c.elegans                   |   Caenorhabditis_elegans
+    yeast                       |   Saccharomyces cerevisiae
+    zebrafish                   |   Danio rerio
+    arabidopsis                 |   Arabidopsis thaliana
+    c.elegans                   |   Caenorhabditis elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
     MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
     CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
     
     EXAMPLE:
     
-    python get_igenomes.py -v 82 -s human -d /path/to/dir -r -c 15
+    python get_igenomes.py -v 98 -s human -d /path/to/dir -r -c 15
     
     python get_igenomes.py -v 31 -s arabidopsis -d /path/to/dir -r -c 15
     
@@ -126,8 +127,8 @@ def main():
             print("Error: latest Ensembl Bacteria/Fungi version is 45!")
             sys.exit()
     else:
-        if(ens_v>89):
-            print("Error: latest Ensembl version is 84!")
+        if(ens_v>100):
+            print("Error: latest Ensembl version is 100!")
             sys.exit()
     #Remove last "/" from instal dir path
     pattern=re.compile('^(\S+)/$')
@@ -165,6 +166,16 @@ def main():
         else:
             assembly='Rnor_5.0'
             ucscCode='rn5'
+#####TO EDIT
+    elif(species=='horse'):
+        speciesLong='Equus_caballus'
+        if(ens_v>94):
+            assembly='EquCab3.0'
+            ucscCode='equCab3'
+        else:
+        	print("Horse ensembl version needs to be 95 or higher")
+        	sys.exit()
+#####TO EDIT            
     elif(species=='fruitfly'):
         speciesLong='Drosophila_melanogaster'
         if(ens_v>78):
@@ -544,8 +555,9 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz")
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome.MT.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa")
             else:#MT for other species
-                if(ens_v>75):
+                if(ens_v>75 and species <> "horse"):
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                    #print ("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 else:
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 os.system("gunzip MT.fa.gz")
@@ -557,9 +569,14 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa")
             else:
                 if(ens_v>75):
-                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                	if (species=="horse"):
+                		os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                		#print("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                	else:
+                		os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                		#print("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
                 else:
-                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                    os.system("rsync -avq rsync://ftp.ensembl.org/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
                 os.system("gunzip "+chr+".fa.gz")
         print("\t\t*) Chromosome "+chr+" finished")
 
@@ -586,6 +603,7 @@ def print_help():
     human                       |   Homo_sapiens
     mouse                       |   Mus_musculus
     rat                         |   Rattus norvegicus
+    horse						|   Equus caballus
     fruitfly                    |   Drosophila_melanogaster
     yeast                       |   Saccharomyces_cerevisiae
     zebrafish                   |   Danio_rerio
