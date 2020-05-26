@@ -211,18 +211,48 @@ if ($cores) {
 }
 
 #Conversion for species terminology
-my $spec = ($species eq "mouse") ? "Mus_musculus" : (uc($species) eq "SL1344") ? "SL1344" : ($species eq "human") ? "Homo_sapiens" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
-my $spec_short = ($species eq "mouse") ? "mmu" : (uc($species) eq "SL1344") ? "sl1344" : (uc($species) eq "CNECNA3") ? "cnecna3" : ($species eq "human") ? "hsa" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
+my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" 
+: (uc($species) eq "RAT") ? "Rattus_norvegicus" 
+: (uc($species) eq "HORSE") ? "Equus_caballus" 
+: (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" 
+: (uc($species) eq "SL1344") ? "SL1344" 
+: (uc($species) eq "MYC_ABS_ATCC_19977") ? "mycobacterium_abscessus_atcc_19977" 
+: (uc($species) eq "HUMAN") ? "Homo_sapiens" 
+: (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" 
+: (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" 
+: (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" 
+: (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
+my $spec_short = (uc($species) eq "MOUSE") ? "mmu" 
+: (uc($species) eq "RAT") ? "rnor" 
+: (uc($species) eq "HORSE") ? "eca" 
+: (uc($species) eq "CNECNA3") ? "cnecna3" 
+: (uc($species) eq "SL1344") ? "sl1344" 
+:  (uc($species) eq "MYC_ABS_ATCC_19977") ? "MYC_ABS_ATCC_19977" 
+:(uc($species) eq "HUMAN") ? "hsa" 
+: (uc($species) eq "ARABIDOPSIS") ? "ath" 
+: (uc($species) eq "FRUITFLY") ? "dme" 
+: (uc($species) eq "YEAST") ? "sce" 
+: (uc($species) eq "ZEBRAFISH") ? "dre" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
 my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "MOUSE" && $version < 70 ) ? "NCBIM37"
+: (uc($species) eq "RAT" && $version >=80 ) ? "Rnor_6.0"
+: (uc($species) eq "RAT" && $version < 80) ? "Rnor_5.0"
+: (uc($species) eq "HORSE" && $version > 94) ? "EquCab3.0"
 : (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
 : (uc($species) eq "SL1344") ? "ASM21085v2"
+: (uc($species) eq "MYC_ABS_ATCC_19977") ? "ASM6918v1"
+: (uc($species) eq "ZEBRAFISH") ? "GRCz10"
+: (uc($species) eq "YEAST") ? "R64-1-1"
 : (uc($species) eq "CNECNA3") ? "CNA3"
 : (uc($species) eq "FRUITFLY" && $version < 79) ? "BDGP5"
 : (uc($species) eq "FRUITFLY" && $version >= 79) ? "BDGP6" : "";
+
+# Also take into account the assembly type, eg. for horse, GM20200620
+my $assembly_type = (uc($species) eq "HORSE") ? 'primary_assembly' : 'chromosome';
+
 
 # Get chromosomes and correct coord_system_id
 print "Get chromosomes and coord_system_id...\n";
@@ -232,7 +262,13 @@ $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/
 ## Get chromosome sizes and cDNA identifiers #############
 print "Getting chromosome sizes and cDNA to chromosome mappings ...\n";
 my %chr_sizes = %{get_chr_sizes($chromosome_sizes)};
-$coord_system_id = get_coord_system_id($ens_db,$assembly,'chromosome');
+
+
+#Ensembl HORSE does not contain the MT chromosome, the UCSC data (where the ChromInfo.txt is obtained) does contain MT
+if (uc($species) eq "HORSE") { delete($chr_sizes{"MT"}) };
+
+
+$coord_system_id = get_coord_system_id($ens_db,$assembly, $assembly_type);
 my $coord_system_id_plasmid = '';
 # Get coord system id for the SL1344 plasmids, if necessary
 if(uc($species) eq "SL1344"){
@@ -267,7 +303,8 @@ my $db_ENS  = $ens_db;
 my $dsn_ENS = "DBI:SQLite:dbname=$db_ENS";
 my $us_ENS  = "";
 my $pw_ENS  = "";
-my $chrs = get_chrs($dsn_ENS,$us_ENS,$pw_ENS,\%chr_sizes,$assembly);
+my $chrs = get_chrs($dsn_ENS,$us_ENS,$pw_ENS,\%chr_sizes,$assembly, $assembly_type);
+
 
 # Create binary chromosomes if they don't exist
 print "Checking/Creating binary chrom files ...\n";
@@ -383,6 +420,7 @@ my $pm = new Parallel::ForkManager($cores);
 print "   Using ".$cores." core(s)\n   ---------------\n";
 
 foreach my $chr (keys %chr_sizes){
+    
     
     ### Start parallel process
     $pm->start and next;
@@ -2117,6 +2155,7 @@ sub get_chrs {
     my $pw          =   $_[2];
     my $chr_sizes   =   $_[3];
     my $assembly    =   $_[4];
+    my $assembly_type    =   $_[5];
     
     # Init
     my $chrs    =   {};
@@ -2124,7 +2163,7 @@ sub get_chrs {
     my ($line,@chr,$coord_system_id,$seq_region_id,@ids,@coord_system);
     
     # Get correct coord_system_id
-    my $query = "SELECT coord_system_id FROM coord_system where name = 'chromosome' and version = '".$assembly."'";
+    my $query = "SELECT coord_system_id FROM coord_system where name = '".$assembly_type."' and version = '".$assembly."'";
     my $sth = $dbh->prepare($query);
     $sth->execute();
     @coord_system = $sth->fetchrow_array;
@@ -2362,7 +2401,7 @@ sub create_BIN_chromosomes {
         ## Start parallel process
         $pm->start and next;
         
-        open (CHR,"<".$IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes/".$chr.".fa") || die "Cannot open chr fasta input\n";
+        open (CHR,"<".$IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Sequence/Chromosomes/".$chr.".fa") || die "Cannot open ".$chr." fasta input\n";
         open (CHR_BIN,">".$TMP."/".$chr.".fa");
         
         while (<CHR>){
