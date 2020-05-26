@@ -136,49 +136,49 @@ print "The following igenomes folder is used			 : $IGENOMES_ROOT\n";
 print "Number of cores to use for analysis			 : $cores\n";
 
 #Conversion for species terminology
-my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus"
-: (uc($species) eq "RAT") ? "Rattus_norvegicus"
+my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" 
+: (uc($species) eq "RAT") ? "Rattus_norvegicus" 
+: (uc($species) eq "HORSE") ? "Equus_caballus" 
 : (uc($species) eq "C.ELEGANS") ? "Caenorhabditis_elegans"
-: (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245"
-: (uc($species) eq "SL1344") ? "SL1344"
-: (uc($species) eq "HUMAN") ? "Homo_sapiens"
-: (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana"
-: (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster"
-: (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae"
-: (uc($species) eq "ZEBRAFISH") ? "Danio_rerio"
-: "";
-my $spec_short = (uc($species) eq "MOUSE") ? "mmu"
-: (uc($species) eq "RAT") ? "rnor"
-: (uc($species) eq "C.ELEGANS") ? "che"
-: (uc($species) eq "CNECNA3") ? "cnecna3"
-: (uc($species) eq "SL1344") ? "sl1344"
-: (uc($species) eq "HUMAN") ? "hsa"
-: (uc($species) eq "ARABIDOPSIS") ? "ath"
-: (uc($species) eq "FRUITFLY") ? "dme"
-: (uc($species) eq "YEAST") ? "sce"
-: (uc($species) eq "ZEBRAFISH") ? "dre"
-: "";
+: (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" 
+: (uc($species) eq "SL1344") ? "SL1344" 
+: (uc($species) eq "MYC_ABS_ATCC_19977") ? "mycobacterium_abscessus_atcc_19977" 
+: (uc($species) eq "HUMAN") ? "Homo_sapiens" 
+: (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" 
+: (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" 
+: (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" 
+: (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
+my $spec_short = (uc($species) eq "MOUSE") ? "mmu" 
+: (uc($species) eq "RAT") ? "rnor" 
+: (uc($species) eq "HORSE") ? "eca" 
+: (uc($species) eq "CNECNA3") ? "cnecna3" 
+: (uc($species) eq "SL1344") ? "sl1344" 
+:  (uc($species) eq "MYC_ABS_ATCC_19977") ? "MYC_ABS_ATCC_19977" 
+:(uc($species) eq "HUMAN") ? "hsa" 
+: (uc($species) eq "ARABIDOPSIS") ? "ath" 
+: (uc($species) eq "FRUITFLY") ? "dme" 
+: (uc($species) eq "YEAST") ? "sce" 
+: (uc($species) eq "ZEBRAFISH") ? "dre" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
 my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
-: (uc($species) eq "RAT" && $ensemblversion >= 80 ) ? "Rnor-6.0"
-: (uc($species) eq "RAT" && $ensemblversion < 80 ) ? "Rnor-5.0"
+: (uc($species) eq "RAT" && $ensemblversion >=80 ) ? "Rnor_6.0"
+: (uc($species) eq "RAT" && $ensemblversion < 80) ? "Rnor_5.0"
+: (uc($species) eq "HORSE" && $ensemblversion > 94) ? "EquCab3.0"
 : (uc($species) eq "C.ELEGANS") ? "WBcel235"
 : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
 : (uc($species) eq "SL1344") ? "ASM21085v2"
+: (uc($species) eq "MYC_ABS_ATCC_19977") ? "ASM6918v1"
 : (uc($species) eq "ZEBRAFISH") ? "GRCz10"
 : (uc($species) eq "YEAST") ? "R64-1-1"
 : (uc($species) eq "CNECNA3") ? "CNA3"
 : (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
-: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6"
-: "";
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
 
 my $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";
-#print "chromosome_sizes_file=".$IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt\n";
-
-
+print "chromosome_sizes_file=".$IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt\n";
 
 
 ####################
