@@ -243,7 +243,7 @@ Additional documentation can be found in the help message of the module.
 
 If you download the raw data (FASTQ) from SRA, you can use the [SRA toolkit](https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=toolkit_doc&f=std).
 However, we made a module to speed up this downloading process by using multiple cores of your system for multiple files
-at once. Use the specific environment for this tool, if using this module. For example:
+at once. Use the specific environment for this tool, while using this module. For example:
 
 ```
 source activate download_sra_parallel
