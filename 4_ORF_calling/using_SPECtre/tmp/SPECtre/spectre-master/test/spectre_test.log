@@ -1,0 +1,124 @@
+2016-02-17 15:54:34,445 - __main__ - INFO - extract_fpkms(): Parsing transcript FPKMs from file: isoforms-test.fpkm_tracking into memory... [STARTED]
+2016-02-17 15:54:34,463 - __main__ - INFO - extract_fpkms(): Parsing transcript FPKMs from file: isoforms-test.fpkm_tracking into memory... [COMPLETE]
+2016-02-17 15:54:34,464 - __main__ - INFO - parse_gtf/main(): Parsing transcript coordinates from GTF: Homo_sapiens.GRCh38.78.test.gtf into memory... [STARTED]
+2016-02-17 15:54:34,880 - __main__ - INFO - parse_gtf/main(): Parsing transcript coordinates from GTF: Homo_sapiens.GRCh38.78.test.gtf into memory... [COMPLETE]
+2016-02-17 15:54:34,881 - __main__ - INFO - parse_gtf/interval_tree(): Parsing transcript intervals from GTF into an IntervalTree()... [STARTED]
+2016-02-17 15:54:34,921 - __main__ - INFO - parse_gtf/interval_tree(): Parsing transcript intervals from GTF into an IntervalTree()... [COMPLETE]
+2016-02-17 15:54:34,921 - __main__ - INFO - parse_gtf/append_stop_coordinates(): Appending stop coordinates to parsed GTF.. [STARTED]
+2016-02-17 15:54:34,955 - __main__ - INFO - parse_gtf/append_stop_coordinates(): Appending stop coordinates to parsed GTF.. [COMPLETE]
+2016-02-17 15:54:34,955 - __main__ - INFO - parse_gtf/partition_utr_coordinates(): Partitioning 5' and 3' UTR entries from loaded GTF.. [STARTED]
+2016-02-17 15:54:34,986 - __main__ - INFO - parse_gtf/partition_utr_coordinates(): Partitioning 5' and 3' UTR entries from loaded GTF.. [COMPLETE]
+2016-02-17 15:54:34,987 - __main__ - INFO - parse_gtf/filter_transcripts(): Scrubbing transcripts based on minimum length and expression [STARTED].
+2016-02-17 15:54:35,035 - __main__ - INFO - parse_gtf/filter_transcripts(): Scrubbing transcripts based on minimum length and expression [COMPLETE].
+2016-02-17 15:54:35,038 - __main__ - INFO - calculate_transcript_scores/main()/main(): Calculating transcript-level metrics [STARTED].
+2016-02-17 15:54:35,048 - __main__ - INFO - calculate_transcript_scores/main()/main(): Calculating A-site and P-site read distribution and coverage... [STARTED].
+2016-02-17 15:57:39,122 - __main__ - INFO - calculate_transcript_scores/main(): Calculating A-site and P-site read distribution and coverage... [COMPLETE].
+2016-02-17 15:57:39,124 - __main__ - INFO - calculate_transcript_scores/main(): Calculating SPECtre, coherence, FLOSS and ORFscore for each transcript [STARTED].
+2016-02-17 15:57:39,124 - __main__ - INFO - calculate_transcript_scores/main(): Building Coherence function and calculating SPECtre/Coherence scores for each transcript... [STARTED].
+2016-02-17 16:08:26,931 - __main__ - INFO - calculate_transcript_scores/main(): Building Coherence function and calculating SPECtre/Coherence scores for each transcript... [COMPLETE].
+2016-02-17 16:08:26,932 - __main__ - INFO - calculate_transcript_scores/main(): Building FLOSS function and calculating read length distribution for each transcript... [STARTED].
+2016-02-17 16:08:26,963 - __main__ - INFO - calculate_transcript_scores/main(): Building FLOSS function and calculating read length distribution for each transcript... [COMPLETE].
+2016-02-17 16:08:26,963 - __main__ - INFO - calculate_transcript_scores/main(): Building ORFscore function and calculating orf.score() for each transcript... [STARTED].
+2016-02-17 16:08:26,972 - __main__ - INFO - calculate_transcript_scores/main(): Building ORFscore function and calculating orf.score() for each transcript... [COMPLETE].
+2016-02-17 16:08:26,972 - __main__ - INFO - calculate_transcript_scores/main(): Calculating FLOSS reference read distribution... [STARTED].
+2016-02-17 16:08:26,975 - __main__ - INFO - calculate_transcript_scores/main(): Calculating FLOSS reference read distribution... [COMPLETE].
+2016-02-17 16:08:26,975 - __main__ - INFO - calculate_transcript_scores/main(): Building FLOSS function and calculating FLOSS metric for each transcript... [STARTED].
+2016-02-17 16:08:26,982 - __main__ - INFO - calculate_transcript_scores/main(): Building FLOSS function and calculating FLOSS metric for each transcript... [COMPLETE].
+2016-02-17 16:08:26,982 - __main__ - INFO - calculate_transcript_scores/main(): Building translated and un-translated scoring distributions for posteriors calculation... [STARTED].
+2016-02-17 16:08:26,985 - __main__ - INFO - calculate_transcript_scores/main(): Buliding protein-coding SPECtre score distributions for posteriors calculation... [STARTED].
+2016-02-17 16:08:26,985 - __main__ - INFO - calculate_transcript_scores/main(): Buliding protein-coding SPECtre score distributions for posteriors calculation... [COMPLETE].
+2016-02-17 16:08:26,988 - __main__ - INFO - calculate_transcript_scores/main(): Buliding protein-coding Coherence score distributions for posteriors calculation... [STARTED].
+2016-02-17 16:08:26,988 - __main__ - INFO - calculate_transcript_scores/main(): Buliding protein-coding Coherence score distributions for posteriors calculation... [COMPLETE].
+2016-02-17 16:08:26,988 - __main__ - INFO - calculate_transcript_scores/main(): Building translated and un-translated scoring distributions for posteriors calculation... [COMPLETE].
+2016-02-17 16:08:26,988 - __main__ - INFO - calculate_transcript_scores/main(): Building posterior functions and calculating transcript posteriors... [STARTED].
+2016-02-17 16:08:26,988 - __main__ - INFO - calculate_transcript_scores/main(): Building posterior functions... [STARTED].
+2016-02-17 16:08:26,988 - __main__ - INFO - calculate_transcript_scores/main(): Building posterior functions... [COMPLETE].
+2016-02-17 16:08:26,988 - __main__ - INFO - calculate_transcript_scores/main(): Calculating SPECtre and Coherence transcript posteriors... [STARTED].
+2016-02-17 16:08:26,988 - __main__ - INFO - calculate_transcript_scores/main(): Calculating Coherence transcript posteriors... [STARTED].
+2016-02-17 16:08:27,020 - __main__ - INFO - calculate_transcript_scores/main(): Calculating Coherence transcript posteriors... [COMPLETE].
+2016-02-17 16:08:27,020 - __main__ - INFO - calculate_transcript_scores/main(): Calculating windowed SPECtre transcript posteriors... [STARTED].
+2016-02-17 16:08:30,627 - __main__ - INFO - calculate_transcript_scores/main(): Calculating windowed SPECtre transcript posteriors... [COMPLETE].
+2016-02-17 16:08:30,627 - __main__ - INFO - calculate_transcript_scores/main(): Calculating SPECtre transcript posteriors... [STARTED].
+2016-02-17 16:08:30,646 - __main__ - INFO - calculate_transcript_scores/main(): Calculating SPECtre transcript posteriors... [COMPLETE].
+2016-02-17 16:08:30,647 - __main__ - INFO - calculate_transcript_scores/main(): Partitioning transcript Coherence, SPECtre, and windowed posteriors to containers... [STARTED].
+2016-02-17 16:08:30,648 - __main__ - INFO - calculate_transcript_scores/main(): Partitioning transcript Coherence, SPECtre, and windowed posteriors to containers... [COMPLETE].
+2016-02-17 16:08:30,648 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript metrics to hash()... [STARTED].
+2016-02-17 16:08:30,648 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript A-site and P-site read coverages to hash()... [STARTED].
+2016-02-17 16:08:30,657 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript A-site and P-site read coverages to hash()... [COMPLETE].
+2016-02-17 16:08:30,657 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript SPECtre scores, signals and posteriors to hash()... [STARTED].
+2016-02-17 16:08:30,664 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript SPECtre scores, signals and posteriors to hash()... [COMPLETE].
+2016-02-17 16:08:30,664 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript Coherence scores, signals and posteriors to hash()... [STARTED].
+2016-02-17 16:08:30,668 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript Coherence scores, signals and posteriors to hash()... [COMPLETE].
+2016-02-17 16:08:30,668 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript FLOSS scores and distributions to hash()... [STARTED].
+2016-02-17 16:08:30,671 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript FLOSS scores and distributions to hash()... [COMPLETE].
+2016-02-17 16:08:30,671 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript ORFscores to hash()... [STARTED].
+2016-02-17 16:08:30,673 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript ORFscores to hash()... [COMPLETE].
+2016-02-17 16:08:30,673 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript metrics to hash()... [COMPLETE].
+2016-02-17 16:09:19,790 - __main__ - INFO - extract_fpkms(): Parsing transcript FPKMs from file: isoforms-test.fpkm_tracking into memory... [STARTED]
+2016-02-17 16:09:19,809 - __main__ - INFO - extract_fpkms(): Parsing transcript FPKMs from file: isoforms-test.fpkm_tracking into memory... [COMPLETE]
+2016-02-17 16:09:19,809 - __main__ - INFO - parse_gtf/main(): Parsing transcript coordinates from GTF: Homo_sapiens.GRCh38.78.test.gtf into memory... [STARTED]
+2016-02-17 16:09:20,248 - __main__ - INFO - parse_gtf/main(): Parsing transcript coordinates from GTF: Homo_sapiens.GRCh38.78.test.gtf into memory... [COMPLETE]
+2016-02-17 16:09:20,249 - __main__ - INFO - parse_gtf/interval_tree(): Parsing transcript intervals from GTF into an IntervalTree()... [STARTED]
+2016-02-17 16:09:20,284 - __main__ - INFO - parse_gtf/interval_tree(): Parsing transcript intervals from GTF into an IntervalTree()... [COMPLETE]
+2016-02-17 16:09:20,284 - __main__ - INFO - parse_gtf/append_stop_coordinates(): Appending stop coordinates to parsed GTF.. [STARTED]
+2016-02-17 16:09:20,320 - __main__ - INFO - parse_gtf/append_stop_coordinates(): Appending stop coordinates to parsed GTF.. [COMPLETE]
+2016-02-17 16:09:20,320 - __main__ - INFO - parse_gtf/partition_utr_coordinates(): Partitioning 5' and 3' UTR entries from loaded GTF.. [STARTED]
+2016-02-17 16:09:20,350 - __main__ - INFO - parse_gtf/partition_utr_coordinates(): Partitioning 5' and 3' UTR entries from loaded GTF.. [COMPLETE]
+2016-02-17 16:09:20,351 - __main__ - INFO - parse_gtf/filter_transcripts(): Scrubbing transcripts based on minimum length and expression [STARTED].
+2016-02-17 16:09:20,402 - __main__ - INFO - parse_gtf/filter_transcripts(): Scrubbing transcripts based on minimum length and expression [COMPLETE].
+2016-02-17 16:09:20,405 - __main__ - INFO - calculate_transcript_scores/main()/main(): Calculating transcript-level metrics [STARTED].
+2016-02-17 16:09:20,415 - __main__ - INFO - calculate_transcript_scores/main()/main(): Calculating A-site and P-site read distribution and coverage... [STARTED].
+2016-02-17 16:12:40,804 - __main__ - INFO - calculate_transcript_scores/main(): Calculating A-site and P-site read distribution and coverage... [COMPLETE].
+2016-02-17 16:12:40,805 - __main__ - INFO - calculate_transcript_scores/main(): Calculating SPECtre, coherence, FLOSS and ORFscore for each transcript [STARTED].
+2016-02-17 16:12:40,805 - __main__ - INFO - calculate_transcript_scores/main(): Building Coherence function and calculating SPECtre/Coherence scores for each transcript... [STARTED].
+2016-02-17 16:23:32,554 - __main__ - INFO - calculate_transcript_scores/main(): Building Coherence function and calculating SPECtre/Coherence scores for each transcript... [COMPLETE].
+2016-02-17 16:23:32,554 - __main__ - INFO - calculate_transcript_scores/main(): Building FLOSS function and calculating read length distribution for each transcript... [STARTED].
+2016-02-17 16:23:32,562 - __main__ - INFO - calculate_transcript_scores/main(): Building FLOSS function and calculating read length distribution for each transcript... [COMPLETE].
+2016-02-17 16:23:32,562 - __main__ - INFO - calculate_transcript_scores/main(): Building ORFscore function and calculating orf.score() for each transcript... [STARTED].
+2016-02-17 16:23:32,570 - __main__ - INFO - calculate_transcript_scores/main(): Building ORFscore function and calculating orf.score() for each transcript... [COMPLETE].
+2016-02-17 16:23:32,570 - __main__ - INFO - calculate_transcript_scores/main(): Calculating FLOSS reference read distribution... [STARTED].
+2016-02-17 16:23:32,573 - __main__ - INFO - calculate_transcript_scores/main(): Calculating FLOSS reference read distribution... [COMPLETE].
+2016-02-17 16:23:32,574 - __main__ - INFO - calculate_transcript_scores/main(): Building FLOSS function and calculating FLOSS metric for each transcript... [STARTED].
+2016-02-17 16:23:32,579 - __main__ - INFO - calculate_transcript_scores/main(): Building FLOSS function and calculating FLOSS metric for each transcript... [COMPLETE].
+2016-02-17 16:23:32,579 - __main__ - INFO - calculate_transcript_scores/main(): Building translated and un-translated scoring distributions for posteriors calculation... [STARTED].
+2016-02-17 16:23:32,582 - __main__ - INFO - calculate_transcript_scores/main(): Buliding protein-coding SPECtre score distributions for posteriors calculation... [STARTED].
+2016-02-17 16:23:32,582 - __main__ - INFO - calculate_transcript_scores/main(): Buliding protein-coding SPECtre score distributions for posteriors calculation... [COMPLETE].
+2016-02-17 16:23:32,585 - __main__ - INFO - calculate_transcript_scores/main(): Buliding protein-coding Coherence score distributions for posteriors calculation... [STARTED].
+2016-02-17 16:23:32,586 - __main__ - INFO - calculate_transcript_scores/main(): Buliding protein-coding Coherence score distributions for posteriors calculation... [COMPLETE].
+2016-02-17 16:23:32,586 - __main__ - INFO - calculate_transcript_scores/main(): Building translated and un-translated scoring distributions for posteriors calculation... [COMPLETE].
+2016-02-17 16:23:32,586 - __main__ - INFO - calculate_transcript_scores/main(): Building posterior functions and calculating transcript posteriors... [STARTED].
+2016-02-17 16:23:32,586 - __main__ - INFO - calculate_transcript_scores/main(): Building posterior functions... [STARTED].
+2016-02-17 16:23:32,586 - __main__ - INFO - calculate_transcript_scores/main(): Building posterior functions... [COMPLETE].
+2016-02-17 16:23:32,586 - __main__ - INFO - calculate_transcript_scores/main(): Calculating SPECtre and Coherence transcript posteriors... [STARTED].
+2016-02-17 16:23:32,586 - __main__ - INFO - calculate_transcript_scores/main(): Calculating Coherence transcript posteriors... [STARTED].
+2016-02-17 16:23:32,614 - __main__ - INFO - calculate_transcript_scores/main(): Calculating Coherence transcript posteriors... [COMPLETE].
+2016-02-17 16:23:32,614 - __main__ - INFO - calculate_transcript_scores/main(): Calculating windowed SPECtre transcript posteriors... [STARTED].
+2016-02-17 16:23:35,992 - __main__ - INFO - calculate_transcript_scores/main(): Calculating windowed SPECtre transcript posteriors... [COMPLETE].
+2016-02-17 16:23:35,992 - __main__ - INFO - calculate_transcript_scores/main(): Calculating SPECtre transcript posteriors... [STARTED].
+2016-02-17 16:23:36,008 - __main__ - INFO - calculate_transcript_scores/main(): Calculating SPECtre transcript posteriors... [COMPLETE].
+2016-02-17 16:23:36,008 - __main__ - INFO - calculate_transcript_scores/main(): Partitioning transcript Coherence, SPECtre, and windowed posteriors to containers... [STARTED].
+2016-02-17 16:23:36,009 - __main__ - INFO - calculate_transcript_scores/main(): Partitioning transcript Coherence, SPECtre, and windowed posteriors to containers... [COMPLETE].
+2016-02-17 16:23:36,009 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript metrics to hash()... [STARTED].
+2016-02-17 16:23:36,009 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript A-site and P-site read coverages to hash()... [STARTED].
+2016-02-17 16:23:36,014 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript A-site and P-site read coverages to hash()... [COMPLETE].
+2016-02-17 16:23:36,014 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript SPECtre scores, signals and posteriors to hash()... [STARTED].
+2016-02-17 16:23:36,022 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript SPECtre scores, signals and posteriors to hash()... [COMPLETE].
+2016-02-17 16:23:36,022 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript Coherence scores, signals and posteriors to hash()... [STARTED].
+2016-02-17 16:23:36,026 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript Coherence scores, signals and posteriors to hash()... [COMPLETE].
+2016-02-17 16:23:36,026 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript FLOSS scores and distributions to hash()... [STARTED].
+2016-02-17 16:23:36,029 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript FLOSS scores and distributions to hash()... [COMPLETE].
+2016-02-17 16:23:36,029 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript ORFscores to hash()... [STARTED].
+2016-02-17 16:23:36,031 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript ORFscores to hash()... [COMPLETE].
+2016-02-17 16:23:36,031 - __main__ - INFO - calculate_transcript_scores/main(): Output transcript metrics to hash()... [COMPLETE].
+2016-02-17 16:23:36,257 - __main__ - INFO - print_metrics/main(): Output results to file... [STARTED]
+2016-02-17 16:23:36,258 - __main__ - INFO - ExperimentMetrics.translation_threshold(): Calculating experiment-level translation threshold [STARTED].
+2016-02-17 16:23:36,262 - __main__ - INFO - ExperimentMetrics.translation_threshold(): Calculating experiment-level translation threshold [COMPLETE].
+2016-02-17 16:23:36,273 - __main__ - INFO - ExperimentMetrics.spectre_auc(): Calculating experiment-level SPECtre AUC [STARTED].
+2016-02-17 16:23:36,303 - __main__ - INFO - ExperimentMetrics.spectre_auc(): Calculating experiment-level SPECtre AUC [COMPLETE].
+2016-02-17 16:23:36,308 - __main__ - INFO - ExperimentMetrics.full_auc(): Calculating experiment-level Spectral Coherence AUC [STARTED].
+2016-02-17 16:23:36,333 - __main__ - INFO - ExperimentMetrics.full_auc(): Calculating experiment-level Spectral Coherence AUC [COMPLETE].
+2016-02-17 16:23:36,336 - __main__ - INFO - ExperimentMetrics.floss_auc(): Calculating experiment-level FLOSS AUC [STARTED].
+2016-02-17 16:23:36,359 - __main__ - INFO - ExperimentMetrics.floss_auc(): Calculating experiment-level FLOSS AUC [COMPLETE].
+2016-02-17 16:23:36,363 - __main__ - INFO - ExperimentMetrics.orfscore_auc(): Calculating experiment-level ORFscore AUC [STARTED].
+2016-02-17 16:23:36,390 - __main__ - INFO - ExperimentMetrics.orfscore_auc(): Calculating experiment-level ORFscore AUC [COMPLETE].
+2016-02-17 16:23:36,881 - __main__ - INFO - print_metrics/main(): Output results to file... [COMPLETE]
