@@ -25,7 +25,7 @@ def main():
 
     print
     print "#######################"
-    print "# Combine wit UniProt #"
+    print "# Analyze proteoforms #"
     print "#######################"
     print
     print "This program is part of the PROTEOFORMER pipeline"
@@ -104,6 +104,7 @@ def main():
     #N-terminal extension
     #test_id = "ENST00000373382_10_69124218_5UTR_110db1;ENST00000395098_10_69124218_5UTR_100db1;ENST00000263559_10_69124230_5UTR_100db1;O75436;S4R3Q6;ENST00000489794_10_69132940_5UTR_100db1;ENST00000395098_10_69124278_aTIS_101db1;ENST00000395098_10_69124230_5UTR_100db1;ENST00000490696_10_69124218_ntr_100db1;ENST00000263559_10_69157162_CDS_100db1"
     #test_id = "ENST00000409021_4_6112850_aTIS_100db1;A0A1B0GUE0;F2Z2K5;Q96N16"
+    #test_id="ENST00000446526_17_76353703_aTIS_101db1;ENST00000446526_17_76353814_5UTR_100db1;ENST00000446526_17_76353856_5UTR_100db1;Q14558;ENST00000446526_17_76332389_CDS_100db1;B4DP31;ENST00000324684_17_76344678_5UTR_110db1;C9J168;ENST00000446526_17_76328792_CDS_100db1;ENST00000472686_17_76328792_ntr_100db1;C9JNQ3;C9JUN4;C9JKT9"
     #N-terminal truncation
     #test_id = "ENST00000338193_12_56751067_CDS_100db1;ENST00000338193_12_56743008_CDS_100db1"
     #test_id = "ENST00000281456_4_185143475_CDS_010db2"
@@ -124,6 +125,7 @@ def main():
     #C terminal truncation
     #test_id="ENST00000398970_17_1456117_aTIS_101db1"
     #C terminal extension
+    #test_id="ENST00000338435_2_190881085_aTIS_101db1;O94925;H7BZD1;B8ZZC5;ENST00000469774_2_190900619_ntr_100db1;B8ZZA8;ENST00000409626_2_190927321_5UTR_100db1"
     #test_id="ENST00000372798_1_40059347_aTIS_101db1;ENST00000340450_1_40040797_5UTR_110db1;ENST00000372798_1_40040797_5UTR_100db1;ENST00000340450_1_40060135_CDS_100db1;ENST00000479759_1_40067567_ntr_100db1;ENST00000479759_1_40069737_ntr_100db1;Q5T0R9;ENST00000479759_1_40069851_ntr_100db1;ENST00000476047_3_76434856_ntr_100db1;ENST00000417455_10_43605301_ntr_100db1;ENST00000476047_3_76434832_ntr_100db1;ENST00000479759_1_40070450_ntr_100db1;Q5T0S3;Q5T0R8;ENST00000493172_6_17421556_aTIS_101db1;B7Z385;A0A087X0J3;A0A087WZ15;ENST00000465994_6_17421556_aTIS_101db1;E9PDI2;P40123"
     #N terminal splice variant
     #test_id="ENST00000319410_16_75644428_aTIS_101db1;ENST00000302445_16_75641719_CDS_100db1;ENST00000302445_16_75647609_CDS_010db2;Q15046;ENST00000566560_16_75640313_ntr_100db1;H3BVA8;ENST00000566560_16_75641719_ntr_100db1;ENST00000569298_16_75628619_ntr_100db1;J3KRL2;H3BPV7;ENST00000566772_16_75636073_aTIS_101db1;H3BMR9;ENST00000566772_16_75635974_CDS_100db1;ENST00000566772_16_75635989_CDS_100db1;ENST00000566560_16_75635974_ntr_100db1;H3BQK5;ENST00000566560_16_75635989_ntr_100db1"
@@ -132,7 +134,7 @@ def main():
 
     #More complex variation
     #test_id = "ENST00000345136_8_143939461_aTIS_101db1;ENST00000398774_8_143944663_aTIS_101db1;ENST00000354958_8_143953771_aTIS_101db1;ENST00000356346_8_143973472_aTIS_101db1;ENST00000354589_8_143943890_aTIS_101db1;ENST00000357649_8_143942515_aTIS_101db1;ENST00000436759_8_143975369_aTIS_101db1;ENST00000527096_8_143975369_aTIS_101db1;E9PMV1;H0YDN1;E9PKG0;E9PIA2;E9PQ28;REV__A0A0U1RR03"
-
+    #test_id="ENST00000301329_17_782255_aTIS_101db1;F6TLX2;Q9HC38;I3L3Q4;ENST00000571073_17_776957_ntr_110db1;ENST00000571073_17_771387_ntr_100db1;ENST00000571073_17_771393_ntr_100db1;ENST00000301329_17_771435_CDS_100db1;ENST00000576239_17_776957_ntr_100db1;I3L1F4;ENST00000573137_17_771393_CDS_100db1;I3L1I0;I3NI27;I3NI24;I3L2C2;I3L277"
 
 
     #identifications_copy = defaultdict(lambda: defaultdict())
@@ -181,27 +183,27 @@ def main():
 
 #Output identifications
 def output_csv(identifications, csv_file):
-	
-	id=0
-	with open(csv_file, 'w') as FW:
-		keys = ["base_proteoform","classification","annotations","bin_codes","gene_ids","max_proteins","protein_group"]
-		header_string= "id"+","+(','.join(keys))+"\n"
-		FW.write(header_string)
-		for protein_group in identifications:
-			value_string = str(identifications[protein_group][keys[0]])
-			for key in keys[1:]:
-				if type(identifications[protein_group][key]) is list:
-					value_string = value_string+','+str("|".join(identifications[protein_group][key]))
-				else:
-					if re.search(', ', str(identifications[protein_group][key])):
-						value = re.sub(', ', '|', str(identifications[protein_group][key]))
-						value_string = value_string+','+value
-					else:
-						value_string = value_string+','+str(identifications[protein_group][key])
-			FW.write(str(id)+','+value_string+"\n")
-			id+=1
-	
-	return
+
+    id=0
+    with open(csv_file, 'w') as FW:
+        keys = ["base_proteoform","classification","proving_peptides","peptide_PEP","annotations","bin_codes","gene_ids","max_proteins","protein_group"]
+        header_string= "id"+","+(','.join(keys))+"\n"
+        FW.write(header_string)
+        for protein_group in identifications:
+            value_string = str(identifications[protein_group][keys[0]])
+            for key in keys[1:]:
+                if type(identifications[protein_group][key]) is list:
+                    value_string = value_string+','+str("|".join(identifications[protein_group][key]))
+                else:
+                    if re.search(', ', str(identifications[protein_group][key])):
+                        value = re.sub(', ', '|', str(identifications[protein_group][key]))
+                        value_string = value_string+','+value
+                    else:
+                        value_string = value_string+','+str(identifications[protein_group][key])
+            FW.write(str(id)+','+value_string+"\n")
+            id+=1
+
+    return
 
 #Construct distribution plot
 def construct_plot(counts, output_file):
@@ -492,6 +494,8 @@ def analyze_identifications(workdir, identifications, mapping_dict, fasta_sequen
             #Get more info about the non-coding transcript's biotype
             biotype = find_biotype(base_proteoform, ens_db)
             identifications[protein_group]['classification'] = identifications[protein_group]['classification'] + ", " + biotype
+            identifications[protein_group]['proving_peptides'], identifications[protein_group]['peptide_PEP'] = \
+                peptide_info(identifications, protein_group, protein_groups, peptides, base_proteoform_seq, "")
         #For dORFs: capture also based on annotation
         elif base_proteoform_annotation=="3UTR":
             #Do additional check based on coordinates of suspective dORF and canonical ORF
@@ -504,9 +508,13 @@ def analyze_identifications(workdir, identifications, mapping_dict, fasta_sequen
             if strand==1:
                 if base_proteoform_start>canonical_stop:
                     identifications[protein_group]['classification'] = "dORF"
+                    identifications[protein_group]['proving_peptides'], identifications[protein_group]['peptide_PEP'] = \
+                        peptide_info(identifications, protein_group, protein_groups, peptides, base_proteoform_seq, "")
             elif strand==-1:
                 if base_proteoform_start<canonical_stop:
                     identifications[protein_group]['classification'] = "dORF"
+                    identifications[protein_group]['proving_peptides'], identifications[protein_group]['peptide_PEP'] = \
+                        peptide_info(identifications, protein_group, protein_groups, peptides, base_proteoform_seq, "")
         #For extensions and truncations
         else:
             if base_canonical not in fasta_sequences:
@@ -529,6 +537,8 @@ def analyze_identifications(workdir, identifications, mapping_dict, fasta_sequen
             identifications[protein_group]['classification'] = classify_proteoform(proteoform_peptides,
                 aligned_base_proteoform, aligned_base_canonical, perc_mapped, base_proteoform, base_canonical,
                 canonical_found_in_ensembl, ens_db)
+            identifications[protein_group]['proving_peptides'], identifications[protein_group]['peptide_PEP'] = \
+                peptide_info(identifications, protein_group, protein_groups, peptides, base_proteoform_seq, base_canonical)
             #remove clustal output fasta
             #os.system("rm -rf "+output_fa)
 
@@ -804,6 +814,46 @@ def classify_proteoform(proteoform_peptides, aligned_base_proteoform, aligned_ba
 
 
     return classification
+
+
+#Get peptide info for in csv of proving peptides
+def peptide_info(identifications, protein_group, protein_groups, peptides, proteoform_seq, base_canonical):
+
+    proving_peptides = []
+    peptide_PEP = []
+    non_canonical_peptides = []
+    non_canonical_PEP = []
+
+    print("Base canonical: "+base_canonical)
+
+    peptide_ids = []
+    peptide_ids.extend(protein_groups[protein_group]['Peptide IDs'].split(';'))
+    for peptide_id in peptide_ids:
+        print("Peptide ID: "+peptide_id)
+        if peptide_id in peptides: #reverses and contaminants were not loaded from the files
+            peptide_seq = peptides[peptide_id]['Sequence']
+            #Check if peptide surely in proteoform sequence
+            if peptide_seq in proteoform_seq:
+                #Check if peptide also in other canonical sequences
+                peptide_proteins = []
+                peptide_proteins.extend(peptides[peptide_id]['Proteins'].split(';'))
+                print(peptide_proteins)
+                uniprot_proteins_present=False
+                for peptide_protein in peptide_proteins:
+                    m = re.search('^ENST', peptide_protein)
+                    if not m:
+                        uniprot_proteins_present = True
+                if uniprot_proteins_present==False:
+                    proving_peptides.append(peptide_seq)
+                    peptide_PEP.append(peptides[peptide_id]['PEP'])
+                if base_canonical not in peptide_proteins:
+                    non_canonical_peptides.append(peptide_seq)
+                    non_canonical_PEP.append(peptides[peptide_id]['PEP'])
+    if len(proving_peptides)==0: #Sometimes a new proteoform overlaps partly with one canonical and another, then search for the base canonical and compare with this one
+        proving_peptides = non_canonical_peptides
+        peptide_PEP = non_canonical_PEP
+
+    return proving_peptides, peptide_PEP
 
 #Search longest identical stretch
 def search_longest_stretch(proteoform_seq, canonical_seq):
