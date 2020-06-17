@@ -76,7 +76,7 @@ GetOptions(
 "out_bam_tr_tr:s" =>\$out_bam_tr_tr,   	  # Output file for alignments on transcript coordinates for treated data (bam)   optional  argument (default = treat_tr.bam)
 "out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file                                             			optional  argument (default = results.db)
 "igenomes_root=s" =>\$IGENOMES_ROOT,    	# IGENOMES ROOT FOLDER                                              			mandatory argument
-"clipper:s" =>\$clipper,                	# what clipper is used (none or STAR or fastx)                     	      optional argument (default = none) or STAR or fastx
+"clipper:s" =>\$clipper,                	# what clipper is used (none or STAR or fastx or trimmomatic)                     	      optional argument (default = none) or STAR or fastx
 "phix:s" =>\$phix,                      	# map to phix DB prior to genomic mapping (Y or N)                  			optional argument (default = N)
 "rRNA:s" =>\$rRNA,                      	# map to rRNA DB prior to genomic mapping (Y or N)                  			optional argument (default = Y)
 "snRNA:s" =>\$snRNA,                    	# map to snRNA DB prior to genomic mapping (Y or N)                				optional argument (default = N)
@@ -505,7 +505,7 @@ my $STARIndexGenomeFolder = $spec_short.".".$assembly.".".$ensemblversion.".".$I
 
 
 #Get executables
-my ($bowtie_loc,$bowtie2_loc,$tophat2_loc,$STAR_loc,$sqlite_loc,$samtools_loc,$fastx_clip_loc,$fastx_trim_loc,$python_loc);
+my ($bowtie_loc,$bowtie2_loc,$tophat2_loc,$STAR_loc,$sqlite_loc,$samtools_loc,$fastx_clip_loc,$fastx_trim_loc,$python_loc,$trimmomatic_loc);
  $bowtie_loc = "bowtie";
  $bowtie2_loc = "bowtie2";
  $tophat2_loc = "tophat2";
@@ -513,6 +513,7 @@ my ($bowtie_loc,$bowtie2_loc,$tophat2_loc,$STAR_loc,$sqlite_loc,$samtools_loc,$f
  $sqlite_loc = "sqlite3";
  $samtools_loc = "samtools";
  $fastx_clip_loc = "fastx_clipper";
+ $trimmomatic_loc = "trimmomatic";
  #$fastx_trim_loc = "fastx_trimmer";
  $fastx_trim_loc = "fastq_quality_trimmer";
  $python_loc = "python";
@@ -901,6 +902,28 @@ sub map_STAR {
 		$fasta = $work_dir."/fastq/$seqFileName"."_clip_trim.fastq";
 		print "trimfasta= $fasta\n";
 
+    } elsif (uc($clipper) eq "TRIMMOMATIC") {
+    
+    
+    	#Create adaptor sequence file 
+    	my $adaptfile = $work_dir."/tmp/adaptor.fa";
+
+		unless(open FILE, '>'.$adaptfile) {
+    		die "\nUnable to create $adaptfile\n";
+		}
+
+		print FILE ">adaptor\n";
+		print FILE $adaptorSeq."\n";
+
+		close FILE;
+    
+        print "     Clipping $seqFileName"." using trimmomatic tool\n";
+        # With length cut-off (23 bp) and adaptor presence
+        my $clip_command =  $trimmomatic_loc." SE -phred33 -threads ".$cores."  ".$fasta." ".$work_dir."/fastq/".$seqFileName."_clip.fastq ILLUMINACLIP:".$work_dir."/tmp/adaptor.fa:2:0:5 MINLEN:23";  
+        print "     ".$clip_command."\n";
+        system ($clip_command);
+        $fasta = $work_dir."/fastq/$seqFileName"."_clip.fastq";
+    
     }
 
     my $clip_stat = (uc($clipper) eq "FASTX" || uc($clipper) eq "NONE") ? " " : "--clip3pAdapterSeq ".$adaptorSeq." --clip3pAdapterMMp 0.1 ";
