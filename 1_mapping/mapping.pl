@@ -76,7 +76,7 @@ GetOptions(
 "out_bam_tr_tr:s" =>\$out_bam_tr_tr,   	  # Output file for alignments on transcript coordinates for treated data (bam)   optional  argument (default = treat_tr.bam)
 "out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file                                             			optional  argument (default = results.db)
 "igenomes_root=s" =>\$IGENOMES_ROOT,    	# IGENOMES ROOT FOLDER                                              			mandatory argument
-"clipper:s" =>\$clipper,                	# what clipper is used (none or STAR or fastx or trimmomatic)                     	      optional argument (default = none) or STAR or fastx
+"clipper:s" =>\$clipper,                	# what clipper is used (none or STAR or fastx or trimmomatic)                     	      optional argument (default = none) or STAR or fastx or trimmomatic
 "phix:s" =>\$phix,                      	# map to phix DB prior to genomic mapping (Y or N)                  			optional argument (default = N)
 "rRNA:s" =>\$rRNA,                      	# map to rRNA DB prior to genomic mapping (Y or N)                  			optional argument (default = Y)
 "snRNA:s" =>\$snRNA,                    	# map to snRNA DB prior to genomic mapping (Y or N)                				optional argument (default = N)
@@ -2106,7 +2106,7 @@ Example:
             --out_bam_tr_untr                   Output file for alignments on transcript coordinates for untreated data (bam) (default: untreat_tr.bam)
             --out_bam_tr_tr                     Output file for alignments on transcript coordinates for treated data (bam) (default: treat_tr.bam)
             --out_sqlite                        SQLite DB output file (default: work_dir/SQLite/results.db)
-            --clipper                           Which clipper needs to be used (none, STAR, fastx) (default: none)
+            --clipper                           Which clipper needs to be used (none, STAR, fastx, trimmomatic) (default: none)
             --phix                              Map to phix DB prior to genomic mapping (Y or N) (default: N)
             --rRNA                              Map to rRNA DB prior to genomic mapping (Y or N) (default: Y)
             --snRNA                             Map to snRNA DB prior to genomic mapping (Y or N) (default: N)
