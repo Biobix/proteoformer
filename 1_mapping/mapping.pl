@@ -926,7 +926,7 @@ sub map_STAR {
     
     }
 
-    my $clip_stat = (uc($clipper) eq "FASTX" || uc($clipper) eq "NONE") ? " " : "--clip3pAdapterSeq ".$adaptorSeq." --clip3pAdapterMMp 0.1 ";
+    my $clip_stat = (uc($clipper) eq "FASTX" || uc($clipper) eq "NONE"  || uc($clipper) eq "TRIMMOMATIC") ? " " : "--clip3pAdapterSeq ".$adaptorSeq." --clip3pAdapterMMp 0.1 ";
 
     #GO FOR STAR-pHIX mapping
     if ($phix eq "Y") {
