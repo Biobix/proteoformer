@@ -53,6 +53,8 @@ def main():
                         type=str, help="Working directory (default: CWD)")
     opt_args.add_argument("--qval_threshold_pept", "-q", action="store", required=False, nargs="?", metavar="FLOAT",
                           default=0.01, type=float, help="Q-value threshold on which the peptides will be filtered (default: 0.01).")
+    opt_args.add_argument("--PEP_threshold_pept", "-P", action="store", required=False, nargs="?", metavar="FLOAT",
+                          default=0.05, type=float, help="Peptide PEP threshold on which the peptides will be filtered (default: 0.05)")
     opt_args.add_argument("--csv_output", "-x", action="store", required=False, nargs="?", metavar="PATH",
                           type=str, default="proteoform_classifications_percolator.csv",
                           help="CSV output file of classifications (default: proteoform_classifications_percolator.csv)")
@@ -86,7 +88,7 @@ def main():
     #fasta = load_fasta(args.fasta)
 
     #Select significant peptides
-    sign_peptides = select_significant_peptides(peptides, args.qval_threshold_pept)
+    sign_peptides = select_significant_peptides(peptides, args.qval_threshold_pept, args.PEP_threshold_pept)
 
     #Select CustomDB-unique peptides
     customdb_peptides = select_customdb_peptides(sign_peptides)
@@ -230,8 +232,11 @@ def select_customdb_peptides(peptides):
 
     return customdb_peptides
 
-def select_significant_peptides(peptides, qval_th):
-    return peptides[peptides['q-value'] < qval_th]
+def select_significant_peptides(peptides, qval_th, PEP_th):
+    qval_filt_peptides = peptides[peptides['q-value'] < qval_th]
+    qval_PEP_filt_peptides = qval_filt_peptides[qval_filt_peptides['posterior_error_prob']<PEP_th]
+
+    return qval_PEP_filt_peptides
 
 ## Data Dumper for recursively printing nested dictionaries and defaultDicts ##
 def print_dict(dictionary, indent='', braces=0):
