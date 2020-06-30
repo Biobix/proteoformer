@@ -52,6 +52,8 @@ def main():
     opt_args.add_argument("--help", "-h", action="help", help="Show help message and exit")
     opt_args.add_argument("--venn_file", "-v", action="store", required=False, nargs="?", metavar="PATH",
                           type=str, default="overlap_mq_percolator.png", help="Venn diagram output file of overlap (default: overlap_mq_percolator.png)")
+    opt_args.add_argument("--percolator_uniq_out_csv", "-u", action="store", required=False, nargs="?", metavar="PATH",
+                          type=str, default="percolator_uniq_proteoforms.csv", help="Percolator unique proteoforms output csv file (default: percolator_uniq_proteoforms.csv)")
 
     args = parser.parse_args()
 
@@ -80,12 +82,12 @@ def main():
     print("Maxquant protein group IDs in overlap: "+str(len(set(mq_overlap_pg_ids))))
     print("Percolator protein group IDs in overlap: "+str(len(set(percolator_overlap_pg_ids)))+"\n")
 
-    #Get MQ-unique protein groups after first overlap run
+    #Get MQ-unique protein groups
     mq_uniq_pgs = []
     for mq_idx, mq_row in mq_proteoforms.iterrows():
         if mq_row['protein_group'] not in mq_overlap_pg_ids:
             mq_uniq_pgs.append(mq_row['protein_group'])
-    #Get Percolator-uniqe protein groups after first overlap run
+    #Get Percolator-uniqe protein groups
     percolator_uniq_pgs = []
     for percolator_idx, percolator_row in percolator_proteoforms.iterrows():
         if percolator_row['protein_group'] not in percolator_overlap_pg_ids:
@@ -100,10 +102,11 @@ def main():
     construct_venn(counts, args.venn_file)
 
     #Check PEP improvement
-    PEP_improvement(proteoform_overlap, mq_overlap_pg_ids, percolator_overlap_pg_ids, mq_proteoforms, percolator_proteoforms)
+    PEP_improvement(proteoform_overlap, mq_overlap_pg_ids, percolator_overlap_pg_ids, mq_proteoforms,
+                    percolator_proteoforms)
 
-
-    ##Figures as high quality figures with attributes!!!
+    #Export Percolator unique proteoforms
+    export_percolator_uniq_proteoforms(percolator_uniq_pgs, percolator_proteoforms, args.percolator_uniq_out_csv)
 
     # End of program message
     print
@@ -120,8 +123,26 @@ def main():
     #  SUBS  #
     ##########
 
+#Export Percolator unique proteoforms
+def export_percolator_uniq_proteoforms(uniq_pgs, proteoforms, out_file):
+
+    #Select Percolator unique proteoforms
+    mask = []
+    for idx, row in proteoforms.iterrows():
+        if row['protein_group'] in uniq_pgs:
+            mask.append(True)
+        else:
+            mask.append(False)
+    uniq_proteoforms = proteoforms[mask]
+
+    #Export to csv
+    uniq_proteoforms.to_csv(out_file, sep=",", header=True, index=False)
+
+    return
+
 #Check PEP improvement
-def PEP_improvement(proteoform_overlap, mq_overlap_proteingroups, percolator_overlap_proteingroups, mq_proteoforms, percolator_proteoforms):
+def PEP_improvement(proteoform_overlap, mq_overlap_proteingroups, percolator_overlap_proteingroups, mq_proteoforms,
+                    percolator_proteoforms):
 
     #Init
     mq_overlap_peps = []
@@ -157,7 +178,7 @@ def PEP_improvement(proteoform_overlap, mq_overlap_proteingroups, percolator_ove
     sns.set_style(style="darkgrid")
     binwidth=2
     bins = np.arange(round(np.min(mq_overlap_peps_log10),-1)-binwidth,round(np.max(mq_overlap_peps_log10),-1)+binwidth,binwidth)
-    fig, (ax1, ax2, ax3, ax4) = plt.subplots(nrows=4, ncols=1, figsize=(14,30))
+    fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(nrows=6, ncols=1, figsize=(14,40))
     sns.distplot(mq_overlap_peps_log10, hist=True, bins=bins, kde=True, ax=ax1, kde_kws={'color':'#f58d42', 'lw':2}, hist_kws={'color':'#E0BC99'})
     ax1.set_title('MaxQuant peptide PEPs of the overlapping proteoforms', fontsize=28)
     ax1.set_ylabel('Abundance', fontsize=24)
@@ -187,15 +208,12 @@ def PEP_improvement(proteoform_overlap, mq_overlap_proteingroups, percolator_ove
     sns.distplot(mq_non_percolator_overlap_peps_log10, hist=True, bins=bins, kde=True, ax=ax4, kde_kws={'color':'#2032f7', 'lw':2}, hist_kws={'color':'#4278cf'})
     ax4.set_xlim([-20, 5])
     ax4.set_title('MaxQuant but non-Percolator peptide PEPs of the overlapping proteoforms', fontsize=24)
-    ax4.set_xlabel('Peptide Posterior error probability (log10)', fontsize=24)
     ax4.set_ylabel('Abundance', fontsize=24)
     ax4.tick_params(axis='x', which='major', labelsize=20)
     ax4.tick_params(axis='y', which='major', labelsize=20)
-    ax1.text(-0.09, 1.02, 'D', transform=ax4.transAxes, size=32, weight='bold')
+    ax4.text(-0.09, 1.02, 'D', transform=ax4.transAxes, size=32, weight='bold')
 
-    plt.tight_layout()
-    fig.savefig('overlap_PEPs.png')
-    #fig.savefig('overlap_PEPs.svg', format='svg')
+    ## Non-overlap PEP distributions ##
 
     #Get MQ-unique peptide PEPs
     mq_uniq_peps=[]
@@ -211,22 +229,35 @@ def PEP_improvement(proteoform_overlap, mq_overlap_proteingroups, percolator_ove
             for PEP_percolator in percolator_row['peptide_PEP'].split('|'):
                 percolator_uniq_peps.append(float(PEP_percolator))
 
-    print(len(mq_uniq_peps))
-    print(len(percolator_uniq_peps))
-    print(mq_uniq_peps)
-    print(percolator_uniq_peps)
-    print(np.median(mq_uniq_peps))
-    print(np.median(percolator_uniq_peps))
+    print("Median of the peptide PEPs of the MaxQuant unique proteoforms: "+str(np.median(mq_uniq_peps)))
+    print("Median of the peptide PEPs of the Percolator unique proteoforms: "+str(np.median(percolator_uniq_peps)))
 
-    #####PEP distribution for red and green collections
+    #Take log10 of lists
+    mq_uniq_peps_log10 = np.log10(mq_uniq_peps)
+    percolator_uniq_peps_log10 = np.log10(percolator_uniq_peps)
 
+    bins = np.arange(round(np.min(mq_uniq_peps_log10),-1)-binwidth,round(np.max(mq_uniq_peps_log10),-1)+binwidth,binwidth)
+    sns.distplot(mq_uniq_peps_log10, hist=True, bins=bins, kde=True, ax=ax5, kde_kws={'color':'#fa3434', 'lw':2}, hist_kws={'color':'#FF9999'})
+    ax5.set_xlim([-20, 5])
+    ax5.set_title('Peptide PEPs of MaxQuant unique proteoforms', fontsize=24)
+    ax5.set_ylabel('Abundance', fontsize=24)
+    ax5.tick_params(axis='x', which='major', labelsize=20)
+    ax5.tick_params(axis='y', which='major', labelsize=20)
+    ax5.text(-0.09, 1.02, 'E', transform=ax5.transAxes, size=32, weight='bold')
 
+    bins = np.arange(round(np.min(percolator_uniq_peps_log10),-1)-binwidth,round(np.max(percolator_uniq_peps_log10),-1)+binwidth,binwidth)
+    sns.distplot(percolator_uniq_peps_log10, hist=True, bins=bins, kde=True, ax=ax6, kde_kws={'color':'#36cf36', 'lw':2}, hist_kws={'color':'#99CC99'})
+    ax6.set_xlim([-20, 5])
+    ax6.set_title('Peptide PEPs of Percolator unique proteoforms', fontsize=24)
+    ax6.set_xlabel('Peptide Posterior error probability (log10)', fontsize=24)
+    ax6.set_ylabel('Abundance', fontsize=24)
+    ax6.tick_params(axis='x', which='major', labelsize=20)
+    ax6.tick_params(axis='y', which='major', labelsize=20)
+    ax6.text(-0.09, 1.02, 'F', transform=ax6.transAxes, size=32, weight='bold')
 
-
-
-
-
-
+    plt.tight_layout()
+    fig.savefig('overlap_PEPs.png')
+    #fig.savefig('overlap_PEPs.svg', format='svg')
 
     return
 
@@ -291,12 +322,17 @@ def check_overlap(mq_proteoforms, percolator_proteoforms, mq_peptides_file, perc
                     if overlap_found==True:
                         break #Quit searching Percolator protein groups if overlap found
             #if overlap_found==True:
-                #break #Stop going over MQ peptides if overlap already found  -> Let this step be in comments: as Percolator is more peptide based, a protein group of maxquant can be divided over multiple protein groups (because of differing peptides) in Percolator. Therefore, a maxquant protein group should be able to link to multiple percolator protein groups
+                #break #Stop going over MQ peptides if overlap already found  -> Let this step be in comments: as
+                        # Percolator is more peptide based, a protein group of maxquant can be divided over multiple
+                        # protein groups (because of differing peptides) in Percolator. Therefore, a maxquant protein
+                        # group should be able to link to multiple percolator protein groups
 
     #Check extra for overlapping peptides
-    #Due to the difference between the PI strategies of MQ (max scoring protein system, differing peptide needed at both sides to have separate PGs) and Percolator (differing peptide needed at one side for different PG),
+    #Due to the difference between the PI strategies of MQ (max scoring protein system, differing peptide needed at
+    # both sides to have separate PGs) and Percolator (differing peptide needed at one side for different PG),
     #some PGs do not occur in the overlap
-    #We should check what the peptide PEPs are at the opposite side and if one of the prooving peptides is identified at the other side (PEP low enough), bring them to the overlap portion
+    #We should check what the peptide PEPs are at the opposite side and if one of the prooving peptides is identified
+    # at the other side (PEP low enough), bring them to the overlap portion
 
     #Get MQ-unique protein groups after first overlap run
     mq_uniq_pgs = []
@@ -316,9 +352,6 @@ def check_overlap(mq_proteoforms, percolator_proteoforms, mq_peptides_file, perc
 
     #Then for each of these protein groups, check the peptide PEPs in the other dataset and if they are all <0.01, put them in the overlap
     #print("Total amount of initial MQ unique protein groups: "+str(len(mq_uniq_pgs))+"\n")
-    #count=0
-    #for mq_pg in ['ENST00000568459_15_72219097_aTIS_101db1;ENST00000565154_15_72217444_CDS_100db1;H3BTN5;ENST00000565184_15_72210397_CDS_010db2;ENST00000565154_15_72209685_CDS_100db1;H3BR70;H3BQ34;H3BUW1;H3BTJ2;H3BT25;ENST00000562784_15_72217444_ntr_100db1;ENST00000562784_15_72217435_ntr_100db1;ENST00000562784_15_72210370_ntr_100db1;H3BU13;ENST00000565143_15_72200507_ntr_100db1;H3BN34;H3BQZ3;ENST00000564993_15_72206877_ntr_100db1;ENST00000568883_15_72199733_CDS_100db1;ENST00000454707_6_5972906_ntr_100db1;ENST00000454707_6_5972463_ntr_100db1;ENST00000392414_1_155300887_aTIS_100db1;P30613;ENST00000565143_15_72199715_ntr_100db1;ENST00000565143_15_72199724_ntr_100db1;ENST00000412159_X_66498767_ntr_100db1;ENST00000454707_6_5973014_ntr_100db1']:
-    #for mq_pg in ['ENST00000392948_1_143905696_CDS_100db1']:
     for mq_pg in mq_uniq_pgs:
         #print(mq_pg)
         #Check if one of the prooving MQ peptides was identified in Percolator and if so if it is in Percolator under the PEP threshold
@@ -351,7 +384,6 @@ def check_overlap(mq_proteoforms, percolator_proteoforms, mq_peptides_file, perc
                             all_percolator_PEPs.append("AcetylatedPeptide")
                             a_pep_under_th = True
         if a_pep_under_th==True:
-            # count+=1
             #Then save in overlap
             protein_group_id = all_percolator_protein_groups[0] #Select the first as key
             overlap[protein_group_id]['percolator_protein_group'] = all_percolator_protein_groups[0]
@@ -367,14 +399,9 @@ def check_overlap(mq_proteoforms, percolator_proteoforms, mq_peptides_file, perc
             overlap[protein_group_id]['mq_classification'] = mq_proteoforms[mq_proteoforms['protein_group'] == mq_pg]['classification'].values[0]
             overlap[protein_group_id]['mq_base_proteoform'] = mq_proteoforms[mq_proteoforms['protein_group'] == mq_pg]['base_proteoform'].values[0]
             overlap[protein_group_id]['mq_gene_ids'] = mq_proteoforms[mq_proteoforms['protein_group'] == mq_pg]['gene_ids'].values[0]
-
-
             #print_dict(overlap[protein_group_id])
 
     #print("Amount of protein groups to bring to overlap: "+str(count))
-
-
-
 
     return overlap, maxquant_pg_ids, percolator_pg_ids
 
@@ -436,8 +463,6 @@ def load_csv_file(input_file):
     proteoform_results = pd.read_csv(input_file, sep=",", header=0)
 
     return proteoform_results
-
-
 
 ## Data Dumper for recursively printing nested dictionaries and defaultDicts ##
 def print_dict(dictionary, indent='', braces=0):
