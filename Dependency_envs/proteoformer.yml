@@ -1,4 +1,4 @@
-name: proteoformer2
+name: proteoformer
 channels:
   - bioconda
   - conda-forge
@@ -124,5 +124,5 @@ dependencies:
   - tk>=8.6.7
   - wheel>=0.29.0
   - zlib>=1.2.11
-  - trimmomatic>=0.39.1
+  - trimmomatic>=0.39
 
