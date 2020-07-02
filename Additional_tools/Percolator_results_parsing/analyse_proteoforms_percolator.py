@@ -56,8 +56,8 @@ def main():
     opt_args.add_argument("--PEP_threshold_pept", "-P", action="store", required=False, nargs="?", metavar="FLOAT",
                           default=0.05, type=float, help="Peptide PEP threshold on which the peptides will be filtered (default: 0.05)")
     opt_args.add_argument("--csv_output", "-x", action="store", required=False, nargs="?", metavar="PATH",
-                          type=str, default="proteoform_classifications_percolator.csv",
-                          help="CSV output file of classifications (default: proteoform_classifications_percolator.csv)")
+                          type=str, default="novel_proteoforms_percolator.csv",
+                          help="CSV output file of classifications (default: novel_proteoforms_percolator.csv)")
 
     args = parser.parse_args()
 
