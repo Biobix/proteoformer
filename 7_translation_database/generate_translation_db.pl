@@ -71,6 +71,7 @@ my $db_config_version; 	# Ensembl databset confirguration version
 my $external_ref;	# External reference in biomart to map transcripts to
 my $tmp;			# temporary folder
 my $peff;           # Generate PEFF instead of FASTA format [Y or N] (default N)
+my $help;           # Help text option
 
 # ---------------------------------------------------------------------
 	##	GET command line arguments
@@ -100,6 +101,7 @@ GetOptions(
 	'var_file=s'			=> \$var_file,
 	'tis_call=s'			=> \$tis_call,
     'peff=s'                => \$peff,
+    'help'                  => \$help
 );
 
 # ---------------------------------------------------------------------
@@ -117,6 +119,10 @@ GetOptions(
 # perl generate_translation_db.pl -result_db SQLite/results.db -tis_ids 1 -tis_call Y
 #####
 
+if ($help) {
+    print_help_text();
+    exit;
+}
 
 my $CWD = getcwd();
 if (!($work_dir)) {
@@ -2449,4 +2455,51 @@ sub timer {
 	my $runTime = $endRun - $startRun;
 
 	printf("\nTotal running time: %02d:%02d:%02d\n\n", int($runTime / 3600), int(($runTime  % 3600) / 60), int($runTime % 60));
+}
+
+#Print help text
+sub print_help_text {
+    
+    my $help_string = "\n\nFasta translation database generation
+    
+This tool generates a Fasta database file out of the SQLite results database for a specific TIS ID. This database can be filtered for sequence redundancy (on substring level). Furthermore, there are options to map the database results against biomart or blast the results agains a blastp formatted database.
+
+Example:
+    perl generate_translation_db.pl --result_db SQLite/results.db --tis_ids 1 --mflag 5
+    
+Input parameters:
+    --blastdb                           A usearch/blastp formatted database
+    --result_db                         SQLite translation results source database
+    --tis_ids                           The TIS IDs to generate a fasta table for
+    --mapping                           Ensembl database name to download biomart mapped transcripts
+    --mflag                             Flag to choose which program to execute
+                                            1: remote biomart download
+                                            2: local biomart file
+                                            3: sequence based blast mapping
+                                            4: no mapping but sequence redundancy removal
+                                            5: no mapping and no sequence redundancy removal
+    --work_dir                          Working directory
+    --blast_pgm                         Blast program to use. Default: blastp
+    --min_blast_length                  Minimum sequence length to perform blast
+    --coverage                          Minimum number of identical positions
+    --mslength                          Minimum transcript length to allow in the translation product database
+    --evalue                            Blast e-value
+    --identity                          Minimum alignment score
+    --gapopen                           Gap opening penalty
+    --gapextend                         Gap extension penalty
+    --matrix                            Blast search matrix
+    --word_size                         Word size
+    --extra_info                        Extra refererence
+    --translation_db                    FASTA file of non redundant derived translation products OR name for output PEFF file
+    --var_file                          File to store SNP and indel info for sequences in protein database
+    --tis_call                          Allow annotated TIS that do not pass the TIS calling algorithm in the databases [Y or N]
+    --db_config_version                 Ensembl databset confirguration version
+    --external_ref                      External reference in biomart to map transcripts to
+    --tmp                               Temporary folder
+    --peff                              Generate PEFF instead of FASTA format [Y or N] (default N)
+";
+    
+    print $help_string;
+    
+    return
 }
