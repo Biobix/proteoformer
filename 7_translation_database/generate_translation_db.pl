@@ -1326,9 +1326,12 @@ sub generate_trans_db {
     if($TIS_calling_method ne "Yes"){
         $ens_db = get_ens_db($dbh_results);
     }
-	
+    
+    #Get gtf file address
+    my $gtf_file = construct_gtf_file_address($dbh_results);
+    
     print "Get transcript out of results DB\n";
-    my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0], $TIS_calling_method, $ens_db); #Use TIS id itself (stored in $tis[0])
+    my ($transcript,$gene_transcript) = get_transcripts_from_resultdb($dbh_results,$table,$tis[0], $TIS_calling_method, $ens_db, $gtf_file); #Use TIS id itself (stored in $tis[0])
 	$total_tr = scalar(keys %$transcript);
 	$total_gene = scalar(keys %$gene_transcript);
     
@@ -1424,7 +1427,7 @@ sub write_output {
 	foreach my $tr (sort keys %$transcript) {
 
 		my $id = "generic|".$tr."|".$transcript->{$tr}->{'gene'};
-		my $desc = $transcript->{$tr}->{'codon'}." ".$transcript->{$tr}->{'aTIS_call'}." ".$transcript->{$tr}->{'peak_shift'};	
+        my $desc = $transcript->{$tr}->{'gene_symbol'}." ".$transcript->{$tr}->{'biotype'}." ".$transcript->{$tr}->{'codon'}." ".$transcript->{$tr}->{'aTIS_call'}." ".$transcript->{$tr}->{'peak_shift'};
 		
 		if ($mflag == 1 or $mflag == 2) {
 			if ($transcript->{$tr}->{'em'}) {$desc = $transcript->{$tr}->{'em'}." ".$desc}		# Add the percentage of the mapping to the description field
@@ -1837,6 +1840,36 @@ sub remove_redundancy {
     
 }
 
+## Construct gtf file address
+sub construct_gtf_file_address{
+    
+    #Catch
+    $dbh_results = $_[0];
+    
+    #Get arguments from arguments table
+    my ($ensemblversion,$species,$IGENOMES_ROOT) = get_arguments_gtf($dbh_results);
+    
+    #Conversion for species terminology
+    my $spec = ($species eq "mouse") ? "Mus_musculus" : ($species eq "human") ? "Homo_sapiens" : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" : ($species eq "arabidopsis") ? "Arabidopsis_thaliana" : ($species eq "fruitfly") ? "Drosophila_melanogaster" : "";
+    my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : (uc($species) eq "CNECNA3") ? "cnecna3" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
+
+    #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
+    my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
+    : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
+    : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
+    : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
+    : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
+    : (uc($species) eq "CNECNA3") ? "CNA3"
+    : (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
+    : (uc($species) eq "FRUITFLY" && $ensemblversion >= 79) ? "BDGP6" : "";
+    
+    #Construct address
+    my $gtf_file = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/genes_".$ensemblversion.".gtf";
+    
+    return $gtf_file;
+}
+
+
 
 
 
@@ -1845,13 +1878,16 @@ sub get_transcripts_from_resultdb {
 
 	# sub routine to extract Ribo-seq information from SQlite result database
 
-    my ($dbh,$tbl,$tis,$TIS_calling_method,$ens_db) = @_;
+    my ($dbh,$tbl,$tis,$TIS_calling_method,$ens_db,$gtf_file) = @_;
 
 	my $var_tracker = {};
 	my $transcript = {};
 	my $gene_transcript = {};
+    
+    #Get dictionary of Ensembl Gene ID to gene symbol based on the gtf file
+    my $gene_symbol_dict = make_gene_symbol_dict($gtf_file);
 
-	my ($transcript2geneid,$annotated_tr) = transcript_gene_id($dbh,$tbl);
+	my ($transcript2geneid,$annotated_tr) = transcript_gene_id($dbh,$tbl,$gene_symbol_dict);
 		
 	print STDOUT "Extracting transcripts form SQLite database. Please wait ....\n";
 	my $query = "SELECT DISTINCT tr_stable_id, chr, start, start_codon, dist_to_aTIS, aTIS_call, annotation, peak_shift, SNP, INDEL, aa_seq FROM ".$tbl.";";
@@ -1890,7 +1926,7 @@ sub get_transcripts_from_resultdb {
         #if stable id not present in transcript2geneid:
         #   search in ensembl for gene id and biotype
         unless(defined($transcript2geneid->{$tr_stable_id})){
-            ($transcript2geneid->{$tr_stable_id}->{'gene'}, $transcript2geneid->{$tr_stable_id}->{'biotype'}) = search_gene_ensembl($tr_stable_id, $ens_db);
+            ($transcript2geneid->{$tr_stable_id}->{'gene'}, $transcript2geneid->{$tr_stable_id}->{'biotype'}, $transcript2geneid->{$tr_stable_id}->{'gene_symbol'}) = search_gene_ensembl($tr_stable_id, $ens_db, $gene_symbol_dict);
         }
 
 		# create unique transcript ID
@@ -1914,6 +1950,7 @@ sub get_transcripts_from_resultdb {
 		$transcript->{$tr}->{'peak_shift'} 	= $peak_shift;
 		$transcript->{$tr}->{'seq'} 		= $aa_seq;
 		$transcript->{$tr}->{'biotype'} 	= $transcript2geneid->{$tr_stable_id}->{'biotype'};
+        $transcript->{$tr}->{'gene_symbol'} = $transcript2geneid->{$tr_stable_id}->{'gene_symbol'};
 		$transcript->{$tr}->{'gene'} 		= $transcript2geneid->{$tr_stable_id}->{'gene'};
 		$transcript->{$tr}->{'tr'} 			= $tr_stable_id;
 		$transcript->{$tr}->{'red'} 		= "N";			# Set all transcript to default redundant value of N
@@ -1935,10 +1972,12 @@ sub search_gene_ensembl {
     #Catch
     my $tr_stable_id = $_[0];
     my $ens_db = $_[1];
+    my $gene_symbol_dict = $_[2];
     
     #Init
     my $gene_id;
     my $biotype;
+    my $gene_symbol;
     
     #Connect to ens_db
     my $user = "";
@@ -1954,6 +1993,7 @@ sub search_gene_ensembl {
     while(my @result = $execute->fetchrow()){
         $gene_id = $result[0];
         $biotype = $result[1];
+        $gene_symbol = $gene_symbol_dict->{$gene_id};
     }
     
     $execute->finish();
@@ -1961,7 +2001,7 @@ sub search_gene_ensembl {
     #Disconnect
     $dbh->disconnect();
     
-    return ($gene_id, $biotype);
+    return ($gene_id, $biotype, $gene_symbol);
 }
 
 sub convert_species {
@@ -2012,6 +2052,7 @@ sub transcript_gene_id {
 
 	my $dbh = $_[0];
 	my $tbl = $_[1];
+    my $gene_symbol_dict = $_[2];
 
 	my $annotated_tr = {};
 	my $transcript2geneid = {};
@@ -2021,7 +2062,8 @@ sub transcript_gene_id {
 	$sth->execute();
 	while ( my ($stable_id, $biotype, $gene_stable_id, $start, $annotation, $aTIS_call) = $sth->fetchrow()) {
         $transcript2geneid->{$stable_id}->{'gene'} = $gene_stable_id;
-        $transcript2geneid->{$stable_id}->{'biotype'} = $gene_stable_id;
+        $transcript2geneid->{$stable_id}->{'biotype'} = $biotype;
+        $transcript2geneid->{$stable_id}->{'gene_symbol'} = $gene_symbol_dict->{$gene_stable_id};
         
         if (uc($tis_call) eq "N") {next if (uc($aTIS_call) eq 'NO_DATA' or uc($aTIS_call) eq 'FALSE')}
         if ($annotation eq 'aTIS') {$annotated_tr->{$gene_stable_id}->{$start} = 1;}
@@ -2370,6 +2412,66 @@ sub get_arguments{
     # Return input variables
     return($ensemblversion,$ens_db,$species,$igenomes_root,$nr_of_cores);
     
+}
+
+sub get_arguments_gtf{
+    
+    # Catch
+    my $dbh = $_[0];
+    
+    # Get input variables
+    my $query = "select value from `arguments` where variable = \'ensembl_version\'";
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $ensemblversion = $sth->fetch()->[0];
+    
+    $query = "select value from `arguments` where variable = \'species\'";
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $species = $sth->fetch()->[0];
+    
+    $query = "select value from `arguments` where variable = \'igenomes_root\'";
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+    my $igenomes_root = $sth->fetch()->[0];
+        
+    # Return input variables
+    return($ensemblversion,$species,$igenomes_root);
+    
+}
+
+## Construct gene symbol dict out of gtf file
+sub make_gene_symbol_dict{
+    
+    #Catch
+    my $gtf_file = $_[0];
+    
+    #Init
+    my $gene_symbol_dict = {};
+    
+    #Parse gtf file for gene names and symbols
+    open my $FR, $gtf_file or die "Could not open GTF file: $!";
+    while(my $line = <$FR>) {
+        my @gtf_cols = split(/\t/, $line);
+        #Check if the line contains gene info
+        if($gtf_cols[2] eq "gene"){
+            my $descr = $gtf_cols[8];
+            my @attrs = split(/\;/, $descr);
+            #Catch information from the attributes in the descriptors
+            my $ens_gene_id = "";
+            my $gene_symbol = "";
+            if($attrs[0] =~ m/gene_id \"(.+)\"/){
+                $ens_gene_id = $1;
+            }
+            if($attrs[2] =~ m/gene_name \"(.+)\"/){
+                $gene_symbol = $1;
+            }
+            $gene_symbol_dict->{$ens_gene_id} = $gene_symbol;
+        }
+    }
+    close $FR;
+    
+    return $gene_symbol_dict;
 }
 
 ## Get coord system id ##
