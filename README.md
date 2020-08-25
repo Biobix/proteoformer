@@ -43,9 +43,10 @@ A proteogenomic pipeline that delineates true *in vivo* proteoforms and generate
 6. [MS validation](#MSvalidation)
     1. [SearchGUI and PeptideShaker](#searchgui)
     2. [MaxQuant](#maxquant)
-7. [Copyright](#copyright)
-8. [Publications](#publications)
-9. [More information](#moreinformation)
+7. [Pipeline master script](#masterscript)
+8. [Copyright](#copyright)
+9. [Publications](#publications)
+10. [More information](#moreinformation)
 
 
 ## Introduction <a name="introduction"></a>
@@ -1248,6 +1249,17 @@ For more information about the usage of these scripts, use their help command:
 python parse_maxquant.py --help
 python parse_maxquant_uniprot.py --help
 python analyse_proteoforms.py --help
+```
+
+## Pipeline master script <a name="masterscript"></a>
+
+If you want to run the complete pipeline (or several parts of it) on one or multiple samples, the PROTEOFORMER pipeline master script (scripted in Bash) can be a useful tool. An example or default version is given in the main directory of this repository. Feel free to adapt this by block (un)commenting the steps you need or want to skip. Also, the input arguments can be changed to fit your purpose.
+
+To run the master script, use the following command:
+
+```
+chmod 755 proteoformer_pipeline.sh
+./proteoformer_pipeline.sh
 ```
 
 ## Publications <a name="publications"></a>
