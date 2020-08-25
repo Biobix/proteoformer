@@ -12,6 +12,7 @@ dependencies:
   - htslib>=1.6
   - libgtextutils>=0.7
   - mqc>=1.10
+  - multiqc>=1.6
   - mysql-connector-c>=6.1.6
   - perl-apache-test>=1.40
   - perl-app-cpanminus>=1.7039
