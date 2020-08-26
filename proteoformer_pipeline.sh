@@ -58,9 +58,10 @@ python $SCRIPTDIR/proteoformer/Additional_tools/get_igenomes.py -v $ENSEMBL_ANNO
 
 
 ##Internal dict structure##
-mkdir fastqc_raw
-mkdir fastqc_mapped
-mkdir statistics
+mkdir $BASEDIR/fastqc_raw
+mkdir $BASEDIR/fastqc_mapped
+mkdir $BASEDIR/statistics
+mkdir $BASEDIR/mqc
 
 
 
@@ -113,8 +114,10 @@ END_SQL
 
 echo -e "Statistics written for $ID \n"
 
+mkdir $BASEDIR/mqc/$ID
 echo -e "4) mQC $ID \n"
-perl $SCRIPTDIR/proteoformer/2_mappingQC/mappingQC.pl --samfile $BASEDIR/$ID/STAR/fastq1/untreat.sam --treated untreated --cores $CORES --result_db $BASEDIR/$ID/SQLite/results.db --unique $UNIQUEMAPPING --ens_db $ENSEMBLDICT/$ENSEMBLDB --offset $ORF  --offset_img $BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png --tool_dir $SCRIPTDIR/proteoformer/2_mappingQC/mqc_tools/ --plotrpftool pyplot3D > $BASEDIR/$ID/mQC_$ID.txt 2>&1
+perl $SCRIPTDIR/proteoformer/2_mappingQC/mappingQC.pl --samfile $BASEDIR/$ID/STAR/fastq1/untreat.sam --treated untreated --cores $CORES --result_db $BASEDIR/$ID/SQLite/results.db --unique $UNIQUEMAPPING --ens_db $ENSEMBLDICT/$ENSEMBLDB --offset $ORF  --offset_img $BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png --tool_dir $SCRIPTDIR/proteoformer/2_mappingQC/mqc_tools/ --plotrpftool pyplot3D --output_folder $BASEDIR/mqc/$ID --html $BASEDIR/mqc/mqc_$ID.html --zip $BASEDIR/mqc/mqc_$ID.zip --tmp $BASEDIR/$ID/tmp/ > $BASEDIR/$ID/mQC_$ID.txt 2>&1
+rm -rf $BASEDIR/$ID/tmp/mappingqc_untreated
 echo -e "mQC performed for $ID \n"
 echo -e "\n"
 
