@@ -44,6 +44,8 @@ ARGUMENTS
                                                 (default: Y)
     -x | --plotrpftool                      The tool to plot the RPF phase figure (grouped2D/pyplot3D/mayavi)
                                                 (default: grouped2D)
+    -t | --tmp_folder                       The temporary folder with temporary results
+                                                (default work_dir/tmp)
     -o | --outfolder                        The output folder for plots
                                                 (default images_plots)
     -h | --outhtml                          The output html file
@@ -67,7 +69,7 @@ def main():
 
     # Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:x:o:h:z:p:i:e:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "plotrpftool=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db="])
+        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:x:t:o:h:z:p:i:e:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "plotrpftool=", "tmp_folder=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db="])
     except getopt.GetoptError as err:
         print err
         sys.exit()
@@ -92,6 +94,8 @@ def main():
             unique = a
         if o in ('-x', '--plotrpftool'):
             plotrpftool = a
+        if o in ('-t', '--tmp_folder'):
+            tmpfolder = a
         if o in ('-o', '--outfolder'):
             outfolder = a
         if o in ('-h', '--outhtml'):
@@ -167,7 +171,8 @@ def main():
         workdir = os.getcwd()
     if workdir != '':
         os.chdir(workdir)
-    tmpfolder = workdir+"/tmp"
+    if tmpfolder == '':
+        tmpfolder = workdir+"/tmp"
     if result_db == '':
         print "ERROR: do not forget to mention the result DB!"
         sys.exit()
