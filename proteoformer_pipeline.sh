@@ -55,7 +55,7 @@ echo -e "Download reference info\n\n"
 python $SCRIPTDIR/proteoformer/Additional_tools/ENS_db.py -v $ENSEMBL_ANNOT -s $SPECIES
 chmod 755 $ENSEMBLDB
 mv $ENSEMBLDB $ENSEMBLDICT
-python $SCRIPTDIR/proteoformer/Additional_tools/get_igenomes.py -v $ENSEMBL_ANNOT -s $SPECIES -d $IGENOMESROOT -r -c 15
+python $SCRIPTDIR/proteoformer/Additional_tools/get_igenomes.py -v $ENSEMBL_ANNOT -s $SPECIES -d $IGENOMESROOT -c 15
 
 
 ##Internal dict structure##
