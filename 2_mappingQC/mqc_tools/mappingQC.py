@@ -69,7 +69,7 @@ def main():
 
     # Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:x:t:o:h:z:p:i:e:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "plotrpftool=", "tmp_folder=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db="])
+        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:x:a:o:h:z:p:i:e:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "plotrpftool=", "tmp_folder=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db="])
     except getopt.GetoptError as err:
         print err
         sys.exit()
