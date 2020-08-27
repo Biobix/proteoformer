@@ -129,14 +129,14 @@ echo -e "Transcript calling performed on $ID \n"
 
 
 ##To run price, another ENV needs to be loaded.
-source deactivate
+conda deactivate
 source acitvate price
 
 echo -e "6) PRICE $ID \n"
 python $SCRIPTDIR/proteoformer/4_ORF_calling/using_PRICE/PRICE.py -r $BASEDIR/$ID/SQLite/results.db > $BASEDIR/$ID/PRICE_orf_$ID.txt 2>&1
 echo -e "PRICE ORF calling performed on $ID \n"
 
-source deactivate
+conda deactivate
 source activate proteoformer
 
 ##Go back to the BaseDir
@@ -160,5 +160,5 @@ cd $BASEDIR
 echo -e "MultiQC on all raw/mapped data performed\n"
 
 ##Deactivate conda environment
-source deactivate
+conda deactivate
 
