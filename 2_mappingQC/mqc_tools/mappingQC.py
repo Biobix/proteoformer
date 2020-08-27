@@ -431,7 +431,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
             top: 30px;
         }
 """
-        logo_main_string = "<img src=\"BIOBIX_logo.png\" alt="biobix_logo" id="biobix_logo">"
+        logo_main_string = """<img src=\"BIOBIX_logo.png\" alt="biobix_logo" id="biobix_logo">"""
     elif comp_logo=="ohmx":
         logo_header_string = """
         #ohmx_logo{
@@ -441,7 +441,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
             top: 2px;
         }
 """
-        logo_main_string = "<img src=\"ohmx_logo01_2.svg\" alt="ohmx_logo" id="ohmx_logo">"
+        logo_main_string = """<img src=\"ohmx_logo01_2.svg\" alt="ohmx_logo" id="ohmx_logo">"""
 
     #Structure of html file
     html_string = """<!DOCTYPE html>
