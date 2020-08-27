@@ -588,7 +588,7 @@ metagenic_analysis($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_sy
 print "\n\n";
 print "# Run plot generation and output HTML file creation module #\n";
 #Run plot generation Python file
-my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -x ".$plotrpftool." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -h ".$html." -z ".$zip;
+my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -x ".$plotrpftool." -a ".$TMP." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -h ".$html." -z ".$zip;
 if ($offset_option eq "plastid"){
     $python_command = $python_command." -i ".$offset_img;
 }

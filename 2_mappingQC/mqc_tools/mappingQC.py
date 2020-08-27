@@ -94,7 +94,7 @@ def main():
             unique = a
         if o in ('-x', '--plotrpftool'):
             plotrpftool = a
-        if o in ('-t', '--tmp_folder'):
+        if o in ('-a', '--tmp_folder'):
             tmpfolder = a
         if o in ('-o', '--outfolder'):
             outfolder = a
