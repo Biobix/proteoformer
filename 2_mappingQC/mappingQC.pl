@@ -19,7 +19,7 @@ use Cwd;
 
 # nohup perl ./mappingQC.pl --samfile STAR/fastq1/untreat.sam --treated 'untreated' --cores 20 --result_db SQLite/results.db --ens_db SQLite/ENS_mmu_82.db --offset plastid > nohup_mappingqc.txt &
 
-my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$unique,$ens_db,$offset_option,$offset_file,$offset_img,$output_folder,$tool_dir,$plotrpftool,$html,$zip);
+my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$unique,$ens_db,$offset_option,$offset_file,$offset_img,$output_folder,$tool_dir,$plotrpftool,$html,$zip,$comp_logo);
 my $help;
 
 GetOptions(
@@ -42,6 +42,7 @@ GetOptions(
                                             #mayavi: use the mayavi package to plot a 3D bar chart (only on systems with graphics cards)
 "html:s" => \$html,                     # The output html file name                                     Optional argument (default: CWD/mappingqc_out.html)
 "zip:s" => \$zip,                       # The output zip file name of the output folder                 Optional argument (default CWD/mappingQC_(un)treated.zip )
+"comp_logo:s" => \$comp_logo,
 "help" => \$help                        # Help text option
 );
 
@@ -167,6 +168,9 @@ if ($zip){
 } else {
     $zip = $work_dir."/mappingQC_".$treated.".zip";
     print "Output zip file name                                     : $zip\n";
+}
+unless ($comp_logo) {
+    $comp_logo = 'biobix';
 }
 
 my $dsn_sqlite_results = "DBI:SQLite:dbname=$resultdb";
@@ -588,7 +592,7 @@ metagenic_analysis($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_sy
 print "\n\n";
 print "# Run plot generation and output HTML file creation module #\n";
 #Run plot generation Python file
-my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -x ".$plotrpftool." -a ".$TMP." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -h ".$html." -z ".$zip;
+my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -x ".$plotrpftool." -a ".$TMP." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -c ".$comp_logo." -h ".$html." -z ".$zip;
 if ($offset_option eq "plastid"){
     $python_command = $python_command." -i ".$offset_img;
 }
