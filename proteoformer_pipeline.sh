@@ -29,6 +29,7 @@ ADAPTORSEQ="TGGAATTCTCGGGTGCCAAGG"
 IGENOMESROOT="/data/igenomes/"
 ENSEMBLDICT="/share/steven/Ensembl/"
 ENSEMBLDB="ENS_${SPECIES_SHORT}_${ENSEMBL_ANNOT}.db"
+COMPLOGO='biobix'
 
 SCRIPTDIR="/home/steven/"
 BASEDIR="/data2/steven/OHMX/OHMX20200001_bimini/"
@@ -116,7 +117,7 @@ echo -e "Statistics written for $ID \n"
 
 mkdir $BASEDIR/mqc/$ID
 echo -e "4) mQC $ID \n"
-perl $SCRIPTDIR/proteoformer/2_mappingQC/mappingQC.pl --samfile $BASEDIR/$ID/STAR/fastq1/untreat.sam --treated untreated --cores $CORES --result_db $BASEDIR/$ID/SQLite/results.db --unique $UNIQUEMAPPING --ens_db $ENSEMBLDICT/$ENSEMBLDB --offset $ORF  --offset_img $BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png --tool_dir $SCRIPTDIR/proteoformer/2_mappingQC/mqc_tools/ --plotrpftool pyplot3D --output_folder $BASEDIR/mqc/$ID --html $BASEDIR/mqc/mqc_$ID.html --zip $BASEDIR/mqc/mqc_$ID.zip --tmp $BASEDIR/$ID/tmp/ > $BASEDIR/$ID/mQC_$ID.txt 2>&1
+perl $SCRIPTDIR/proteoformer/2_mappingQC/mappingQC.pl --samfile $BASEDIR/$ID/STAR/fastq1/untreat.sam --treated untreated --cores $CORES --result_db $BASEDIR/$ID/SQLite/results.db --unique $UNIQUEMAPPING --ens_db $ENSEMBLDICT/$ENSEMBLDB --offset $ORF  --offset_img $BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png --tool_dir $SCRIPTDIR/proteoformer/2_mappingQC/mqc_tools/ --plotrpftool pyplot3D --output_folder $BASEDIR/mqc/$ID --html $BASEDIR/mqc/mqc_$ID.html --zip $BASEDIR/mqc/mqc_$ID.zip --tmp $BASEDIR/$ID/tmp/ --comp_logo $COMPLOGO > $BASEDIR/$ID/mQC_$ID.txt 2>&1
 rm -rf $BASEDIR/$ID/tmp/mappingqc_untreated
 echo -e "mQC performed for $ID \n"
 echo -e "\n"
