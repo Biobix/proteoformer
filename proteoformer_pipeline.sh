@@ -32,7 +32,7 @@ ENSEMBLDB="ENS_${SPECIES_SHORT}_${ENSEMBL_ANNOT}.db"
 COMPLOGO='biobix'
 
 SCRIPTDIR="/home/steven/"
-BASEDIR="/data2/steven/OHMX/OHMX20200001_bimini/"
+BASEDIR="/data2/steven/project/"
 echo "basedir = $BASEDIR"
 echo -e "scriptdir = $SCRIPTDIR\n"
 
