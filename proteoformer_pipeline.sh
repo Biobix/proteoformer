@@ -107,6 +107,8 @@ echo -e "FastQC raw file $ID done \n"
 
 echo -e "2) Mapping $ID \n"
 perl $SCRIPTDIR/proteoformer/1_mapping/mapping.pl --inputfile1 $UNZIPFILE --readtype ribo_untr --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper $CLIPPER --adaptor $ADAPTORSEQ --phix $PHIX --rRNA $RRNA --snRNA $SNORNA --tRNA $TRNA --rpf_split N --price_files $PRICE --suite $ORF --suite_tools_loc $SCRIPTDIR/proteoformer/1_mapping/ > $BASEDIR/$ID/mapping_$ID.txt 2>&1
+#Copy stats for multiQC
+cp STAR/fastq1/Log.final.out $BASEDIR/fastqc_mapped/$ID_fastqc.Log.final.out
 echo -e "Mapping done for $ID \n"
 
 ln -s  $BASEDIR/$ID/STAR/fastq1/untreat.bam $BASEDIR/$ID/$ID.bam
