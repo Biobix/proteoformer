@@ -194,7 +194,9 @@ def main():
 
     #Download SPECtre installation
     downloadlink_spectre = "https://github.com/mills-lab/spectre/archive/master.zip"
-    installation_dir = download_spectre(spectre_tmp, downloadlink_spectre)
+    proteoformer_github_link = 'https://github.com/Biobix/proteoformer/archive/master.zip'
+    spectre_source = 'old_version_on_proteoformer_github'
+    installation_dir = download_spectre(spectre_tmp, downloadlink_spectre, proteoformer_github_link, spectre_source)
 
     #Run SPECtre
     print
@@ -1149,17 +1151,28 @@ def run_spectre_chr(chrm, installation_dir, bam, spectre_tmp, isoform_file, gtf,
     return
 
 ## Download and install SPECtre
-def download_spectre(spectre_tmp, link):
+def download_spectre(spectre_tmp, link, proteoformer_github_link, spectre_source):
 
     installation_dir = spectre_tmp + "/spectre-master"
     if not os.path.isfile(spectre_tmp+"/spectre-master/SPECtre.py"):
-        #Download from github
-        os.system("wget -q --no-check-certificate "+link)
-        #unzip
-        os.system("unzip -q master.zip")
-        os.system("rm -rf master.zip")
-        #Move to tmp folder
-        os.system("mv spectre-master "+spectre_tmp)
+        if spectre_source=='old_version_on_proteoformer_github':
+            #Download old spectre version from proteoformer github
+            os.system("wget -q --no-check-certificate "+proteoformer_github_link)
+            #Unzip
+            os.system("unzip -q master.zip")
+            os.system("rm -rf master.zip")
+            #Copy to tmp folder
+            os.system("cp -r proteoformer-master/4_ORF_calling/using_SPECtre/tmp/SPECtre/spectre-master/ .")
+            #Remove the rest of the proteoformer github files
+            os.system("rm -rf proteoformer-master")
+        elif spectre_source=='new_spectre_version':
+            #Download from new version from github
+            os.system("wget -q --no-check-certificate "+link)
+            #unzip
+            os.system("unzip -q master.zip")
+            os.system("rm -rf master.zip")
+            #Move to tmp folder
+            os.system("mv spectre-master "+spectre_tmp)
     else:
         print "SPECtre installation already present"
 
