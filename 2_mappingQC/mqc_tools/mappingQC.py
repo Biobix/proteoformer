@@ -1499,6 +1499,10 @@ def get_plot_data(db, treated):
     total['1'] = 0
     total['2'] = 0
     triplet_data = defaultdict(lambda: defaultdict())
+    codontable = get_codontable()
+    for codon in codontable.keys():
+        for i in [0,1,2]:
+            triplet_data[codon][i] = 0
 
     try:
         conn = sqlite3.connect(db)
