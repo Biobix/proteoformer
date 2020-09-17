@@ -14,25 +14,30 @@ echo -e "\n\n"
 
 
 ## GLOBAL VARIABLES
-declare -A datasets=( ["20200001_001"]="/data2/steven/OHMX/OHMX20200001_bimini/raw/RIBO_X204SC20061628-Z01-F001/raw_data/a20200001_001/a20200001_001_FKDL202589086-1a-AK1912-AK1031_HLTJHDRXX_L1.fq.gz" ["20200001_002"]="/data2/steven/OHMX/OHMX20200001_bimini/raw/RIBO_X204SC20061628-Z01-F001/raw_data/a20200001_002/a20200001_002_FKDL202589086-1a-AK8599-AK10750_HLTJHDRXX_L1.fq.gz" ["20200001_003"]="/data2/steven/OHMX/OHMX20200001_bimini/raw/RIBO_X204SC20061628-Z01-F001/raw_data/a20200001_003/a20200001_003_FKDL202589086-1a-AK393-AK2941_HLTJHDRXX_L1.fq.gz" ["20200001_004"]="/data2/steven/OHMX/OHMX20200001_bimini/raw/RIBO_X204SC20061628-Z01-F001/raw_data/a20200001_004/a20200001_004_FKDL202589086-1a-AK8600-AK10751_HLTJHDRXX_L1.fq.gz")
+
+declare -A datasets=(["OHMX20200619_005"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/20191030_Ribo1_MHU-L-041709_S177_L008_R1_001.fastq.gz" ["OHMX20200619_006"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/20191030_Ribo2_MHU-L-061019_S178_L008_R1_001.fastq.gz" ["OHMX20200619_007"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/20191030_Ribo3_MHU-L-091307_S179_L008_R1_001.fastq.gz" ["OHMX20200619_001"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/a20190013_001_FKDL202574961-1a-AK2178-AK1031_HK7NYDRXX_L1.fq.gz" ["OHMX20200619_004"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/a20190013_004_FKDL202574961-1a-AK2180-AK10751_HK7NYDRXX_L1.fq.gz" ["OHMX20200619_002"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/a20190013_002_FKDL202574961-1a-AK870-AK10750_HK7NYDRXX_L1.fq.gz" ["OHMX20200619_003"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/a20190013_003_FKDL202574961-1a-AK1958-AK2941_HK7NYDRXX_L1.fq.gz")
 
 ##Input arguments##
 echo "INPUT ARUGMENTS:"
 ENSEMBL_ANNOT="100"
 SPECIES="human"
 SPECIES_SHORT="hsa"
-ORF="plastid"
+ORF="plastid"  											# Mostly standard or plastid
 PRICE="Y"
 CORES="20"
 UNIQUEMAPPING="Y"
+CLIPPER="trimmomatic" 									# Mostly trimmomatic or fastx
 ADAPTORSEQ="TGGAATTCTCGGGTGCCAAGG"
+PHIX="Y"												# Y or N
+RRNA="Y"												# Y or N
+SNORNA="Y"												# Y or N
+TRNA="Y"												# Y or N
 IGENOMESROOT="/data/igenomes/"
 ENSEMBLDICT="/share/steven/Ensembl/"
 ENSEMBLDB="ENS_${SPECIES_SHORT}_${ENSEMBL_ANNOT}.db"
-COMPLOGO='biobix'
-
-SCRIPTDIR="/home/steven/"
-BASEDIR="/data2/steven/project/"
+COMPLOGO='ohmx'											# ohmx or biobix
+SCRIPTDIR="/home/gerben/scripts/"
+BASEDIR="/data/gerbenm/20200619_Novo_GST_Frame/Novo"
 echo "basedir = $BASEDIR"
 echo -e "scriptdir = $SCRIPTDIR\n"
 
@@ -43,6 +48,11 @@ echo "PRICE-adapted mapping files = $PRICE"
 echo "Cores = $CORES"
 echo "Unique mapping = $UNIQUEMAPPING"
 echo "Adaptor sequence = $ADAPTORSEQ"
+echo "Clipper = $CLIPPER"
+echo "Phix filtering = $PHIX"
+echo "rRNA filtering = $RRNA"
+echo "tRNA filtering = $TRNA"
+echo "sn(o)RNA filtering = $SNORNA"
 echo "iGenomes root folder = $IGENOMESROOT"
 echo "Ensembl DB location = ${ENSEMBLDICT}${ENSEMBLDB}" 
 echo -e "\n\n"
@@ -51,11 +61,11 @@ echo -e "\n\n"
 source activate proteoformer
 
 ##Reference information##
-echo -e "Download reference info\n\n"
-python $SCRIPTDIR/proteoformer/Additional_tools/ENS_db.py -v $ENSEMBL_ANNOT -s $SPECIES
-chmod 755 $ENSEMBLDB
-mv $ENSEMBLDB $ENSEMBLDICT
-python $SCRIPTDIR/proteoformer/Additional_tools/get_igenomes.py -v $ENSEMBL_ANNOT -s $SPECIES -d $IGENOMESROOT -c 15
+#echo -e "Download reference info\n\n"
+#python $SCRIPTDIR/proteoformer/Additional_tools/ENS_db.py -v $ENSEMBL_ANNOT -s $SPECIES
+#chmod 755 $ENSEMBLDB
+#mv $ENSEMBLDB $ENSEMBLDICT
+#python $SCRIPTDIR/proteoformer/Additional_tools/get_igenomes.py -v $ENSEMBL_ANNOT -s $SPECIES -d $IGENOMESROOT -c 15
 
 
 ##Internal dict structure##
@@ -78,7 +88,8 @@ echo -e "START NEW LOOP:\n\t${ID}\n\t${FILE}\n"
 ##gunzip if necessary
 if [[ "$FILE" =~ .*\.gz$ ]]
 then
-    gunzip $FILE
+    pigz -p $CORES -d $FILE
+    #gunzip $FILE
     UNZIPFILE="${FILE%.*}"
     echo "File $FILE unzipped"
 else
@@ -95,7 +106,7 @@ fastqc $UNZIPFILE -o $BASEDIR/fastqc_raw -t $CORES
 echo -e "FastQC raw file $ID done \n"
 
 echo -e "2) Mapping $ID \n"
-perl $SCRIPTDIR/proteoformer/1_mapping/mapping.pl --inputfile1 $UNZIPFILE --readtype ribo_untr --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper fastx --adaptor $ADAPTORSEQ --phix Y --rRNA Y --snRNA Y --tRNA Y --rpf_split N --price_files $PRICE --suite $ORF --suite_tools_loc $SCRIPTDIR/proteoformer/1_mapping/ > $BASEDIR/$ID/mapping_$ID.txt 2>&1
+perl $SCRIPTDIR/proteoformer/1_mapping/mapping.pl --inputfile1 $UNZIPFILE --readtype ribo_untr --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper $CLIPPER --adaptor $ADAPTORSEQ --phix $PHIX --rRNA $RRNA --snRNA $SNORNA --tRNA $TRNA --rpf_split N --price_files $PRICE --suite $ORF --suite_tools_loc $SCRIPTDIR/proteoformer/1_mapping/ > $BASEDIR/$ID/mapping_$ID.txt 2>&1
 echo -e "Mapping done for $ID \n"
 
 ln -s  $BASEDIR/$ID/STAR/fastq1/untreat.bam $BASEDIR/$ID/$ID.bam
@@ -131,7 +142,7 @@ echo -e "Transcript calling performed on $ID \n"
 
 ##To run price, another ENV needs to be loaded.
 conda deactivate
-source acitvate price
+source activate price
 
 echo -e "6) PRICE $ID \n"
 python $SCRIPTDIR/proteoformer/4_ORF_calling/using_PRICE/PRICE.py -r $BASEDIR/$ID/SQLite/results.db > $BASEDIR/$ID/PRICE_orf_$ID.txt 2>&1
@@ -140,10 +151,23 @@ echo -e "PRICE ORF calling performed on $ID \n"
 conda deactivate
 source activate proteoformer
 
+
+##To run spectre, another ENV needs to be loaded.
+conda deactivate
+source activate spectre
+
+echo -e "7) SPECTRE $ID \n"
+python $SCRIPTDIR/proteoformer/4_ORF_calling/using_SPECtre/SPECtre.py -r $BASEDIR/$ID/SQLite/results.db -o 28:12,29:12,30:12 -c 60 -x 3 > $BASEDIR/$ID/SPECtre_orf_$ID.txt 2>&1
+echo -e "SPECTRE ORF calling performed on $ID \n"
+
+conda deactivate
+source activate proteoformer
+
 ##Go back to the BaseDir
 cd ..
 
-gzip $UNZIPFILE
+pigz -p $CORES $UNZIPFILE
+#gzip $UNZIPFILE
 echo "File $UNZIPFILE zipped"
 echo -e "\n\n"
 
