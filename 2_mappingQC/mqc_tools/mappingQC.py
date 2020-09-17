@@ -1032,6 +1032,9 @@ def read_codon_count(triplet_distr):
 
     #Init
     codon_perc = defaultdict()
+    codontable = get_codontable()
+    for codon in codontable.keys():
+        codon_perc[codon] = float(0)
     counts_per_triplet = defaultdict()
     total_sum=0
 
