@@ -351,6 +351,11 @@ def read_input_files(input_file_dict):
                 accession=""
                 sequence=""
 
+    print("Input file record counts:")
+    for file_number in input_data.keys():
+        print(str(file_number)+": "+str(len(input_data[file_number].keys())))
+    print("\n")
+
     return input_data
 
 #Input file dict
