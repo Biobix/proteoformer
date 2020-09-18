@@ -86,13 +86,17 @@ def main():
         input_file = input_files[i]
         output_file = output_files[i]
         print ("File: "+input_file)
+        sys.stdout.flush()
         input_data = read_input_file(input_file)
         print("Input: "+str(len(input_data))+" records")
+        sys.stdout.flush()
         output_data = deduplicate(input_data)
         print("Output: " + str(len(output_data)) + " records")
+        sys.stdout.flush()
         print_to_output(output_data, output_file)
         print("Output written to "+output_file)
         print("\n")
+        sys.stdout.flush()
 
 
     #End of program message
