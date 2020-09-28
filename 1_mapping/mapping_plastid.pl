@@ -16,7 +16,7 @@ use Cwd;
 # ./1_mapping_plastid.pl --out_sqlite SQLite/results.db --treated untreated
 
 # get the command line arguments
-my ($work_dir,$tmpfolder,$out_sqlite,$treated,$offset_img,$help);
+my ($work_dir,$tmpfolder,$out_sqlite,$treated,$offset_img,$verbose,$help);
 
 GetOptions(
 "tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
@@ -24,6 +24,7 @@ GetOptions(
 "out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file,                                             			optional  argument (default = results.db)
 "treated:s" =>\$treated,                    # Untreated (no treat, CHX,...) or treated (LTM, HARR,...)                      optional  argument (default = 'untreated')
 "offset_img=s" =>\$offset_img,              # P site offset image                                                           optional  argument (default = CWD/plastid/run_name_(un)treated_p_offsets.png)
+"verbose=s" =>\$verbose,                    # Verbose argument for debugging                                                optional argument (default = 'N')
 "help" => \$help                            #Help text option
 );
 
@@ -64,7 +65,13 @@ if (!defined($treated)){
     die;
 }
 print "Sample treatment                                              : $treated\n";
-
+if (!defined($verbose)){
+    $verbose='N';
+} elsif ($verbose ne "Y" && $verbose ne "N"){
+    print "ERROR: verbose argument should be 'Y' or 'N'!";
+    die;
+}
+print "Verbose                                                        : $verbose\n";
 
 #Get all other necessary arguments out of SQLite DB
 my $db_sqlite_results  = $out_sqlite;
@@ -148,11 +155,11 @@ my $genes_gtf = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Gene
 
 my $start = time;
 
-generate_metagene($genes_gtf,$run_name);
+generate_metagene($genes_gtf,$run_name,$verbose);
 
 index_bam($bam);
 
-calculate_offset($bam,$run_name,$min_length,$max_length);
+calculate_offset($bam,$run_name,$min_length,$max_length,$verbose);
 
 dump_offsets_in_sqlite($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results,$run_name, $treated);
 
@@ -181,9 +188,15 @@ sub generate_metagene{
     #Catch
     my $genes_gtf = $_[0];
     my $run_name = $_[1];
+    my $verbose = $_[2];
     
     #Build command
-    my $command = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf." 2> /dev/null";
+    my $command = "";
+    if($verbose eq 'N'){
+        $command = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf." 2> /dev/null";
+    } else {
+        $command = "metagene generate -q ".$run_name." --landmark cds_start --annotation_files ".$genes_gtf;
+    }
     
     #Execute command
     print "Generate metagene\n".$command."\n\n";
@@ -215,9 +228,15 @@ sub calculate_offset{
     my $run_name = $_[1];
     my $min_l = $_[2];
     my $max_l =$_[3];
+    my $verbose = $_[4];
     
     #Build command
-    my $command = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam." 2> /dev/null";
+    my $command = "";
+    if($verbose eq 'N'){
+        $command = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam." 2> /dev/null";
+    } else {
+        $command = "psite -q ".$run_name."_rois.txt ".$run_name." --min_length ".$min_l." --max_length ".$max_l." --require_upstream --count_files ".$bam;
+    }
     
     #Execute command
     print "Calculate psite\n".$command."\n\n";

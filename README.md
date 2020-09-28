@@ -391,6 +391,7 @@ Input arguments of mapping_plastid.pl:
 | --out_sqlite | work_dir/SQLite/results.db                          | SQLite results database                                            |
 | --treated    | untreated                                           | Which sample to calculate offsets for (options: untreated/treated) |
 | --offset_img | work_dir/plastid/run_name_(un)treated_p_offsets.png | P-site offsets output image path                                   |
+| --verbose    | N                                                   | Use Y for debugging                                                |
 | --help       |                                                     | Print help message                                                 |
 
 Input arguments of mapping_parsing.pl:
