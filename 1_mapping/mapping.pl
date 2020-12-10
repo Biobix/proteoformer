@@ -50,7 +50,7 @@ GetOptions(
 "name=s"=>\$run_name,                   	# Name of the run,                                                  			mandatory argument
 "species=s"=>\$species,                 	# Species, eg mouse/rat/human/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977/c.elegans       mandatory argument
 "ensembl=i"=>\$ensemblversion,          	# Ensembl annotation version, eg 66 (Feb2012),                      			mandatory argument
-"cores=i"=>\$cores,                     	# Number of cores to use for Bowtie Mapping,                        			mandatory argument
+"cores=i"=>\$cores,                     	# Number of cores to use for Mapping,                               			mandatory argument
 "readtype=s"=>\$readtype,              		# The readtype (ribo, ribo_untr, PE_polyA, SE_polyA, PE_total, SE_total)       	optional argument (default = ribo)
 "mapper:s"=>\$mapper,                   	# The mapper used for alignment (STAR,TopHat2)       			                optional  argument (default = STAR)
 "readlength:i"=>\$readlength,           	# The readlength (if RiboSeq take 50 bases),                        			optional  argument (default = 36)
@@ -69,14 +69,14 @@ GetOptions(
 "out_bg_s_tr:s" =>\$out_bg_s_tr,        	# Output file for sense treated count data (bedgraph)               			optional  argument (default = treat_sense.bedgraph)
 "out_bg_as_tr:s" =>\$out_bg_as_tr,      	# Output file for antisense treated count data (bedgraph)           			optional  argument (default = treat_antisense.bedgraph)
 "out_sam_untr:s" =>\$out_sam_untr,      	# Output file for alignments of untreated data (sam)                			optional  argument (default = untreat.sam)
-"out_sam_tr:s" =>\$out_sam_tr,         	  # Output file for alignments of treated data (sam)                  			optional  argument (default = treat.sam)
+"out_sam_tr:s" =>\$out_sam_tr,         	  # Output file for alignments of treated data (sam)                    			optional  argument (default = treat.sam)
 "out_bam_untr:s" =>\$out_bam_untr,      	# Output file for alignments of untreated data (bam)                			optional  argument (default = untreat.bam)
-"out_bam_tr:s" =>\$out_bam_tr,         	  # Output file for alignments of treated data (bam)                  			optional  argument (default = treat.bam)
+"out_bam_tr:s" =>\$out_bam_tr,         	  # Output file for alignments of treated data (bam)                    			optional  argument (default = treat.bam)
 "out_bam_tr_untr:s" =>\$out_bam_tr_untr,	# Output file for alignments on transcript coordinates for untreated data (bam) optional  argument (default = untreat_tr.bam)
-"out_bam_tr_tr:s" =>\$out_bam_tr_tr,   	  # Output file for alignments on transcript coordinates for treated data (bam)   optional  argument (default = treat_tr.bam)
+"out_bam_tr_tr:s" =>\$out_bam_tr_tr,   	  # Output file for alignments on transcript coordinates for treated data (bam)     optional  argument (default = treat_tr.bam)
 "out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file                                             			optional  argument (default = results.db)
 "igenomes_root=s" =>\$IGENOMES_ROOT,    	# IGENOMES ROOT FOLDER                                              			mandatory argument
-"clipper:s" =>\$clipper,                	# what clipper is used (none or STAR or fastx or trimmomatic)                     	      optional argument (default = none) or STAR or fastx or trimmomatic
+"clipper:s" =>\$clipper,                	# what clipper is used (none or STAR or fastx or trimmomatic)          	        optional argument (default = none) or STAR or fastx or trimmomatic
 "phix:s" =>\$phix,                      	# map to phix DB prior to genomic mapping (Y or N)                  			optional argument (default = N)
 "rRNA:s" =>\$rRNA,                      	# map to rRNA DB prior to genomic mapping (Y or N)                  			optional argument (default = Y)
 "snRNA:s" =>\$snRNA,                    	# map to snRNA DB prior to genomic mapping (Y or N)                				optional argument (default = N)
@@ -360,10 +360,14 @@ unless ($max_cst_prime_offset){
     $max_cst_prime_offset = 40;
 }
 if($readtype eq "ribo" || $readtype eq "ribo_untr"){
-    if ($suite eq "cst_5prime" || $suite eq "cst_3prime"){
-        print "Constant prime ofset                                      : $cst_prime_offset\n";
-        print "Minimum RPF length for constant prime offsets             : $min_cst_prime_offset\n";
-        print "Maximum RPF length for constant prime offsets             : $max_cst_prime_offset\n";
+    if ($suite){
+        if ($suite eq "cst_5prime" || $suite eq "cst_3prime"){
+            print "Constant prime ofset                                      : $cst_prime_offset\n";
+            print "Minimum RPF length for constant prime offsets             : $min_cst_prime_offset\n";
+            print "Maximum RPF length for constant prime offsets             : $max_cst_prime_offset\n";
+        }
+    } else {
+        $suite = "custom";
     }
 }
 if($readtype eq "ribo" || $readtype eq "ribo_untr"){
@@ -920,12 +924,24 @@ sub map_STAR {
         print "     Clipping $seqFileName"." using trimmomatic tool\n";
         # With length cut-off (23 bp) and adaptor presence
         my $clip_command =  $trimmomatic_loc." SE -phred33 -threads ".$cores."  ".$fasta." ".$work_dir."/fastq/".$seqFileName."_clip.fastq ILLUMINACLIP:".$work_dir."/tmp/adaptor.fa:2:0:5 MINLEN:23";  
+        my $clipper_log_file = $run_name."_".$seqFileName."_trimmomatic.log";
         print "     ".$clip_command."\n";
-        system ($clip_command);
+        system ($clip_command." 2>&1 | tee ".$clipper_log_file); #Tee writes stdout also to log file
         $fasta = $work_dir."/fastq/$seqFileName"."_clip.fastq";
-    
-    }
 
+        #Parse stats
+        my ($inReads, $mappedReads, $unmappedReads) = parse_trimmomatic_stats($clipper_log_file);
+        # Process statistics
+        open (STATS, ">>".$stat_file);
+        print STATS "STAR ".$run_name." ".$seqFileName." "."fastq clipper ".$inReads."\n";
+        print STATS "STAR ".$run_name." ".$seqFileName." "."hit clipper ".$mappedReads."\n";
+        print STATS "STAR ".$run_name." ".$seqFileName." "."unhit clipper ".$unmappedReads."\n";
+        close(STATS);
+
+        #Delete log file
+        system ("rm -rf ".$clipper_log_file);
+    }
+    
     my $clip_stat = (uc($clipper) eq "FASTX" || uc($clipper) eq "NONE"  || uc($clipper) eq "TRIMMOMATIC") ? " " : "--clip3pAdapterSeq ".$adaptorSeq." --clip3pAdapterMMp 0.1 ";
 
     #GO FOR STAR-pHIX mapping
@@ -1685,7 +1701,7 @@ sub store_statistics {
 
     #Print statistics to stdout
     print "\nMapping statistics:\n";
-    my @possible_refs = ("phix","rRNA","snRNA","tRNA","genomic");
+    my @possible_refs = ("clipper","phix","rRNA","snRNA","tRNA","genomic");
     my @possible_scores = ("fastq","hit","hitU","hitM","unhit");
     foreach my $sample (keys %$stat) {
         print "Sample: ".$sample."\n";
@@ -1943,6 +1959,31 @@ sub systemError {
     }
 }
 
+sub parse_trimmomatic_stats {
+
+    #Init
+    my $log_file = $_[0];
+    my $inReads = 0;
+    my $mappedReads = 0;
+    my $unmappedReads = 0;
+
+    open (LOG, "<".$log_file) || die "Could not read trimmomatic log file ".$log_file;
+
+    while(my $line = <LOG>) {
+        chomp($line);
+        #Search for the line with the stats
+        if($line =~ m/^Input Reads/){
+            if($line =~ m/^Input\sReads:\s(\d+)\sSurviving:\s(\d+)\s\(\S+\)\sDropped:\s(\d+)\s\(\S+\)$/) {
+                $inReads = $1;
+                $mappedReads = $2;
+                $unmappedReads = $3;
+            }
+        }
+    }
+
+    return ($inReads, $mappedReads, $unmappedReads);
+}
+
 sub parseLogSTAR  {
 
     # Catch
@@ -2081,7 +2122,7 @@ Example:
             --species                           Species: mouse/rat/horse/human/c.elegans/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977 (mandatory)
             --ensembl                           Ensembl annotation version (mandatory)
             --igenomes_root                     iGenomes root folder (mandatory)
-            --cores                             Number of cores to use for Bowtie Mapping (mandatory)
+            --cores                             Number of cores to use for Mapping (mandatory)
             --readtype                          The readtype: ribo, ribo_untr, PE_polyA, SE_polyA, PE_total or SE_total (default: ribo)
             --mapper                            The mapper used for alignment: STAR,TopHat2,BowTie or BowTie2 (default: STAR)
             --readlength                        The readlength (default: 36)
