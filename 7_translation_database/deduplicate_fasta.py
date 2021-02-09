@@ -66,7 +66,7 @@ def main():
                 output_file = m_input.group(1)+"_dedupl.fa"
                 output_files.append(output_file)
     else:
-        output_files = re.split(',', args.input_files)
+        output_files = re.split(',', args.output_files)
     if len(input_files)!=len(output_files):
         print("Comma-seperated lists of input and output files has not the same number of elements!")
         sys.exit()
