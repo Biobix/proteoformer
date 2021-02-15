@@ -127,9 +127,9 @@ def deduplicate(input_data):
         if seq not in per_seq_data:
             per_seq_data[seq] = acc
         else:
-            m_id = re.search('^>generic\|(.+?)\|.+', acc)
+            m_id = re.search('^>(generic|hspv|sp|tr)\|(.+?)\|.+', acc)
             if m_id:
-                id = m_id.group(1)
+                id = m_id.group(2)
                 updated_acc = per_seq_data[seq]+" dupl_"+id
                 per_seq_data[seq] = updated_acc
 
