@@ -18,6 +18,7 @@ ARGUMENTS:
                                             human                       |   homo_sapiens
                                             mouse                       |   mus_musculus
                                             horse						|   equus_caballus
+                                            arctic_squirrel             |   urocitellus_parryii
                                             fruitfly                    |   drosophila_melanogaster
                                             saccharomyces_cerevisiae    |   yeast
                                             caenorhabditis_elegans      |   c.elegans
@@ -103,7 +104,7 @@ def main():
 
     speciesdict = {'zebrafish': 'dre','danio_rerio': 'dre','human': 'hsa', 'mouse': 'mmu', 'horse': 'eca', 'fruitfly': 'dme',
                    'yeast': 'sce', 'c.elegans': 'cel',
-                   'homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'equus_caballus': 'eca', 'drosophila_melanogaster': 'dme',
+                   'homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'equus_caballus': 'eca', 'arctic_squirrel': 'upa', 'drosophila_melanogaster': 'dme',
                    'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel','rat': 'rnv',
                    'rattus_norvegicus': 'rnv',
                    'MYC_ABS_ATCC_19977': 'MYC_ABS_ATCC_19977', 'mycobacterium_abscessus_atcc_19977': 'MYC_ABS_ATCC_19977',
@@ -114,7 +115,7 @@ def main():
     # Check whether database already exists
     #
 
-    if os.path.isfile(directory + '/ENS_' + species + '_v_' + ens_v + '.db'):
+    if os.path.isfile(directory + '/ENS_' + speciesdict[species] + '_' + ens_v + '.db'):
         print("There already exists a file called " + 'ENS_' + speciesdict[species] + '_' + ens_v + '.db in: ' + directory)
         print("Please delete the existing file if you want to create the database anew.")
         sys.exit()
@@ -189,6 +190,14 @@ def main():
             print("ERROR: unsupported ensembl version: " + ens_v)
             print("supported ensembl versions: from 75 till 100")
             sys.exit()
+    elif (species=='arctic_squirrel'):
+        if(int(ens_v) >=96 and int(ens_v)<=103):
+            core='/urocitellus_parryii_core_'+ens_v+'_1.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-'+ens_v+'/mysql/urocitellus_parryii_core_'+ens_v+'_1/', core)
+        else:
+            print("ERROR: unsupported ensembl version: " + ens_v)
+            print("supported ensembl versions: from 96 till 103")
+            sys.exit()
     elif (species=='fruitfly' or species=='drosophila_melanogaster'):
         if(int(ens_v) >= 74 and int(ens_v) <= 90):
             core='/drosophila_melanogaster_core_' + ens_v + '_6.sql.gz'
@@ -239,7 +248,7 @@ def main():
 
     else:
         print("Error: unsupported species: " +species )
-        print("Supported species: human, fruitfy, mouse, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977, CNECNA3, Cryptococcus_neoformans_var_grubii_h99_gca_000149245")
+        print("Supported species: human, fruitfy, mouse, horse, arctic_squirrel, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977, CNECNA3, Cryptococcus_neoformans_var_grubii_h99_gca_000149245")
         sys.exit()
 
     #
@@ -460,8 +469,9 @@ ARGUMENTS:
 
                                             human                       |   homo_sapiens
                                             mouse                       |   mus_musculus
-                                            rat							|   rattus_norvegicus
-                                            horse						|   equus_caballus
+                                            rat                         |   rattus_norvegicus
+                                            horse                       |   equus_caballus
+                                            arctic_squirrel             |   urocitellus_parryii
                                             fruitfly                    |   drosophila_melanogaster
                                             saccharomyces_cerevisiae    |   yeast
                                             caenorhabditis_elegans      |   c.elegans
