@@ -26,6 +26,7 @@ __author__ = 'SV'
     mouse                       |   Mus_musculus
     rat                         |   Rattus norvegicus
     horse                       |   Equus caballus
+    arctic_squirrel             |   Urocitellus parryii
     fruitfly                    |   Drosophila_melanogaster
     yeast                       |   Saccharomyces cerevisiae
     zebrafish                   |   Danio rerio
@@ -55,6 +56,10 @@ import re
 from multiprocessing import Pool
 import datetime
 import traceback
+from collections import defaultdict
+import numpy as np
+import pandas as pd
+from functools import partial
 
 def main():
 
@@ -127,8 +132,8 @@ def main():
             print("Error: latest Ensembl Bacteria/Fungi version is 45!")
             sys.exit()
     else:
-        if(ens_v>100):
-            print("Error: latest Ensembl version is 100!")
+        if(ens_v>103):
+            print("Error: latest Ensembl version is 103!")
             sys.exit()
     #Remove last "/" from instal dir path
     pattern=re.compile('^(\S+)/$')
@@ -166,6 +171,14 @@ def main():
         else:
             assembly='Rnor_5.0'
             ucscCode='rn5'
+#####TO EDIT
+    elif(species=='arctic_squirrel'):
+        speciesLong='Urocitellus_parryii'
+        if(ens_v>95):
+            assembly='ASM342692v1'
+        else:
+            print("Squirrel ensembl version needs to be 96 or higher")
+            sys.exit()
 #####TO EDIT
     elif(species=='horse'):
         speciesLong='Equus_caballus'
@@ -217,15 +230,19 @@ def main():
         speciesLong='Cryptococcus_neoformans_var_grubii_h99_gca_000149245'
         assembly='CNA3'
     else:
-        print("Species has to be one of the following list: human, mouse, fruitfly, yeast, zebrafish, arabidopsis, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344, cryptococcus_neoformans_var_grubii_h99_gca_000149245, CNECNA3")
+        print("Species has to be one of the following list: human, mouse, horse, arctic squirrel, fruitfly, yeast, zebrafish, arabidopsis, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344, cryptococcus_neoformans_var_grubii_h99_gca_000149245, CNECNA3")
         sys.exit()
 
     print("Assembly                                    : " + assembly)
-    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3'):
+    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!='arctic_squirrel'):
         print("UCSC code                                   : " + ucscCode)
     print("")
 
     os.chdir(instalDir)
+
+    ########
+    # MAIN #
+    ########
 
     #Check if the igenomes folder already exists
     if os.path.isdir("igenomes"):
@@ -242,6 +259,8 @@ def main():
 
 
 
+
+
     #construct the basic folder structure
     if(not os.path.isdir("igenomes/"+speciesLong)):
         os.system("mkdir igenomes/"+speciesLong)
@@ -253,6 +272,9 @@ def main():
     os.system("mkdir igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence")
 
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Annotation")
+
+
+
 
 
 
@@ -319,9 +341,9 @@ def main():
         collection = '1'
         canEns_v=str(ens_v+53) #Bacteria Ensembl releases are 53 less than the other species.
         #first, search coord system id
-        print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
+        #print ("wget -q ftp:ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
         os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
-        print ("gzip -d coord_system.txt.gz")
+        #print ("gzip -d coord_system.txt.gz")
         os.system("gzip -d coord_system.txt.gz")
         coord_system_id=0
         input = open('coord_system.txt', 'r')
@@ -343,10 +365,33 @@ def main():
             m = pattern.search(line)
             if m:
                 chromList[m.group(1)]=m.group(2)
-
+    elif(species=='arctic_squirrel'):
+        #Squirrel chromosome info file is not accessible yet at UCSC, the assembly is still in scaffold phase
+        #So we get the scaffolds as chromosomes and we get them from Ensembl
+        os.system("wget -q ftp://ftp.ensembl.org/pub/release-"+stringEns_v+"/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_1/coord_system.txt.gz")
+        os.system("gzip -d coord_system.txt.gz")
+        coord_system_id=0 #Init
+        input = open('coord_system.txt', 'r')
+        for line in input:
+            pattern = re.compile('^(\d+)\t\d+\t\w+\t(\w+)\t1')
+            m = pattern.search(line)
+            if m:
+                if(m.group(2)==assembly):
+                    coord_system_id=m.group(1)
+        #Then search for the scaffolds in seq_region.txt
+        os.system("wget -q ftp://ftp.ensembl.org/pub/release-"+stringEns_v+"/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_1/seq_region.txt.gz")
+        os.system("gzip -d seq_region.txt.gz")
+        input = open('seq_region.txt', 'r')
+        regex = r"\b(?=\w)^\d+\t(\S+)\t"+re.escape(coord_system_id)+r"\t(\d+)\b(?!\w)"
+        for line in input:
+            pattern = re.compile(regex)
+            m = pattern.search(line)
+            if m:
+                chromList[m.group(1)]=m.group(2)
     else:
         #Other species: download from UCSC
         os.system("wget -q ftp://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz")
+        print("wget -q ftp://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz")
         os.system("gzip -d chromInfo.txt.gz")
         os.system("mv chromInfo.txt tmpChromInfo.txt")
         #Retain only the standard chromosomes
@@ -364,16 +409,18 @@ def main():
                             chromList[m.group(1)]=m.group(2)
     #Write standard chromosomes to chromosome sizes file
     outFile = open('ChromInfo.txt','w')
-    for key in chromList:
+    for key in sorted(chromList.keys()):
         outFile.write(key+"\t"+chromList[key]+"\n")
     outFile.close()
     if(species=='arabidopsis'):
         os.system("rm -rf seq_region.txt")
-    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977' or species=='CNECNA3'):
+    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977' or species=='CNECNA3' or species=='arctic_squirrel'):
         os.system("rm -rf coord_system.txt")
         os.system("rm -rf seq_region.txt")
     else:
         os.system("rm -rf tmpChromInfo.txt")
+
+
 
 
 
@@ -384,13 +431,21 @@ def main():
     os.system("mkdir Chromosomes")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes")
 
-    #Multithreading chromosome downloads
-    pool = Pool(processes=cores)
-    [pool.apply_async(downloadChromosomeFasta, args=(key,species,speciesLong,ens_v,stringEns_v,assembly,instalDir)) for key in chromList]
-    pool.close()
-    pool.join()
-
-
+    if species=="arctic_squirrel":
+        #For arctic squirrel we need another way to access chromosomal fasta files. In fact we want a fasta file per scaffold, as the assembly is still in scaffold phase
+        #The information of all scaffolds is placed in one file, download this file
+        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.toplevel.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa.gz")
+        os.system("gunzip "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa.gz")
+        total_fasta = instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa"
+        chr_dir = instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes"
+        #Then split this file over scaffolds
+        split_per_scaffold(total_fasta, chr_dir,cores)
+    else:
+        #Multithreading chromosome downloads
+        pool = Pool(processes=cores)
+        [pool.apply_async(downloadChromosomeFasta, args=(key,species,speciesLong,ens_v,stringEns_v,assembly,instalDir)) for key in chromList]
+        pool.close()
+        pool.join()
 
     ## Make whole genome fasta
     print("\n")
@@ -399,12 +454,16 @@ def main():
     os.system("mkdir WholeGenomeFasta")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/WholeGenomeFasta")
 
-    #Whole genome fasta file is a concatenation of all chromosome fasta files: first, construct command
-    command = ""
-    for chr in chromList:
-        command=command+" "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa"
-    #Do concatenation
-    os.system("cat"+command+"> genome.fa")
+    if species=="arctic_squirrel":
+        #The file containing all scaffolds can be used as Whole Genome Fasta file
+        os.system("mv "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/WholeGenomeFasta/genome.fa")
+    else:
+        #Whole genome fasta file is a concatenation of all chromosome fasta files: first, construct command
+        command = ""
+        for chr in chromList:
+            command=command+" "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa"
+        #Do concatenation
+        os.system("cat"+command+"> genome.fa")
 
 
 
@@ -500,6 +559,78 @@ def main():
 # SUBS #
 ########
 
+#Split a top level fasta file over the different scaffolds
+def split_per_scaffold(total_fasta, chr_dir, cores):
+
+    #Read in total fasta file
+    scaffold_seqs = read_fasta(total_fasta)
+
+    #Multithreading scaffold writing
+    #Split scaffolds over cores in chunks
+    #scaffolds_split = np.array_split(scaffold_seqs, cores)
+    #Start up multiprocessing
+    #pool = Pool(processes=cores)
+    #func = partial(write_scaffold, chr_dir)
+    #pool.map(func, scaffolds_split)
+    #pool.close()
+    #pool.join()
+    #This multiprocess gives an IO error. Probably the shared array is too big.
+
+    #Do it single core for the moment
+    write_scaffold(chr_dir, scaffold_seqs)
+
+    return
+
+def write_scaffold(chr_dir, scaffold_seqs):
+
+    for index,row in scaffold_seqs.iterrows():
+        out_file = chr_dir+"/"+row['scaffold_id']+".fa"
+        #Write each scaffold to separate file
+        with open(out_file, 'w') as FW:
+            FW.write(row['accession']+"\n")
+            FW.write(row['sequence']+"\n")
+
+    return
+
+#read fasta
+def read_fasta(fasta):
+
+    #Init
+    input_data = pd.DataFrame(columns=['scaffold_id','accession', 'sequence'])
+
+    #Open fasta file
+    with open(fasta, 'r') as FR:
+        lines = FR.readlines()
+        lines = list(map(lambda x: x.rstrip("\n"), lines))
+        lines = list(map(lambda x: x.rstrip("\r"), lines))
+        #Init
+        accession = ""
+        scaffold_id = ""
+        sequence = ""
+        for i in range(0, len(lines)):
+            # Check if accession -> new entry
+            if ((re.search('^>', lines[i]))):
+                if(i!=0):
+                    # Save previous entry
+                    input_data = input_data.append({'scaffold_id': scaffold_id, 'accession': accession, 'sequence': sequence}, ignore_index=True)
+                # Get new entry accession and empty sequence
+                accession = lines[i]
+                m_id = re.search('^>(\S+)\s', accession)
+                if m_id:
+                    scaffold_id=m_id.group(1)
+                sequence = ""
+            else:
+                # Concat next line of sequence
+                sequence += lines[i]
+        # Save the last entry
+        if (sequence != ""):
+            input_data = input_data.append({'scaffold_id': scaffold_id, 'accession': accession, 'sequence': sequence}, ignore_index=True)
+            accession = ""
+            scaffold_id=""
+            sequence = ""
+
+    return input_data
+
 #Defenition of one download process
 def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assembly, instalDir):
     if(species=='arabidopsis'):#Arabidopsis is on the site of ensembl Plants instead of normal Ensembl. This site cannot use rsync yet.
@@ -569,12 +700,12 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa")
             else:
                 if(ens_v>75):
-                	if (species=="horse"):
-                		os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
-                		#print("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
-                	else:
-                		os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
-                		#print("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                    if (species=="horse"):
+                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                        #print("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                    else:
+                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                        #print("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
                 else:
                     os.system("rsync -avq rsync://ftp.ensembl.org/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
                 os.system("gunzip "+chr+".fa.gz")
@@ -603,14 +734,16 @@ def print_help():
     human                       |   Homo_sapiens
     mouse                       |   Mus_musculus
     rat                         |   Rattus norvegicus
-    horse						|   Equus caballus
+    horse                       |   Equus caballus
+    arctic_squirrel             |   Urocitellus parryii
     fruitfly                    |   Drosophila_melanogaster
-    yeast                       |   Saccharomyces_cerevisiae
-    zebrafish                   |   Danio_rerio
-    arabidopsis                 |   Arabidopsis_thaliana
-    c.elegans                   |   Caenorhabditis_elegans
+    yeast                       |   Saccharomyces cerevisiae
+    zebrafish                   |   Danio rerio
+    arabidopsis                 |   Arabidopsis thaliana
+    c.elegans                   |   Caenorhabditis elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
     MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
+    CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
 
     EXAMPLE:
 
