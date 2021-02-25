@@ -48,13 +48,13 @@ GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
 "inputfile2=s"=>\$seqFileName2,         	# the fastq file of the treated data for RIBO-seq (PUR,LTM,HARR) or the 2nd fastq for paired-end RNA-seq                         mandatory argument
 "name=s"=>\$run_name,                   	# Name of the run,                                                  			mandatory argument
-"species=s"=>\$species,                 	# Species, eg mouse/rat/human/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977/c.elegans       mandatory argument
+"species=s"=>\$species,                 	# Species, eg mouse/rat/human/horse/arctic_squirrel/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977/c.elegans       mandatory argument
 "ensembl=i"=>\$ensemblversion,          	# Ensembl annotation version, eg 66 (Feb2012),                      			mandatory argument
 "cores=i"=>\$cores,                     	# Number of cores to use for Mapping,                               			mandatory argument
 "readtype=s"=>\$readtype,              		# The readtype (ribo, ribo_untr, PE_polyA, SE_polyA, PE_total, SE_total)       	optional argument (default = ribo)
 "mapper:s"=>\$mapper,                   	# The mapper used for alignment (STAR,TopHat2)       			                optional  argument (default = STAR)
 "readlength:i"=>\$readlength,           	# The readlength (if RiboSeq take 50 bases),                        			optional  argument (default = 36)
-"adaptor:s"=>\$adaptorSeq,              	# The adaptor sequence that needs to be clipped with fastx_clipper, 			optional  argument (default = CTGTAGGCACCATCAAT) => Ingolia paper (for ArtSeq = AGATCGGAAGAGCACAC)
+"adaptor:s"=>\$adaptorSeq,              	# The adaptor sequence that needs to be clipped with fastx_clipper, 			optional  argument (default = CTGTAGGCACCATCAAT) => Ingolia paper (for ArtSeq = AGATCGGAAGAGCACAC) => For Lexogen prep (TGGAATTCTCGGGTGCCAAGGAACTCCAGTCAC)
 "unique=s" =>\$unique,                  	# Retain the uniquely (and multiple) mapping reads (Y or N),        			mandatory argument
 "tmp:s" =>\$tmpfolder,                  	# Folder where temporary files are stored,                          			optional  argument (default = $TMP or $CWD/tmp env setting)
 "work_dir:s" =>\$work_dir,              	# Working directory ,                                               			optional  argument (default = $CWD env setting)
@@ -450,6 +450,7 @@ $run_name = $run_name."_".$mapper."_".$unique."_".$ensemblversion;
 my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" 
 : (uc($species) eq "RAT") ? "Rattus_norvegicus" 
 : (uc($species) eq "HORSE") ? "Equus_caballus" 
+: (uc($species) eq "ARCTIC_SQUIRREL") ? "Urocitellus_parryii"
 : (uc($species) eq "C.ELEGANS") ? "Caenorhabditis_elegans"
 : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" 
 : (uc($species) eq "SL1344") ? "SL1344" 
@@ -462,6 +463,7 @@ my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus"
 my $spec_short = (uc($species) eq "MOUSE") ? "mmu" 
 : (uc($species) eq "RAT") ? "rnor" 
 : (uc($species) eq "HORSE") ? "eca" 
+: (uc($species) eq "ARCTIC_SQUIRREL") ? "upa"
 : (uc($species) eq "CNECNA3") ? "cnecna3" 
 : (uc($species) eq "SL1344") ? "sl1344" 
 :  (uc($species) eq "MYC_ABS_ATCC_19977") ? "MYC_ABS_ATCC_19977" 
@@ -476,6 +478,7 @@ my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
 : (uc($species) eq "RAT" && $ensemblversion >=80 ) ? "Rnor_6.0"
 : (uc($species) eq "RAT" && $ensemblversion < 80) ? "Rnor_5.0"
 : (uc($species) eq "HORSE" && $ensemblversion > 94) ? "EquCab3.0"
+: (uc($species) eq "ARCTIC_SQUIRREL" && $ensemblversion > 95) ? "ASM342692v1"
 : (uc($species) eq "C.ELEGANS") ? "WBcel235"
 : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
@@ -2119,14 +2122,14 @@ Example:
             --inputfile1                        the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq (mandatory)
             --inputfile2                        the fastq file of the treated data for RIBO-seq (PUR,LTM,HARR) or the 2nd fastq for paired-end RNA-seq (mandatory)
             --name                              Name of the run (mandatory)
-            --species                           Species: mouse/rat/horse/human/c.elegans/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977 (mandatory)
+            --species                           Species: mouse/rat/horse/arctic_squirrel/human/c.elegans/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977 (mandatory)
             --ensembl                           Ensembl annotation version (mandatory)
             --igenomes_root                     iGenomes root folder (mandatory)
             --cores                             Number of cores to use for Mapping (mandatory)
             --readtype                          The readtype: ribo, ribo_untr, PE_polyA, SE_polyA, PE_total or SE_total (default: ribo)
             --mapper                            The mapper used for alignment: STAR,TopHat2,BowTie or BowTie2 (default: STAR)
             --readlength                        The readlength (default: 36)
-            --adaptor                           The adaptor sequence that needs to be clipped with the clipper (default: CTGTAGGCACCATCAAT)
+            --adaptor                           The adaptor sequence that needs to be clipped with the clipper (default: CTGTAGGCACCATCAAT) (ARTSeq: AGATCGGAAGAGCACAC) (Lexogen: TGGAATTCTCGGGTGCCAAGGAACTCCAGTCAC)
             --unique                            Retain the only uniquely mapping reads (Y or N) (mandatory)
             --work_dir                          Working directory (default: CWD env setting)
             --tmp                               Folder where temporary files are stored (default: work_dir/tmp)
