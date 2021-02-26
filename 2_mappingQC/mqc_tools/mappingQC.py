@@ -1540,13 +1540,18 @@ def get_plot_data(db, treated):
         query = "SELECT triplet, phase, count FROM phase_triplet_"+treated+";"
         cur.execute(query)
         output_triplet = cur.fetchall()
+        #Get the possible triplets
+        codontable = get_codontable()
+        possible_triplets = codontable.keys()
 
         for i in range(0, len(output_triplet)):
             # Parse
             triplet = output_triplet[i][0]
             phase = output_triplet[i][1]
             count = output_triplet[i][2]
-            triplet_data[triplet][phase] = count
+            #Check if triplet is in the possible triplets
+            if triplet in possible_triplets:
+                triplet_data[triplet][phase] = count
 
         #Get arguments table variables
         query = "SELECT value FROM arguments WHERE variable=\"run_name\";"

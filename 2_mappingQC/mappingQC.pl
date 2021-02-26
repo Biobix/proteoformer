@@ -172,6 +172,10 @@ if ($zip){
 unless ($comp_logo) {
     $comp_logo = 'biobix';
 }
+if($comp_logo ne 'biobix' && $comp_logo ne 'ohmx'){
+    print "Comp logo argument should be 'biobix' or 'ohmx'!\n";
+    die;
+}
 
 my $dsn_sqlite_results = "DBI:SQLite:dbname=$resultdb";
 my $us_sqlite_results  = "";
@@ -217,7 +221,8 @@ if ($cores) {
 #Conversion for species terminology
 my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" 
 : (uc($species) eq "RAT") ? "Rattus_norvegicus" 
-: (uc($species) eq "HORSE") ? "Equus_caballus" 
+: (uc($species) eq "HORSE") ? "Equus_caballus"
+: (uc($species) eq "ARCTIC_SQUIRREL") ? "Urocitellus_parryii" 
 : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" 
 : (uc($species) eq "SL1344") ? "SL1344" 
 : (uc($species) eq "MYC_ABS_ATCC_19977") ? "mycobacterium_abscessus_atcc_19977" 
@@ -228,7 +233,8 @@ my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus"
 : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
 my $spec_short = (uc($species) eq "MOUSE") ? "mmu" 
 : (uc($species) eq "RAT") ? "rnor" 
-: (uc($species) eq "HORSE") ? "eca" 
+: (uc($species) eq "HORSE") ? "eca"
+: (uc($species) eq "ARCTIC_SQUIRREL") ? "upa" 
 : (uc($species) eq "CNECNA3") ? "cnecna3" 
 : (uc($species) eq "SL1344") ? "sl1344" 
 :  (uc($species) eq "MYC_ABS_ATCC_19977") ? "MYC_ABS_ATCC_19977" 
@@ -243,6 +249,7 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "RAT" && $version >=80 ) ? "Rnor_6.0"
 : (uc($species) eq "RAT" && $version < 80) ? "Rnor_5.0"
 : (uc($species) eq "HORSE" && $version > 94) ? "EquCab3.0"
+: (uc($species) eq "ARCTIC_SQUIRREL" && $version > 95) ? "ASM342692v1"
 : (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
@@ -255,7 +262,9 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
 : (uc($species) eq "FRUITFLY" && $version >= 79) ? "BDGP6" : "";
 
 # Also take into account the assembly type, eg. for horse, GM20200620
-my $assembly_type = (uc($species) eq "HORSE") ? 'primary_assembly' : 'chromosome';
+my $assembly_type = (uc($species) eq "HORSE") ? 'primary_assembly'
+: (uc($species) eq "ARCTIC_SQUIRREL") ? 'primary_assembly'
+: 'chromosome';
 
 
 # Get chromosomes and correct coord_system_id
@@ -1196,16 +1205,37 @@ sub gene_distribution_chr {
     #Disconnect from ensembl
     $dbh->disconnect();
     
+    my $sense_exists = "False";
+    my $antisense_exists = "False";
+    #Check for the existence of hash keys
+    if (exists $genes{$chr.":1"}){
+        $sense_exists = "True";
+    }
+    if (exists $genes{$chr.":11"}){
+        $antisense_exists = "True";
+    }
+
     #Make lists of genes (forward and reverse) sorted based on coordinates
-    my %for_genes = %{$genes{$chr.":1"}};
-    my %rev_genes = %{$genes{$chr.":-1"}};
+    my %for_genes;
+    my %rev_genes;
+    if($sense_exists eq "True"){
+        %for_genes = %{$genes{$chr.":1"}};
+    }
+    if($antisense_exists eq "True"){
+        %rev_genes = %{$genes{$chr.":-1"}};
+    }
     my(@genes_for,@genes_rev);
-    foreach my $gene_id (sort { $genes{$chr.":1"}{$a}[0] <=> $genes{$chr.":1"}{$b}[0] } keys(%for_genes)){
-        push(@genes_for,$gene_id);
+    if($sense_exists eq "True"){
+        foreach my $gene_id (sort { $genes{$chr.":1"}{$a}[0] <=> $genes{$chr.":1"}{$b}[0] } keys(%for_genes)){
+            push(@genes_for,$gene_id);
+        }      
     }
-    foreach my $gene_id (sort { $genes{$chr.":-1"}{$a}[0] <=> $genes{$chr.":-1"}{$b}[0] } keys(%rev_genes)){
-        push(@genes_rev,$gene_id);
+    if($antisense_exists eq "True"){
+        foreach my $gene_id (sort { $genes{$chr.":-1"}{$a}[0] <=> $genes{$chr.":-1"}{$b}[0] } keys(%rev_genes)){
+            push(@genes_rev,$gene_id);
+        }    
     }
+
     
     ##############
     ## RIBO-SEQ -> READs (~A-site position): determine gene distribution
@@ -1222,69 +1252,73 @@ sub gene_distribution_chr {
     
     # Loop over forward ribo-seq reads
     my @window_genes_for = (); # Init window with genes
-    foreach my $pos (@{$pos_for}){
-        #Push all genes into window where start<window_pos
-        my $last_added_index_g = -1;
-        foreach my $gene_id (@genes_for){
-            if($genes{$chr.":1"}{$gene_id}[0] <= $pos){
-                $last_added_index_g++;
-                push(@window_genes_for,$gene_id);
-            }else{
-                #Don't unnecessarily loop over all genes
-                last;
+    if($sense_exists eq "True"){
+        foreach my $pos (@{$pos_for}){
+            #Push all genes into window where start<window_pos
+            my $last_added_index_g = -1;
+            foreach my $gene_id (@genes_for){
+                if($genes{$chr.":1"}{$gene_id}[0] <= $pos){
+                    $last_added_index_g++;
+                    push(@window_genes_for,$gene_id);
+                }else{
+                    #Don't unnecessarily loop over all genes
+                    last;
+                }
             }
-        }
-        
-        #Get rid of gene ids in gene list already in the window
-        splice(@genes_for, 0, $last_added_index_g+1);
-        
-        #Get rid of gene ids in window where end coordinate < window position
-        @window_genes_for = grep {$genes{$chr.":1"}{$_}[1] >= $pos} @window_genes_for;
-        
-        #Annotate read count for all genes in the window
-        my $def = 0;
-        foreach my $gene_id (@window_genes_for){
-            $def++; #defined in genes
-            $gene_count{$gene_id} += $ribo_for->{$pos}{'count'};
-        }
-        
-        if($def==0){
-            $intergenic_count += $ribo_for->{$pos}{'count'};
-        }
-    }#Close forward loop
+            
+            #Get rid of gene ids in gene list already in the window
+            splice(@genes_for, 0, $last_added_index_g+1);
+            
+            #Get rid of gene ids in window where end coordinate < window position
+            @window_genes_for = grep {$genes{$chr.":1"}{$_}[1] >= $pos} @window_genes_for;
+            
+            #Annotate read count for all genes in the window
+            my $def = 0;
+            foreach my $gene_id (@window_genes_for){
+                $def++; #defined in genes
+                $gene_count{$gene_id} += $ribo_for->{$pos}{'count'};
+            }
+            
+            if($def==0){
+                $intergenic_count += $ribo_for->{$pos}{'count'};
+            }
+        }#Close forward loop
+    } 
     
     my @window_genes_rev = ();
     #Loop over reverse ribo-seq reads
-    foreach my $pos (@{$pos_rev}){
-        #Push all genes into window where start<window_pos
-        my $last_added_index_g = -1;
-        foreach my $gene_id (@genes_rev){
-            if($genes{$chr.":-1"}{$gene_id}[0] <= $pos){
-                $last_added_index_g++;
-                push(@window_genes_rev,$gene_id);
-            }else{
-                #Don't unnecessarily loop over all genes
-                last;
+    if($antisense_exists eq "True"){
+        foreach my $pos (@{$pos_rev}){
+            #Push all genes into window where start<window_pos
+            my $last_added_index_g = -1;
+            foreach my $gene_id (@genes_rev){
+                if($genes{$chr.":-1"}{$gene_id}[0] <= $pos){
+                    $last_added_index_g++;
+                    push(@window_genes_rev,$gene_id);
+                }else{
+                    #Don't unnecessarily loop over all genes
+                    last;
+                }
             }
-        }
-        
-        #Get rid of gene ids in gene list already in the window
-        splice(@genes_rev, 0, $last_added_index_g+1);
-        
-        #Get rid of gene ids in window where end coordinate < window position
-        @window_genes_rev = grep {$genes{$chr.":-1"}{$_}[1] >= $pos} @window_genes_rev;
-        
-        #Annotate read count for all genes in the window
-        my $def = 0;
-        foreach my $gene_id (@window_genes_rev){
-            $def++; #defined in genes
-            $gene_count{$gene_id} += $ribo_rev->{$pos}{'count'};
-        }
-        
-        if($def==0){
-            $intergenic_count += $ribo_rev->{$pos}{'count'};
-        }
-    }#Close reverse loop
+            
+            #Get rid of gene ids in gene list already in the window
+            splice(@genes_rev, 0, $last_added_index_g+1);
+            
+            #Get rid of gene ids in window where end coordinate < window position
+            @window_genes_rev = grep {$genes{$chr.":-1"}{$_}[1] >= $pos} @window_genes_rev;
+            
+            #Annotate read count for all genes in the window
+            my $def = 0;
+            foreach my $gene_id (@window_genes_rev){
+                $def++; #defined in genes
+                $gene_count{$gene_id} += $ribo_rev->{$pos}{'count'};
+            }
+            
+            if($def==0){
+                $intergenic_count += $ribo_rev->{$pos}{'count'};
+            }
+        }#Close reverse loop
+    }
     
     ##############
     ## RESULTS: Make table
