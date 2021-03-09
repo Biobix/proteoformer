@@ -114,7 +114,7 @@ echo -e "Mapping done for $ID \n"
 ln -s  $BASEDIR/$ID/STAR/fastq1/untreat.bam $BASEDIR/$ID/$ID.bam
 
 echo -e "3) FastQC mapped file $ID \n"
-fastqc $BASEDIR/$ID/$ID.bam -o $BASEDIR/fastqc_mapped -t 20
+fastqc $BASEDIR/$ID/$ID.bam -o $BASEDIR/fastqc_mapped -t $CORES
 echo -e "FastQC on the mapped file done for $ID\n"
 
 
