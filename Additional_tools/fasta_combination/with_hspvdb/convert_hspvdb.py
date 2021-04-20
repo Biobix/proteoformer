@@ -118,7 +118,7 @@ def convert_data(input_data):
 
             #Construct new accession structure
             acc_info = ' '.join(elements)
-            new_acc = ">hspv|"+hspv_id+"|"+acc_info
+            new_acc = ">generic|"+hspv_id+"|"+acc_info
 
             #Save
             conv_data[new_acc] = input_data[acc]
