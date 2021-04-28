@@ -195,6 +195,10 @@ my $coord_system_id_plasmid = '';
 if(uc($species) eq "SL1344"){
     $coord_system_id_plasmid = get_coord_system_id($ens_db,$assembly,'plasmid');
 }
+# Get coord system id for the Arctic squirrel scaffolds, if necessary
+elsif(uc($species) eq "ARCTIC_SQUIRREL"){
+	$coord_system_id = get_coord_system_id($db_ensembl,$assembly,'primary_assembly')
+}
 
 # Store used path of ENSEMBL db in arguments table
 store_ENS_var($db_ribo,$user,$pw,$db_ensembl);
@@ -850,7 +854,7 @@ sub import_sqlite_dumpfile{
 	my $temp_trans_csv_all = $_[0];
 
 	# Dump transcript import in SQLite transcript_translation_table
-	system("/usr/bin/sqlite3 -separator , ".$db_ribo." \".import ".$temp_trans_csv_all." ".$table_ribo_trans." \"");
+	system("sqlite3 -separator , ".$db_ribo." \".import ".$temp_trans_csv_all." ".$table_ribo_trans." \"");
 
 	# Remove temporary SQLite dump-files
 
