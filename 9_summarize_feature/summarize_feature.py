@@ -161,7 +161,7 @@ def main():
         sys.exit()
 
     #Get arguments from arguments table
-    igenomes_root, species, ens_version, cores, readtype = get_arguments(sqliteC)
+    igenomes_root, species, ens_version, cores, readtype, unique = get_arguments(sqliteC)
 
 
 
@@ -189,10 +189,12 @@ def main():
     #Conversion of species terminology
     speciesLatin="Mus_musculus" if species=="mouse" else \
         "Homo_sapiens" if species=="human" else \
+        "Urocitellus_parryii" if species.upper()=="ARCTIC_SQUIRREL" else \
         "Arabidopsis_thaliana" if species=="arabidopsis" else \
         "Drosophila_melanogaster" if species=="fruitfly" else ""
     speciesShort="mmu" if species=="mouse" else \
         "hsa" if species=="human" else \
+        "upa" if species.upper()=="ARCTIC_SQUIRREL" else \
         "ath" if species=="arabidopsis" else \
         "dme" if species=="fruitfly" else ""
     #Assembly
@@ -200,6 +202,7 @@ def main():
         "NCBIM37" if species=="mouse" and ens_version<70 else \
         "GRCh38" if species=="human" and ens_version>75 else \
         "GRCh37" if species=="human" and ens_version<=75 else \
+        "ASM342692v1" if species.upper()=="ARCTIC_SQUIRREL" and ens_version>95 else \
         "TAIR10" if species=="arabidopsis" else \
         "BDGP5" if species=="fruitfly" else ""
 
@@ -216,7 +219,10 @@ def main():
             print "ERROR: chromosome sizes file could not be found."
             sys.exit()
     #Get coordinate system id for chromosomes
-    coordSystemId = get_coord_system_id_chr(sqliteE, assembly)
+    if species.upper()=="ARCTIC_SQUIRREL":
+        coordSystemId = get_coord_system_id_chr(sqliteE, assembly, 'primary_assembly')
+    else:
+        coordSystemId = get_coord_system_id_chr(sqliteE, assembly, 'chromosome')
 
     #Get sequencing type
     #The readtype can be ribo, PE_polyA, SE_polyA, PE_total or SE_total
@@ -244,8 +250,8 @@ def main():
     ##############
     #chrs = ['Y']
     pool = Pool(processes=cores)
-    [pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,data,five_prime_offset)) for chrom in chrs.keys()]
-    #[pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,five_prime_offset)) for chrom in chrs]
+    [pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,unique,rrbs,data,five_prime_offset)) for chrom in chrs.keys()]
+    #[pool.apply_async(feature_count_chr, args=(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,unique,rrbs,five_prime_offset)) for chrom in chrs]
     pool.close()
     pool.join()
     
@@ -275,7 +281,7 @@ def main():
 ##############
 
 ## Get counts for features for chr ##
-def feature_count_chr(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,rrbs,data,five_prime_offset):
+def feature_count_chr(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_name,mapping,unique,rrbs,data,five_prime_offset):
     try:
 
         #print(chrom)
@@ -284,7 +290,7 @@ def feature_count_chr(chrom,sqliteE,sqliteC,directory,feature,transcripts,table_
         #print_dict(features)
 
         #Get all counts per chr (both forward and reverse)
-        countsforw, countsrev = counts_chr(chrom, sqliteC, mapping, rrbs, data)
+        countsforw, countsrev = counts_chr(chrom, sqliteC, mapping, unique, rrbs, data)
         #print_dict(countsforw)
 
 
@@ -367,7 +373,7 @@ def get_feature_chr(chrom, sqliteE,feature,transcripts):
     return features
 
 ## Get counts from count database ##
-def counts_chr(chrom, sqliteC,mapping,rrbs,data):
+def counts_chr(chrom, sqliteC,mapping,unique,rrbs,data):
 
     #Initialize
     countsfor = {}
@@ -377,10 +383,15 @@ def counts_chr(chrom, sqliteC,mapping,rrbs,data):
         try:
 
             #Count table based on unique/multi mapper reads
-            if mapping == 'unique':
+            if ((mapping == 'unique') and (unique == 'N')):
                 count_table = 'count_fastq1_unique'
-            elif mapping == 'multi':
+            elif ((mapping == 'multi') and (unique =='N')):
                 count_table = 'count_fastq1'
+            elif ((mapping == 'unique') and (unique == 'Y')):
+                count_table = 'count_fastq1'
+            else:
+                print('Multi setting cannot used when the mapping was originally performed uniquely')
+                sys.exit()
 
             #Fetch data from count tables
             query = "SELECT start, count FROM "+count_table+" WHERE chr='"+str(chrom)+"' AND strand = '1';"
@@ -693,7 +704,7 @@ def print_dict(dictionary, ident = '', braces=0):
 
 
 ## Get coordinate system ID ##
-def get_coord_system_id_chr(eDB, assem):
+def get_coord_system_id_chr(eDB, assem, name):
     try:
         con=sqlite.connect(eDB)
     except:
@@ -706,7 +717,7 @@ def get_coord_system_id_chr(eDB, assem):
     with con:
         cur = con.cursor()
 
-        if cur.execute("SELECT coord_system_id FROM coord_system WHERE name = 'chromosome' AND version = '"+assem+"';"):
+        if cur.execute("SELECT coord_system_id FROM coord_system WHERE name = '"+name+"' AND version = '"+assem+"';"):
             csid = cur.fetchone()[0]
         else:
             print "Could not find coordinate system id"
@@ -728,6 +739,7 @@ def get_arguments(dbpath):
     vs=0
     cs=0
     rt=''
+    un=''
 
     with con:
         cur = con.cursor()
@@ -762,8 +774,13 @@ def get_arguments(dbpath):
         else:
             print "ERROR: could not fetch the number of cores from the arguments table in the SQLite DB"
             sys.exit()
+        if cur.execute("SELECT value FROM arguments WHERE variable='unique';"):
+            un = str(cur.fetchone()[0])
+        else:
+            print "ERROR: could not fetch the mapping uniqueness from the arguments table in the SQLite DB"
+            sys.exit()
 
-    return igro, sp, vs, cs, rt
+    return igro, sp, vs, cs, rt, un
 
 ## Get chromosomes ##
 def get_chrs(chrSizeFile, species):
@@ -777,7 +794,7 @@ def get_chrs(chrSizeFile, species):
         print "ERROR with opening chromosome sizes file"
     #parse
     for line in FR:
-        parts = re.split('\W+',line)
+        parts = re.split('\s+',line)
         if species=="fruitfly" and parts[0]=="M":
             chrs["dmel_mitochondrion_genome"] = parts[1]
         else:
