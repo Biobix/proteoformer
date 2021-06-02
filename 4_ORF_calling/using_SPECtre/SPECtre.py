@@ -1165,6 +1165,8 @@ def download_spectre(spectre_tmp, link, proteoformer_github_link, spectre_source
             os.system("cp -r proteoformer-master/4_ORF_calling/using_SPECtre/tmp/SPECtre/spectre-master/ .")
             #Remove the rest of the proteoformer github files
             os.system("rm -rf proteoformer-master")
+            #Move to tmp folder
+            os.system("mv spectre-master "+spectre_tmp)
         elif spectre_source=='new_spectre_version':
             #Download from new version from github
             os.system("wget -q --no-check-certificate "+link)
