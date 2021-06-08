@@ -167,12 +167,12 @@ def main():
             print("supported ensembl versions: human from 74 till 100")
             sys.exit()
     elif (species=='rat' or species=='rattus_norvegicus'):
-        if(int(ens_v) >= 74 and int(ens_v) <= 100):
+        if(int(ens_v) >= 74 and int(ens_v) <= 104):
             core='/rattus_norvegicus_core_'+str(ens_v)+'_6.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/rattus_norvegicus_core_' + ens_v +'_6/',core)
         else:
             print("ERROR: unsupported ensembl version: " + ens_v)
-            print("supported ensembl versions: from 75 till 100")
+            print("supported ensembl versions: from 75 till 104")
             sys.exit()
     elif (species=='mouse' or species=='mus_musculus'):
         if(int(ens_v) >= 74 and int(ens_v) <= 100):
