@@ -31,6 +31,7 @@ __author__ = 'SV'
     yeast                       |   Saccharomyces cerevisiae
     zebrafish                   |   Danio rerio
     arabidopsis                 |   Arabidopsis thaliana
+    earthmoss                   |   Physcomitrium patens
     c.elegans                   |   Caenorhabditis elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
     MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
@@ -123,9 +124,9 @@ def main():
     elif(int(cores)>15):
         print("Error: the amount of cores cannot be larger than 15!")
         sys.exit()
-    if(species == 'arabidopsis'):
-        if(ens_v>31):
-            print("Error: latest Ensembl Plants version is 29!")
+    if(species == 'arabidopsis' or species =='earthmoss'):
+        if(ens_v>51):
+            print("Error: latest Ensembl Plants version is 51!")
             sys.exit()
     elif(species =='SL1344' or species =='MYC_ABS_ATCC_19977' or species =='CNECNA3'):
         if(ens_v>45):
@@ -216,6 +217,9 @@ def main():
     elif(species=='arabidopsis'):
         speciesLong='Arabidopsis_thaliana'
         assembly='TAIR10'
+    elif(species=='earthmoss'):
+        speciesLong='Physcomitrium_patens'
+        assembly='Phypa_V3'
     elif(species=='c.elegans'):
         speciesLong='Caenorhabditis_elegans'
         assembly='WBcel235'
@@ -230,11 +234,11 @@ def main():
         speciesLong='Cryptococcus_neoformans_var_grubii_h99_gca_000149245'
         assembly='CNA3'
     else:
-        print("Species has to be one of the following list: human, mouse, horse, arctic squirrel, fruitfly, yeast, zebrafish, arabidopsis, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344, cryptococcus_neoformans_var_grubii_h99_gca_000149245, CNECNA3")
+        print("Species has to be one of the following list: human, mouse, horse, arctic squirrel, fruitfly, yeast, zebrafish, arabidopsis, earthmoss, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344, cryptococcus_neoformans_var_grubii_h99_gca_000149245, CNECNA3")
         sys.exit()
 
     print("Assembly                                    : " + assembly)
-    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!='arctic_squirrel'):
+    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!='arctic_squirrel' and species!='earthmoss'):
         print("UCSC code                                   : " + ucscCode)
     print("")
 
@@ -286,14 +290,20 @@ def main():
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Annotation/Genes")
 
     #Fetch data from UCSC except for arabidopsis (not included in UCSC)
-    if(species=='arabidopsis'):
+    if(species=='arabidopsis' or species=='earthmoss'):
         #For arabidopsis, chromosome sizes can be fetched out of the files where the Ensembl DB is build from
         canEns_v=str(ens_v+53) #Arabidopsis Ensembl releases are 53 less than the other species.
-        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/plants/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_10/seq_region.txt.gz")
+        if(species=='arabidopsis'):
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/plants/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_11/seq_region.txt.gz")
+        elif(species=='earthmoss'):
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/plants/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_2/seq_region.txt.gz")
         os.system("gzip -d seq_region.txt.gz")
         input = open('seq_region.txt', 'r')
         for line in input:
-            pattern = re.compile('^\d+\t(\w+)\t4\t(\d+)')
+            if(species=='arabidopsis'):
+                pattern = re.compile('^\d+\t(\w+)\t4\t(\d+)')
+            elif(species=='earthmoss'):
+                pattern = re.compile('^\d+\t(\w+)\t2\t(\d+)')
             m = pattern.search(line)
             if m:
                 if(m.group(1)=='Mt'):
@@ -412,16 +422,13 @@ def main():
     for key in sorted(chromList.keys()):
         outFile.write(key+"\t"+chromList[key]+"\n")
     outFile.close()
-    if(species=='arabidopsis'):
+    if(species=='arabidopsis' or species=='earthmoss'):
         os.system("rm -rf seq_region.txt")
     elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977' or species=='CNECNA3' or species=='arctic_squirrel'):
         os.system("rm -rf coord_system.txt")
         os.system("rm -rf seq_region.txt")
     else:
         os.system("rm -rf tmpChromInfo.txt")
-
-
-
 
 
     ## Download chromosome files
@@ -466,14 +473,11 @@ def main():
         os.system("cat"+command+"> genome.fa")
 
 
-
-
-
     ## Download genes.gtf file
     print("\n")
     print("Download genes.gtf file")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Annotation/Genes")
-    if(species=='arabidopsis'):#Arabidopsis from Ensembl Plants
+    if(species=='arabidopsis' or species=='earthmoss'):#Arabidopsis from Ensembl Plants
         os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/plants/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz")
         os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     elif(species=='SL1344'):
@@ -633,15 +637,15 @@ def read_fasta(fasta):
 
 #Defenition of one download process
 def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assembly, instalDir):
-    if(species=='arabidopsis'):#Arabidopsis is on the site of ensembl Plants instead of normal Ensembl. This site cannot use rsync yet.
+    if(species=='arabidopsis' or species=='earthmoss'):#Arabidopsis is on the site of ensembl Plants instead of normal Ensembl. This site cannot use rsync yet.
         if(chr=='MT'):#Ensembl uses 'Mt' for Arabidopsis mitochondrial genome
             os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
             os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
             os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa MT.fa")
         else:
-            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz")
-            os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz")
-            os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa "+chr+".fa")
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")
+            os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")
+            os.system("mv "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa "+chr+".fa")
         print("\t\t*) Chromosome "+chr+" finished")
     elif(species=='SL1344'):
         os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/bacteria/fasta/bacteria_23_collection/salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344/dna/Salmonella_enterica_subsp_enterica_serovar_typhimurium_str_sl1344."+assembly+".dna.chromosome."+chr+".fa.gz")
@@ -740,6 +744,7 @@ def print_help():
     yeast                       |   Saccharomyces cerevisiae
     zebrafish                   |   Danio rerio
     arabidopsis                 |   Arabidopsis thaliana
+    earthmoss                   |   Physcomitrium patens
     c.elegans                   |   Caenorhabditis elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
     MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
