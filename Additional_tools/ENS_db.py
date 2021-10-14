@@ -25,6 +25,7 @@ ARGUMENTS:
                                             SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
                                             MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
                                             CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
+                                            earthmoss                   |   physcomitrium_patens
 
 -h | --help                                 Print this useful help message
 
@@ -108,7 +109,7 @@ def main():
                    'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel','rat': 'rnv',
                    'rattus_norvegicus': 'rnv',
                    'MYC_ABS_ATCC_19977': 'MYC_ABS_ATCC_19977', 'mycobacterium_abscessus_atcc_19977': 'MYC_ABS_ATCC_19977',
-                   'SL1344': 'SL1344', 'CNECNA3' : 'CNECNA3', 'Cryptococcus_neoformans_var_grubii_h99_gca_000149245' : 'CNECNA3'};
+                   'SL1344': 'SL1344', 'CNECNA3' : 'CNECNA3', 'Cryptococcus_neoformans_var_grubii_h99_gca_000149245' : 'CNECNA3', 'earthmoss': 'ppa', 'physcomitrium_patens': 'ppa'};
 
 
     #
@@ -243,8 +244,10 @@ def main():
     elif (species=='CNECNA3' or species=='Cryptococcus_neoformans_var_grubii_h99_gca_000149245'):
         core = 'fungi_basidiomycota1_collection_core_' + ens_v +'_' + canEns_v + '_1.sql.gz'
         download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/fungi/mysql/fungi_basidiomycota1_collection_core_' + ens_v +'_' + canEns_v + '_1/', core)
-
-
+    elif (species=='physcomitrium_patens' or species=='earthmoss'):
+        if (int(ens_v) <= 51):
+            core = 'physcomitrium_patens_core_'+ens_v+'_'+canEns_v+'_2.sql.gz'
+            download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/plants/mysql/physcomitrium_patens_core_' + ens_v +'_' + canEns_v + '_2/', core)
 
     else:
         print("Error: unsupported species: " +species )
@@ -478,6 +481,7 @@ ARGUMENTS:
                                             SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
                                             MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
                                             CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
+                                            earthmoss                   |   physcomitrium_patens
 
 -h | --help                                 Print this useful help message
 
