@@ -41,7 +41,7 @@ use Cwd;
 #mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset,$suite,$suite_tools_loc);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset,$offset_file_untr,$offset_file_tr,$suite,$suite_tools_loc);
 my $help;
 
 GetOptions(
@@ -98,6 +98,9 @@ GetOptions(
                                                         #Plastid: mapping + default p offset calculation with plastid + parsing based on these offsets
                                                         #cst_5prime: use offsets with constant 5' distance
                                                         #cst_3prime: use offsets with constant 3' distance
+                                                        #from_file: use offsets from given tab-separated offset file
+"offset_file_untr:s" =>\$offset_file_untr,  #Untreated offset file (mandatory if suite is from_file)
+"offset_file_tr:s" =>\$offset_file_tr,      #Treated offset file (mandatory if suite is from_file and readtype is ribo)
 "suite_tools_loc=s" =>\$suite_tools_loc,    #The folder with script of subsequent tools when using a suite                  optional argument (default = workdir)
 "help" => \$help                            # Help text option
 );
@@ -366,12 +369,25 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
             print "Minimum RPF length for constant prime offsets             : $min_cst_prime_offset\n";
             print "Maximum RPF length for constant prime offsets             : $max_cst_prime_offset\n";
         }
+        elsif ($suite eq "from_file"){
+            unless ($offset_file_untr){
+                die "For the from_file suite, offset_file_untr should be defined!";
+            }
+            print "Untreated offset file                                     : $offset_file_untr\n";
+            if($readtype eq "ribo"){
+                unless ($offset_file_tr){
+                    die "For the from_file suite in combination with the ribo readtype, offset_file_tr should be defined!";
+                }
+                print "Treated offset file                                       : $offset_file_tr\n";
+            }
+
+        }
     } else {
         $suite = "custom";
     }
 }
 if($readtype eq "ribo" || $readtype eq "ribo_untr"){
-    if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
+    if($suite eq "custom" || $suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime" || $suite eq "from_file"){
         print "Mapping suite                                               : $suite\n";
         if ($suite_tools_loc){
             print "Mapping suite tools folder                                       : $suite_tools_loc\n";
@@ -379,7 +395,7 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
             $suite_tools_loc = $work_dir;
             print "Mapping suite tools folder                                       : $suite_tools_loc\n";
         }
-        if($suite eq "standard" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
+        if($suite eq "standard" || $suite eq "cst_5prime" || $suite eq "cst_3prime" || $suite eq "from_file"){
             if(!-e $suite_tools_loc."/mapping_parsing.pl"){
                 die "Parsing script not found!!!";
             }
@@ -397,7 +413,7 @@ if($readtype eq "ribo" || $readtype eq "ribo_untr"){
 } else {
     if(!defined($suite)){
         $suite = "custom";
-    } elsif($suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
+    } elsif($suite eq "standard" || $suite eq "plastid" || $suite eq "cst_5prime" || $suite eq "cst_3prime" || $suite eq "from_file"){
         die "Standard and plastid suite only for RIBO data!";
     }
     print "Mapping suite                                               : $suite\n";
@@ -663,6 +679,16 @@ foreach (@loopfastQ) {
 if($suite eq "standard" || $suite eq "cst_5prime" || $suite eq "cst_3prime"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
     system("perl ".$suite_tools_loc."/mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite);
+} elsif($suite eq "from_file"){
+    if($readtype eq "ribo_untr"){
+        print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
+        system("perl ".$suite_tools_loc."/mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite." --offset_file_untr ".$offset_file_untr);
+    } elsif($readtype eq "ribo"){
+        print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n";
+        system("perl ".$suite_tools_loc."/mapping_parsing.pl --out_sqlite ".$out_sqlite." --offset ".$suite." --offset_file_untr ".$offset_file_untr." --offset_file_tr ".$offset_file_tr);
+    } else{
+        die "from_file suite can only occur with the ribo and ribo_untr readtypes!";
+    }
 } elsif ($suite eq "plastid"){
     print "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (UNTREATED)\n\n\n";
     system("perl ".$suite_tools_loc."/mapping_plastid.pl --out_sqlite ".$out_sqlite." --treated untreated  --offset_img ".$offset_img_untr);
