@@ -82,7 +82,7 @@ def main():
     input_data=defaultdict(lambda: defaultdict())
 
     #Make combination list of data sources
-    sources = ["proteoformer", "uniprot"]
+    sources = ["custom_pipeline", "uniprot"]
     inputs=[args.fasta, args.uniprot]
 
     #Construct combined data groups
@@ -133,9 +133,9 @@ def construct_venn(counts, venn_file):
 
     #2group venn
     if(len(counts.keys())==3):
-        subsets = (counts['proteoformer'], counts['uniprot'], counts['uniprot+proteoformer'])
+        subsets = (counts['custom_pipeline'], counts['uniprot'], counts['uniprot+custom_pipeline'])
         set_labels = ('1', '2')
-        textstr = "1: proteoformer\n2: uniprot"
+        textstr = "1: custom_pipeline\n2: uniprot"
 
         fig, ax = plt.subplots(nrows=1, ncols=1)
         v = venn2(subsets=subsets, set_labels=set_labels, ax=ax)
