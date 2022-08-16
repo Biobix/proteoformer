@@ -176,12 +176,15 @@ def main():
             print("supported ensembl versions: from 75 till 104")
             sys.exit()
     elif (species=='mouse' or species=='mus_musculus'):
-        if(int(ens_v) >= 74 and int(ens_v) <= 100):
+        if(int(ens_v) >= 74 and int(ens_v) < 103):
             core='/mus_musculus_core_' + ens_v + '_38.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/mus_musculus_core_' + ens_v +'_38/',core)
+        elif(int(ens_v) >= 103 and int(ens_v) <= 104):
+            core='/mus_musculus_core_' + ens_v + '_39.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/mus_musculus_core_' + ens_v +'_39/',core)
         else:
             print("ERROR: unsupported ensembl version: " + ens_v)
-            print("supported ensembl versions: from 75 till 100")
+            print("supported ensembl versions: from 75 till 104")
             sys.exit()
     elif (species=='horse' or species=='equus_caballus'):
         if(int(ens_v) >= 74 and int(ens_v) <= 100):
