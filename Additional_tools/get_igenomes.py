@@ -158,7 +158,10 @@ def main():
             ucscCode='hg19'
     elif(species=='mouse'):
         speciesLong='Mus_musculus'
-        if(ens_v>67):
+        if(ens_v>=103):
+            assembly='GRCm39'
+            ucscCode='mm39'
+        elif(ens_v>67 and ens_v<103):
             assembly='GRCm38'
             ucscCode='mm10'
         else:
