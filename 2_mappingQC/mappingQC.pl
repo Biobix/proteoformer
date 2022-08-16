@@ -246,8 +246,9 @@ my $spec_short = (uc($species) eq "MOUSE") ? "mmu"
 : (uc($species) eq "YEAST") ? "sce" 
 : (uc($species) eq "ZEBRAFISH") ? "dre" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
-my $assembly = (uc($species) eq "MOUSE" && $version >= 70 ) ? "GRCm38"
-: (uc($species) eq "MOUSE" && $version < 70 ) ? "NCBIM37"
+my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 103 ) ? "GRCm39"
+: (uc($species) eq "MOUSE" && $ensemblversion >= 70 && $ensemblversion < 103 ) ? "GRCm38"
+: (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
 : (uc($species) eq "RAT" && $version >=80 ) ? "Rnor_6.0"
 : (uc($species) eq "RAT" && $version < 80) ? "Rnor_5.0"
 : (uc($species) eq "HORSE" && $version > 94) ? "EquCab3.0"
