@@ -74,7 +74,11 @@ mkdir $BASEDIR/fastqc_mapped
 mkdir $BASEDIR/statistics
 mkdir $BASEDIR/mqc
 
-
+# Cat files for statistics
+TOTAL_STATS_FILE=${BASEDIR}/statistics/total_stats.csv
+TEMP_TOTAL_STATS=${BASEDIR}/statistics/tmp_total_stats.csv
+rm -rf ${TOTAL_STATS_FILE}
+touch ${TOTAL_STATS_FILE}
 
 ##Start loop
 for i in "${!datasets[@]}"
@@ -185,6 +189,19 @@ multiqc -i "Mapped Read Data" .
 cd $BASEDIR
 
 echo -e "MultiQC on all raw/mapped data performed\n"
+
+##Cat all stats files
+#Do this in a sorted ID manner
+readarray -t sorted_datasets < <(for a in "${!datasets[@]}"; do echo "$a"; done | sort)
+for i in "${sorted_datasets[@]}"
+do
+    ID=$i
+    #Delete the header lines
+    tail -n +2 "${BASEDIR}/statistics/${ID}_stats.csv" > ${BASEDIR}/statistics/tmp_stats.csv
+    cat ${TOTAL_STATS_FILE} ${BASEDIR}/statistics/tmp_stats.csv >> ${TEMP_TOTAL_STATS}
+    rm -rf ${BASEDIR}/statistics/tmp_stats.csv
+    mv ${TEMP_TOTAL_STATS} ${TOTAL_STATS_FILE}
+done
 
 ##Deactivate conda environment
 conda deactivate
