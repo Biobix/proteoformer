@@ -133,7 +133,7 @@ def main():
             print("Error: latest Ensembl Bacteria/Fungi version is 45!")
             sys.exit()
     else:
-        if(ens_v>104):
+        if(ens_v>105):
             print("Error: latest Ensembl version is 104!")
             sys.exit()
     #Remove last "/" from instal dir path
