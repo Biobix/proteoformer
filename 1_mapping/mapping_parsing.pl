@@ -638,9 +638,9 @@ sub RIBO_parse_store {
                 my $RPF_start_pos = $RPF_counts_as->{$chr_start}->{"start"};
                 my $RPF_start_pos_0based = $RPF_start_pos - 1;
                 if($RPF_counts_as->{$chr_start}->{"chr"} eq "MT"){
-                    print BEDRPFGRAS "chrM\t".$RPF_start_pos_0based."\t".$RPF_start_pos."\t-".$RPF_counts_as->{$chr_start}->{"count"}."\n";
+                    print BEDRPFGRAS "chrM\t".$RPF_start_pos_0based."\t".$RPF_start_pos."\t".$RPF_counts_as->{$chr_start}->{"count"}."\n";
                 } else {
-                    print BEDRPFGRAS "chr".$RPF_counts_as->{$chr_start}->{"chr"}."\t".$RPF_start_pos_0based."\t".$RPF_start_pos."\t-".$RPF_counts_as->{$chr_start}->{"count"}."\n";
+                    print BEDRPFGRAS "chr".$RPF_counts_as->{$chr_start}->{"chr"}."\t".$RPF_start_pos_0based."\t".$RPF_start_pos."\t".$RPF_counts_as->{$chr_start}->{"count"}."\n";
                 }
             }
             
