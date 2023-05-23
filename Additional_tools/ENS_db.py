@@ -157,7 +157,7 @@ def main():
 
     canEns_v=str(int(ens_v)+53) #Plant and Bacteria Ensembl releases are 53 less than the other species.
     if (species=='human' or species=='homo_sapiens'):
-        if(int(ens_v) >= 76 and int(ens_v) <= 105):
+        if(int(ens_v) >= 76 and int(ens_v) <= 109):
              core='/homo_sapiens_core_' + ens_v + '_38.sql.gz'
              download('ftp://ftp.ensembl.org/pub/release-'+ ens_v +'/mysql/homo_sapiens_core_' + ens_v + '_38/',core)
         elif(int(ens_v) >= 74 and int(ens_v) <= 75):
@@ -165,7 +165,7 @@ def main():
              download('ftp://ftp.ensembl.org/pub/release-'+ ens_v +'/mysql/homo_sapiens_core_' + ens_v + '_37/',core)
         else:
             print("ERROR: unsupported ensembl version: " + ens_v)
-            print("supported ensembl versions: human from 74 till 100")
+            print("supported ensembl versions: human from 74 till 109")
             sys.exit()
     elif (species=='rat' or species=='rattus_norvegicus'):
         if(int(ens_v) >= 74 and int(ens_v) <= 104):
