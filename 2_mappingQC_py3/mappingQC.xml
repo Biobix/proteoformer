@@ -1,0 +1,95 @@
+<tool id="mappingQC" name="Step 2: MappingQC" version="1.0">
+    <description>quality control of mapping results</description>
+    <command interpreter="perl">
+        mappingQC.pl --samfile $samfile --treated $treated --cores $cores --result_db $sqlite_db --unique $unique --ens_db $ensembl_db.fields.path --offset $offsetSelect.offset --plotrpftool $plotrpftool --tool_dir "/srv/galaxy/server/tool-data/proteoformer/mqc_tools/" --html $MappingQC_output --output_folder $MappingQC_output.files_path
+        
+        #if $offsetSelect.offset == "from_file"
+        
+            --offset_file $offsetSelect.offsetFile
+            
+        #else if $offsetSelect.offset == "plastid"
+        
+            --offset_img $offsetSelect.offset_img
+            
+        #end if
+        
+    </command>
+    <inputs>
+        <param name="samfile" type="data" format="sam" label="Choose the sam file on which you want to do quality control"/>
+        <param name="treated" type="select" label="Are you doing mapping quality control on the untreated or the treated sam file?">
+            <option value="untreated" selected="true">Untreated (none, freezing, CHX, EMT)</option>
+            <option value="treated">Treated (HARR, LTM, PURR)</option>
+        </param>
+        <param name="cores" type="integer" size="5" value="5" label="Enter the number of cores to run the mapping quality control"/>
+        <param name="sqlite_db" type="data" format="sqlite" size="50" label="SQLite DB with RIBO-seq data after mapping" help="The SQLite results dDB should at least contain output from the RIBO-seq mapping"/>
+        <param name="unique" type="select" label="MappingQC with unique reads?">
+            <option value="Y">Yes</option>
+            <option value="N">No</option>
+        </param>
+        <param name="ensembl_db" type="select" label="Select the correct ensembl annotation DB, should be in line with the Ensembl version given in the mapping" help="The Ensembl sqlite databases are species and annotation version specific. If your genome of interest is not listed - contact administrator.">
+            <options from_data_table="PROTEOFORMER_ENS"/>
+        </param>
+        <param name="plotrpftool" type="select" label="Choose the style of the RPF phase plot">
+            <option value="grouped2D" selected="true">Grouped 2D bar chart</option>
+            <option value="pyplot3D">3D bar chart (may suffer from Escher effects)</option>
+        </param>
+        <conditional name="offsetSelect">
+            <param name="offset" type="select" label="The way P-site offsets were determined">
+                <option value="standard" selected="true">Standard offsets</option>
+                <option value="plastid">Offsets from plastid in mapping process</option>
+                <option value="from_file">Offsets from custom file</option>
+            </param>
+            <when value="from_file">
+                <param name="offsetFile" type="data" format="tabular" label="Choose a text file with the offsets. Each line should be structured as RPF length - offset, seperated by a tab or a space" />
+            </when>
+            <when value="plastid">
+                <param name="offset_img" type="data" format="png" label="Choose the p site offset image from plastid" />
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data format="html" name="MappingQC_output" label="HTML output" />
+    </outputs>
+    <help>
+.. class:: infomark
+
+**What it does**
+
+MappingQC is a tool to easily generate some figures which give a nice overview of the quality of the mapping of ribosome profiling data. More specific, it gives an overview of the P site offset calculation, the gene distribution and the metagenic classification. Furthermore, MappingQC does a thorough analysis of the triplet periodicity and the linked triplet phase (typical for ribosome profiling) in the canonical transcript of your data. Especially, the link between the phase distribution and the RPF length, the relative sequence position and the triplet identity are taken into account.
+MappingQC is also available as a stand-alone tool, separated from PROTEOFORMER and its SQLite results structure, so that you can apply it on every samfile you like, independent of the mapping source.
+
+-----
+
+.. class:: infomark
+
+**Input**
+
+1)  SAM file with mapping results
+
+2)  Results DB out of PROTEOFORMER mapping step
+
+3)  Ensembl DB with annotation for the same Ensembl version and species as in your PROTEOFORMER mapping step
+
+------
+
+.. class:: infomark
+
+**Output**
+
+1)  HTML file: overview file of the tables and figures. Main output of MappingQC
+
+2)  ZIP file: contains a folder with all necessary figures. In this folder you can also find the overview HTML file.
+
+------
+
+.. class:: infomark
+
+**Citation**
+
+For the underlying tool and its use in Galaxy, cite:
+::
+
+    Verbruggen, Steven and Menschaert, Gerben. 2017. "MappingQC: a tool for quality control of ribosome profiling mapping results". Unpublished.
+
+    </help>
+</tool>
