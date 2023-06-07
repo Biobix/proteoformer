@@ -71,7 +71,7 @@ def main():
     try:
         myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:x:a:o:h:z:p:i:e:c:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "plotrpftool=", "tmp_folder=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db=","comp_logo="])
     except getopt.GetoptError as err:
-        print err
+        print(err)
         sys.exit()
 
     # Catch arguments
@@ -180,7 +180,7 @@ def main():
     if tmpfolder == '':
         tmpfolder = workdir+"/tmp"
     if result_db == '':
-        print "ERROR: do not forget to mention the result DB!"
+        print("ERROR: do not forget to mention the result DB!")
         sys.exit()
     if samfile == '':
         if treated=="untreated":
@@ -190,7 +190,7 @@ def main():
     if treated == '':
         treated="untreat"
     elif treated != "untreated" and treated != "treated":
-        print "ERROR: treated option should be 'treated' or 'untreated'!"
+        print("ERROR: treated option should be 'treated' or 'untreated'!")
         sys.exit()
     if mapping_unique == '':
         mapping_unique = 'Y'
@@ -212,14 +212,14 @@ def main():
             if m:
                 outhtml_short = m.group(1)
             else:
-                print "Could not extract html file name out of given path ("+outhtml+")"
+                print("Could not extract html file name out of given path ("+outhtml+")")
                 sys.exit()
         else:
             m = re.search('(.+?\.(html|dat))$', outhtml)
             if m:
                 outhtml_short = m.group(1)
             else:
-                print "Could not extract html file name out of given path ("+outhtml+")"
+                print("Could not extract html file name out of given path ("+outhtml+")")
                 sys.exit()
     if outzip == '':
         outzip = workdir+"/mappingQC.zip"
@@ -231,23 +231,23 @@ def main():
             if m:
                 outzip_short = m.group(1)
             else:
-                print "Could not extract zip file name out of given path ("+outzip+")"
+                print("Could not extract zip file name out of given path ("+outzip+")")
         else:
             m = re.search('(.+?\.(zip|dat))$', outzip)
             if m:
                 outzip_short = m.group(1)
             else:
-                print "Could not extract zip file name out of given path (" + outzip + ")"
+                print("Could not extract zip file name out of given path (" + outzip + ")")
     if plastid_option == '':
         plastid_option='plastid'
     elif plastid_option!='standard' and plastid_option!='plastid' and plastid_option!='from_file' and plastid_option!='cst_5prime' and plastid_option!='cst_3prime':
-        print "ERROR: plastid option should be 'plastid', 'standard', 'from_file', 'cst_5prime' or 'cst_3prime'!"
+        print("ERROR: plastid option should be 'plastid', 'standard', 'from_file', 'cst_5prime' or 'cst_3prime'!")
         sys.exit()
     if plastid_option == 'plastid':
         if plastid_img == '':
-            print "ERROR: do not forget to give path to plastid image if offset option equals 'plastid'!"
+            print("ERROR: do not forget to give path to plastid image if offset option equals 'plastid'!")
     if ens_db=='':
-        print "ERROR: do not forget to mention the Ensembl db!"
+        print("ERROR: do not forget to mention the Ensembl db!")
         sys.exit()
     if (comp_logo=='') or (comp_logo!='biobbix' and comp_logo!='ohmx'):
         comp_logo = 'biobix'
@@ -367,7 +367,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
     for ofs in range(min_rpf, max_rpf+1, 1):
         html_table += """<tr>
         <td>"""+str(ofs)+"""</td>
-        <td>"""+str(int(offsets.loc[offsets["RPF"] == ofs]["offset"]))+"""</td>
+        <td>"""+str(int(offsets.loc[offsets["RPF"] == ofs]["offset"].iloc[0]))+"""</td>
         </tr>
         """
 
@@ -993,7 +993,7 @@ def plot_codon_perc(output_file, sorted_triplets, reference, codon_percs, name):
     sorted_ref_values = []
     for i in sorted_triplets:
         sorted_ref_values.append(reference[i])
-    xpos = range(1, len(sorted_ref_values)+1)
+    xpos = list(range(1, len(sorted_ref_values)+1))
 
     sorted_codon_values = []
     for i in sorted_triplets:
@@ -1033,20 +1033,20 @@ def read_codon_count(triplet_distr):
     #Init
     codon_perc = defaultdict()
     codontable = get_codontable()
-    for codon in codontable.keys():
+    for codon in list(codontable.keys()):
         codon_perc[codon] = float(0)
     counts_per_triplet = defaultdict()
     total_sum=0
 
     #Total sum
-    for triplet in triplet_distr.keys():
-        for phase in triplet_distr[triplet].keys():
+    for triplet in list(triplet_distr.keys()):
+        for phase in list(triplet_distr[triplet].keys()):
             total_sum = total_sum + int(triplet_distr[triplet][phase])
 
     #Parse
-    for triplet in triplet_distr.keys():
+    for triplet in list(triplet_distr.keys()):
         counts_per_triplet[triplet]=0
-        for phase in triplet_distr[triplet].keys():
+        for phase in list(triplet_distr[triplet].keys()):
             counts_per_triplet[triplet] = counts_per_triplet[triplet] + int(triplet_distr[triplet][phase])
         codon_perc[triplet] = float(counts_per_triplet[triplet])/total_sum*100
 
@@ -1067,7 +1067,6 @@ def read_ref(input_ref):
 
     return ref
 
-## Plot triplet identity data
 def triplet_plots(data, outputfolder):
     outfile = outputfolder+"/triplet_id.png"
 
@@ -1077,7 +1076,7 @@ def triplet_plots(data, outputfolder):
     grid_i = -1 #Grid coordinates
     grid_j = 0
     ax = 0 #Init
-    for triplet in sorted(data.keys(), key=lambda e: (get_AA(e), e)):
+    for triplet in sorted(list(data.keys()), key=lambda e: (get_AA(e), e)):
         grid_i += 1
         if grid_i == 8:
             grid_i = 0
@@ -1086,8 +1085,8 @@ def triplet_plots(data, outputfolder):
         df = pd.DataFrame.from_dict(data[triplet], orient="index") #By index for right orientation
         df = df.sort_index(axis=0)
         labels_list = df[0].values.tolist()
-        labels_list = map(format_thousands, labels_list)
-        df.plot(kind="pie", subplots="True", autopct='%.1f%%', ax=ax, legend=None, labels=labels_list, pctdistance=0.7, fontsize=16, textprops={'fontsize':16})
+        labels_list = list(map(format_thousands, labels_list))
+        df.plot(kind="pie", y=0, autopct='%.1f%%', ax=ax, legend=None, labels=labels_list, pctdistance=0.7, fontsize=16, textprops={'fontsize':16})
         #Individual legends off, subplots="True" for evading selecting y column error, autopercentage
         ax.set(ylabel='') #Do not plot y column label
         if triplet=="ATG":
@@ -1160,6 +1159,7 @@ def plot_total_phase(distr, outfile):
     #Parse data into arrays
     x = [0, 1, 2]
     y = [distr[k] for k in sorted(distr.keys())]
+    df = pd.DataFrame(list(zip(x, y)),columns =['Phase', 'Value'])
 
     #Set exponent base of y ticks
     majorFormatter = FixedOrderFormatter(6)
@@ -1167,7 +1167,7 @@ def plot_total_phase(distr, outfile):
     ax.yaxis.offsetText.set_fontsize(36)
 
     #Make plot
-    sns.barplot(x, y, ax=ax, edgecolor='none')
+    sns.barplot(data=df, x="Phase", y="Value", ax=ax, edgecolor='none')
 
     #Axis labels
     plt.xlabel('Phase', fontsize=38)
@@ -1224,7 +1224,7 @@ def plot_rpf_phase_grouped2D(phase_distr, outfile):
         ax.set_axis_bgcolor("#f2f2f2")
 
     # Plot
-    sns.factorplot(x='RPF length', y='Count', hue='Phase', data=df, ax=ax, kind="bar")
+    sns.barplot(x='RPF length', y='Count', hue='Phase', data=df, ax=ax)
     sns.despine()
 
     # Y label
@@ -1260,7 +1260,7 @@ def plot_rpf_phase_mayavi(phase_distr, outfile):
             data_row.append(phase_distr[rpf][str(phase)])
         s.append(data_row)
     s = np.array(s)
-    y = sorted(phase_distr.keys(), reverse=True)
+    y = sorted(list(phase_distr.keys()), reverse=True)
 
     # Z data scaling parameters
     mean_s = np.mean(s)
@@ -1375,41 +1375,11 @@ def plot_rpf_phase_pyplot3D(phase_distr, outfile):
 
     #Initialize fig and axes
     fig = plt.figure(figsize=(20,13))
-    ax = fig.gca(projection='3d')
-    axis_rate = 3 / float(len(phase_distr.keys()))
-    ax.pbaspect = [axis_rate, 1, 0.5]  # Aspect ratio based on proportions of x and y axis
-    '''
-    If you want no square axis:
-    edit the get_proj function inside site-packages\mpl_toolkits\mplot3d\axes3d.py (and remove .pyc file!):
+    #ax = fig.gca(projection='3d')
+    ax = fig.add_subplot(projection='3d')
+    axis_rate = 3 / float(len(list(phase_distr.keys())))
+    ax.set_box_aspect([axis_rate,1,0.5])
 
-    try:
-        self.localPbAspect=self.pbaspect
-        zoom_out = (self.localPbAspect[0]+self.localPbAspect[1]+self.localPbAspect[2])
-    except AttributeError:
-        self.localPbAspect=[1,1,1]
-        zoom_out = 0
-    xmin, xmax = self.get_xlim3d() /  self.localPbAspect[0]
-    ymin, ymax = self.get_ylim3d() /  self.localPbAspect[1]
-    zmin, zmax = self.get_zlim3d() /  self.localPbAspect[2]
-
-    # transform to uniform world coordinates 0-1.0,0-1.0,0-1.0
-    worldM = proj3d.world_transformation(xmin, xmax,
-                                             ymin, ymax,
-                                             zmin, zmax)
-
-    # look into the middle of the new coordinates
-    R = np.array([0.5*self.localPbAspect[0], 0.5*self.localPbAspect[1], 0.5*self.localPbAspect[2]])
-    xp = R[0] + np.cos(razim) * np.cos(relev) * (self.dist+zoom_out)
-    yp = R[1] + np.sin(razim) * np.cos(relev) * (self.dist+zoom_out)
-    zp = R[2] + np.sin(relev) * (self.dist+zoom_out)
-    E = np.array((xp, yp, zp))
-
-
-    then add one line to this script to set pbaspect:
-
-    ax = fig.gca(projection='3d')
-    ax.pbaspect = [2.0, 0.6, 0.25] #e.g.
-    '''
 
     #Make arrays for x- and y-coordinates
     x = np.asarray([0,1,2])
@@ -1453,12 +1423,12 @@ def plot_rpf_phase_pyplot3D(phase_distr, outfile):
 
     #Axis ticks
     ticksxpos = np.arange(xmin, xmax+1, 1)
-    ticksxlabs =range(xmin,xmax+1,1)
+    ticksxlabs =list(range(xmin,xmax+1,1))
     plt.xticks(ticksxpos,ticksxlabs)
     ax.tick_params(axis='x', which='major', labelsize=20, pad=15)
 
     ticksypos = np.arange(ymin, ymax+1,1)
-    ticksylabs=range(ymin,ymax+1,1)
+    ticksylabs=list(range(ymin,ymax+1,1))
     plt.yticks(ticksypos,ticksylabs)
     ax.tick_params(axis='y', which='major', labelsize=20, pad=15)
 
@@ -1470,10 +1440,11 @@ def plot_rpf_phase_pyplot3D(phase_distr, outfile):
     ax.set_zlabel('counts', labelpad=90, fontsize=30)
 
     #Camera point angle
-    ax.view_init(azim=-30)
+    #ax.view_init(azim=-30)
+    ax.view_init(azim=-30, elev=15)
 
     #Place axes in the middle of the fig environment
-    ax.set_position([-0.35, -0.15, 1.5, 1.5])
+    ax.set_position([-0.18, -0.1, 1.25, 1.25])
 
     #Save as output
     fig.savefig(outfile)
@@ -1492,7 +1463,7 @@ def get_plot_data(db, treated):
     elif treated == "treated":
         fastq = "fastq2"
     else:
-        print "ERROR: treated option cannot be parsed!"
+        print("ERROR: treated option cannot be parsed!")
         sys.exit()
 
     #Init
@@ -1503,14 +1474,14 @@ def get_plot_data(db, treated):
     total['2'] = 0
     triplet_data = defaultdict(lambda: defaultdict())
     codontable = get_codontable()
-    for codon in codontable.keys():
-        for i in [0,1,2]:
+    for codon in list(codontable.keys()):
+        for i in ['0','1','2']:
             triplet_data[codon][i] = 0
 
     try:
         conn = sqlite3.connect(db)
     except:
-        print "ERROR: could not connect to "+db
+        print("ERROR: could not connect to "+db)
         sys.exit()
 
     with conn:
@@ -1542,7 +1513,7 @@ def get_plot_data(db, treated):
         output_triplet = cur.fetchall()
         #Get the possible triplets
         codontable = get_codontable()
-        possible_triplets = codontable.keys()
+        possible_triplets = list(codontable.keys())
 
         for i in range(0, len(output_triplet)):
             # Parse
@@ -1596,7 +1567,7 @@ def get_species(result_db):
     try:
         conn = sqlite3.connect(result_db)
     except:
-        print "Could not connect to "+result_db
+        print("Could not connect to "+result_db)
         sys.exit()
 
     with conn:
@@ -1641,17 +1612,17 @@ def print_dict(dictionary, indent='', braces=0):
     :return: void
     """
 
-    for key, value in dictionary.iteritems():
+    for key, value in dictionary.items():
         if isinstance(value, dict):
-            print '%s%s%s%s' % (indent, braces * '[', key, braces * ']')
+            print('%s%s%s%s' % (indent, braces * '[', key, braces * ']'))
             print_dict(value, indent + '  ', braces)
         else:
-            print indent + '%s = %s' % (key, value)
+            print(indent + '%s = %s' % (key, value))
 
 #######Set Main##################
 if __name__ == "__main__":
     try:
         main()
-    except Exception, e:
+    except Exception as e:
         traceback.print_exc()
 #################################

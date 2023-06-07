@@ -79,7 +79,7 @@ We set up our own Galaxy environment at: [http://galaxy.ugent.be](http://galaxy.
 
 ## Dependencies <a name="dependencies"></a>
 
-Proteoformer is built in Perl 5, Python 2.7 and Bash. All necessary scripts are included in this GitHub repository.
+Proteoformer is built in Perl 5, Python 2.7 and Bash. All necessary scripts are included in this GitHub repository. Some parts are updated to Python 3.10.
 
 To prevent problems with missing dependencies, we included all necessary dependencies in a [Conda](https://conda.io/docs/) environment.
 For more information about Conda installation, click [here](https://docs.conda.io/projects/conda/en/latest/user-guide/index.htmll).
@@ -119,6 +119,24 @@ If you want to exit the proteoformer Conda environment:
 
 ```
 source deactivate
+```
+
+For running this pipeline with Python 3.10, we advise to use Mamba to install the tool. Mamba is very similar to Conda but performs much faster. More info can be found [here](https://mamba.readthedocs.io/en/latest/).
+To install the dependencies for the Python 3.10 version of PROTEOFORMER, run the following commands:
+```
+mamba env create -f Dependency_envs/proteoformer_py3.yml
+```
+
+Then, use the following environment instead of the default proteoformer environment for running tools:
+
+```
+mamba activate proteoformer_py3
+```
+
+To exit this environment:
+
+```
+mamba deactivate
 ```
 
 ### Additional environments for RiboZINB, SPECtre and SRA download <a name="add_envs"></a>
@@ -191,6 +209,11 @@ The tool currently supports following species:
 | Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344 | SL1344                       |
 | Mycobacterium abscessus atcc 19977                                  | MYC_ABS_ATCC_19977           |
 
+There is also an analogue Python 3.10 version of this step:
+
+```
+python get_igenomes_py3.py -v 92 -s human -d /path/to/dir -r -c 15
+```
 
 ### Ensembl download <a name="ensembl"></a>
 
@@ -221,6 +244,12 @@ Currently supported species:
 | Caenorhabditis elegans                                              | c.elegans                    |
 | Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344 | SL1344                       |
 | Mycobacterium abscessus atcc 19977                                  | MYC_ABS_ATCC_19977           |
+
+There is also a Python 3.10 version of this step:
+
+```
+python ENS_db_py3.py -v 92 -s human
+```
 
 ### UTR simulation for Prokaryotes <a name="prokaryotutr"></a>
 
@@ -507,6 +536,12 @@ Input arguments:
 **Caution:** The mplot3d package in Pyplot is vulnerable for so-called Escher effects. Sometimes, certain boxes are plotted
 with a wrong z-order, but overall, figures are clear. On the other hand, the Mayavi package requires the usage of a graphical
 card, so on servers, this is mostly not an option.
+
+There is a Python 3.10 version of the mappingQC step available. Example:
+
+```
+perl 2_mappingQC_py3/mappingQC.pl --samfile output/untreat.sam --treated untreated --cores 20 --result_db SQLite/results.db --unique Y --ens_db ENS_hsa_92.db --offset plastid --plastid plastid/experiment1_untreated_p_offsets.png --tool_dir mqc_tools --plotrpftool pyplot3D
+```
 
 ### Transcript calling <a name="transcriptcalling"></a>
 
@@ -1261,6 +1296,13 @@ To run the master script, use the following command:
 ```
 chmod 755 proteoformer_pipeline.sh
 ./proteoformer_pipeline.sh
+```
+
+There is a version of the master script that uses every tool in its Python 3.10 version if available:
+
+```
+chmod 755 proteoformer_pipeline.sh
+./proteoformer_pipeline_py3.sh
 ```
 
 ## Publications <a name="publications"></a>

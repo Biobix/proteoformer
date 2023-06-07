@@ -1,0 +1,25 @@
+name: proteoformer_py3
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - r
+dependencies:
+  - pigz
+  - trimmomatic
+  - sqlite
+  - fastqc
+  - multiqc
+  - samtools
+  - bowtie
+  - STAR
+  - r-base
+  - numpy
+  - pandas
+  - matplotlib
+  - seaborn
+  - perl-parallel-forkmanager
+  - perl-bioperl
+  - perl-dbd-sqlite
+  - perl-dbi
+  - zip

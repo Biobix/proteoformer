@@ -140,16 +140,6 @@ if ($output_folder){
 if ($plotrpftool){
     if ($plotrpftool eq "grouped2D" || $plotrpftool eq "pyplot3D" || $plotrpftool eq "mayavi"){
         print "RPF phase plotting tool:                                 : $plotrpftool\n";
-        if ($plotrpftool eq "pyplot3D"){
-            #Check the installation of the pyplot 3D mod
-            print "\n\nChecking the installation of pyplot 3D plotting mod\n";
-            if (!-e $tool_dir."/install_pyplot3D_mod.py"){
-                print "Could not find the python pyplt 3D installation module!/n";
-                die;
-            }
-            system("python ".$tool_dir."/install_pyplot3D_mod.py");
-            print "\n\n";
-        }
     } else {
         die "The plotrpftool option should be 'grouped2D', 'pyplot3D' or 'mayavi'!\n";
     }
