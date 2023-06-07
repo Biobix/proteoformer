@@ -959,8 +959,10 @@ sub metagenic_analysis_chr {
                 $biotypes[$i] = $trs_nc->{$tr_for_id}{'biotype'};
                 $i++;
             }
-            my $random = int(rand(@biotypes));
-            my $biotype = $biotypes[$random];
+            #my $random = int(rand(@biotypes));
+            #my $biotype = $biotypes[$random];
+            #Better to take the biotype from a priority list if multiple biotypes are present at one position
+            my $biotype = select_biotype_from_priority_list(\@biotypes);
             $biotypes_nc{$biotype} = $biotypes_nc{$biotype} + $ribo_for->{$pos}{'count'};
         }else{
             $ribo_intergenic = $ribo_intergenic + $ribo_for->{$pos}{'count'};
@@ -1045,8 +1047,10 @@ sub metagenic_analysis_chr {
                 $biotypes[$i] = $trs_nc->{$tr_rev_id}{'biotype'};
                 $i++;
             }
-            my $random = int(rand(@biotypes));
-            my $biotype = $biotypes[$random];
+            #my $random = int(rand(@biotypes));
+            #my $biotype = $biotypes[$random];
+            #Better to take the biotype from a priority list if multiple biotypes are present at one position
+            my $biotype = select_biotype_from_priority_list(\@biotypes);
             $biotypes_nc{$biotype} = $biotypes_nc{$biotype} + $ribo_rev->{$pos}{'count'};
             
         }else{
@@ -1067,6 +1071,29 @@ sub metagenic_analysis_chr {
     
     
     return;
+}
+
+#Select non-coding biotype from a priority list
+sub select_biotype_from_priority_list {
+
+    #Catch
+    my @biotypes = @{$_[0]};
+
+    #Init
+    my $biotype = "";
+
+    #Define the priority list
+    my @priority_list = ('Mt_rRNA','sRNA','scRNA','scaRNA','snRNA','snoRNA','Mt_tRNA','rRNA','rRNA_pseudogene','miRNA','lncRNA','non_stop_decay','nonsense_mediated_decay','processed_pseudogene','misc_RNA','ribozyme','processed_transcript','retained_intron','vault_RNA','transcribed_processed_pseudogene','transcribed_unitary_pseudogene','transcribed_unprocessed_pseudogene','translated_processed_pseudogene','translated_unprocessed_pseudogene','unitary_pseudogene','unprocessed_pseudogene','polymorphic_pseudogene','IG_C_gene','IG_C_pseudogene','IG_D_gene','IG_J_gene','IG_J_pseudogene','IG_V_gene','IG_V_pseudogene','IG_pseudogene','LRG_gene','TEC','TR_C_gene','TR_D_gene','TR_J_gene','TR_J_pseudogene','TR_V_gene','TR_V_pseudogene','pseudogene');
+
+    #Search through priority list until a biotype is found
+    foreach my $biotype_candidate (@priority_list){
+        if ( grep(/^$biotype_candidate$/, @biotypes)){
+            $biotype = $biotype_candidate;
+            last;
+        }
+    }
+
+    return($biotype);
 }
 
 ## Metagenic classification ##
