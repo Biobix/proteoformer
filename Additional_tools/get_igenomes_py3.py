@@ -27,6 +27,7 @@ __author__ = 'SV'
     rat                         |   Rattus norvegicus
     horse                       |   Equus caballus
     arctic_squirrel             |   Urocitellus parryii
+    chinese_hamster             |   Cricetulus griseus
     fruitfly                    |   Drosophila_melanogaster
     yeast                       |   Saccharomyces cerevisiae
     zebrafish                   |   Danio rerio
@@ -133,7 +134,7 @@ def main():
             print("Error: latest Ensembl Bacteria/Fungi version is 45!")
             sys.exit()
     else:
-        if(ens_v>107):
+        if(ens_v>109):
             print("Error: latest Ensembl version is 107!")
             sys.exit()
     #Remove last "/" from instal dir path
@@ -175,6 +176,14 @@ def main():
         else:
             assembly='Rnor_5.0'
             ucscCode='rn5'
+#####TO EDIT
+    elif(species=='chinese_hamster'):
+        speciesLong='Cricetulus_griseus_picr'
+        if(ens_v>95):
+            assembly='CriGri-PICR'
+        else:
+            print("Chinese hamster ensembl version needs to be 96 or higher")
+            sys.exit()
 #####TO EDIT
     elif(species=='arctic_squirrel'):
         speciesLong='Urocitellus_parryii'
@@ -241,7 +250,7 @@ def main():
         sys.exit()
 
     print(("Assembly                                    : " + assembly))
-    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!='arctic_squirrel' and species!='earthmoss'):
+    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!='arctic_squirrel' and species!='earthmoss' and species!='chinese_hamster'):
         print(("UCSC code                                   : " + ucscCode))
     print("")
 
@@ -287,7 +296,7 @@ def main():
 
     ## Chr sizes files
     print("")
-    print("Get Chromosome lengths from UCSC")
+    print("Get Chromosome lengths")
     chromList = {}
     os.system("mkdir Genes")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Annotation/Genes")
@@ -378,7 +387,7 @@ def main():
             m = pattern.search(line)
             if m:
                 chromList[m.group(1)]=m.group(2)
-    elif(species=='arctic_squirrel'):
+    elif(species=='arctic_squirrel' or species=='chinese_hamster'):
         #Squirrel chromosome info file is not accessible yet at UCSC, the assembly is still in scaffold phase
         #So we get the scaffolds as chromosomes and we get them from Ensembl
         os.system("wget -q ftp://ftp.ensembl.org/pub/release-"+stringEns_v+"/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_1/coord_system.txt.gz")
@@ -386,7 +395,7 @@ def main():
         coord_system_id=0 #Init
         input = open('coord_system.txt', 'r')
         for line in input:
-            pattern = re.compile('^(\d+)\t\d+\t\w+\t(\w+)\t1')
+            pattern = re.compile('^(\d+)\t\d+\t\S+\t(\S+)\t1')
             m = pattern.search(line)
             if m:
                 if(m.group(2)==assembly):
@@ -395,7 +404,8 @@ def main():
         os.system("wget -q ftp://ftp.ensembl.org/pub/release-"+stringEns_v+"/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_1/seq_region.txt.gz")
         os.system("gzip -d seq_region.txt.gz")
         input = open('seq_region.txt', 'r')
-        regex = r"\b(?=\w)^\d+\t(\S+)\t"+re.escape(coord_system_id)+r"\t(\d+)\b(?!\w)"
+        #regex = r"\b(?=\w)^\d+\t(\S+)\t"+re.escape(str(coord_system_id))+r"\t(\d+)\b(?!\w)"
+        regex = r"^\d+\t(\S+)\t%s\t(\d+)" % coord_system_id
         for line in input:
             pattern = re.compile(regex)
             m = pattern.search(line)
@@ -427,7 +437,7 @@ def main():
     outFile.close()
     if(species=='arabidopsis' or species=='earthmoss'):
         os.system("rm -rf seq_region.txt")
-    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977' or species=='CNECNA3' or species=='arctic_squirrel'):
+    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977' or species=='CNECNA3' or species=='arctic_squirrel' or species=='chinese_hamster'):
         os.system("rm -rf coord_system.txt")
         os.system("rm -rf seq_region.txt")
     else:
@@ -441,7 +451,7 @@ def main():
     os.system("mkdir Chromosomes")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes")
 
-    if species=="arctic_squirrel":
+    if species=="arctic_squirrel" or species=="chinese_hamster":
         #For arctic squirrel we need another way to access chromosomal fasta files. In fact we want a fasta file per scaffold, as the assembly is still in scaffold phase
         #The information of all scaffolds is placed in one file, download this file
         os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.toplevel.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa.gz")
@@ -464,7 +474,7 @@ def main():
     os.system("mkdir WholeGenomeFasta")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/WholeGenomeFasta")
 
-    if species=="arctic_squirrel":
+    if species=="arctic_squirrel" or species=="chinese_hamster":
         #The file containing all scaffolds can be used as Whole Genome Fasta file
         os.system("mv "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/WholeGenomeFasta/genome.fa")
     else:
@@ -516,12 +526,91 @@ def main():
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence")
     os.system("mkdir AbundantSequences")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/AbundantSequences")
-    os.system("wget -q ftp://ftp.ncbi.nih.gov//genomes/Viruses/enterobacteria_phage_phix174_sensu_lato_uid14015/NC_001422.fna")
-    os.system("mv NC_001422.fna phix.fa")
-
-
-
-
+    if ens_v<109:
+        os.system("wget -q ftp://ftp.ncbi.nih.gov//genomes/Viruses/enterobacteria_phage_phix174_sensu_lato_uid14015/NC_001422.fna")
+        os.system("mv NC_001422.fna phix.fa")
+    else:
+        file = "phix.fa"
+        with open(file, 'w') as fw:
+            multilinestring=""">NC_001422.1 Escherichia phage phiX174, complete genome
+GAGTTTTATCGCTTCCATGACGCAGAAGTTAACACTTTCGGATATTTCTGATGAGTCGAAAAATTATCTT
+GATAAAGCAGGAATTACTACTGCTTGTTTACGAATTAAATCGAAGTGGACTGCTGGCGGAAAATGAGAAA
+ATTCGACCTATCCTTGCGCAGCTCGAGAAGCTCTTACTTTGCGACCTTTCGCCATCAACTAACGATTCTG
+TCAAAAACTGACGCGTTGGATGAGGAGAAGTGGCTTAATATGCTTGGCACGTTCGTCAAGGACTGGTTTA
+GATATGAGTCACATTTTGTTCATGGTAGAGATTCTCTTGTTGACATTTTAAAAGAGCGTGGATTACTATC
+TGAGTCCGATGCTGTTCAACCACTAATAGGTAAGAAATCATGAGTCAAGTTACTGAACAATCCGTACGTT
+TCCAGACCGCTTTGGCCTCTATTAAGCTCATTCAGGCTTCTGCCGTTTTGGATTTAACCGAAGATGATTT
+CGATTTTCTGACGAGTAACAAAGTTTGGATTGCTACTGACCGCTCTCGTGCTCGTCGCTGCGTTGAGGCT
+TGCGTTTATGGTACGCTGGACTTTGTGGGATACCCTCGCTTTCCTGCTCCTGTTGAGTTTATTGCTGCCG
+TCATTGCTTATTATGTTCATCCCGTCAACATTCAAACGGCCTGTCTCATCATGGAAGGCGCTGAATTTAC
+GGAAAACATTATTAATGGCGTCGAGCGTCCGGTTAAAGCCGCTGAATTGTTCGCGTTTACCTTGCGTGTA
+CGCGCAGGAAACACTGACGTTCTTACTGACGCAGAAGAAAACGTGCGTCAAAAATTACGTGCGGAAGGAG
+TGATGTAATGTCTAAAGGTAAAAAACGTTCTGGCGCTCGCCCTGGTCGTCCGCAGCCGTTGCGAGGTACT
+AAAGGCAAGCGTAAAGGCGCTCGTCTTTGGTATGTAGGTGGTCAACAATTTTAATTGCAGGGGCTTCGGC
+CCCTTACTTGAGGATAAATTATGTCTAATATTCAAACTGGCGCCGAGCGTATGCCGCATGACCTTTCCCA
+TCTTGGCTTCCTTGCTGGTCAGATTGGTCGTCTTATTACCATTTCAACTACTCCGGTTATCGCTGGCGAC
+TCCTTCGAGATGGACGCCGTTGGCGCTCTCCGTCTTTCTCCATTGCGTCGTGGCCTTGCTATTGACTCTA
+CTGTAGACATTTTTACTTTTTATGTCCCTCATCGTCACGTTTATGGTGAACAGTGGATTAAGTTCATGAA
+GGATGGTGTTAATGCCACTCCTCTCCCGACTGTTAACACTACTGGTTATATTGACCATGCCGCTTTTCTT
+GGCACGATTAACCCTGATACCAATAAAATCCCTAAGCATTTGTTTCAGGGTTATTTGAATATCTATAACA
+ACTATTTTAAAGCGCCGTGGATGCCTGACCGTACCGAGGCTAACCCTAATGAGCTTAATCAAGATGATGC
+TCGTTATGGTTTCCGTTGCTGCCATCTCAAAAACATTTGGACTGCTCCGCTTCCTCCTGAGACTGAGCTT
+TCTCGCCAAATGACGACTTCTACCACATCTATTGACATTATGGGTCTGCAAGCTGCTTATGCTAATTTGC
+ATACTGACCAAGAACGTGATTACTTCATGCAGCGTTACCATGATGTTATTTCTTCATTTGGAGGTAAAAC
+CTCTTATGACGCTGACAACCGTCCTTTACTTGTCATGCGCTCTAATCTCTGGGCATCTGGCTATGATGTT
+GATGGAACTGACCAAACGTCGTTAGGCCAGTTTTCTGGTCGTGTTCAACAGACCTATAAACATTCTGTGC
+CGCGTTTCTTTGTTCCTGAGCATGGCACTATGTTTACTCTTGCGCTTGTTCGTTTTCCGCCTACTGCGAC
+TAAAGAGATTCAGTACCTTAACGCTAAAGGTGCTTTGACTTATACCGATATTGCTGGCGACCCTGTTTTG
+TATGGCAACTTGCCGCCGCGTGAAATTTCTATGAAGGATGTTTTCCGTTCTGGTGATTCGTCTAAGAAGT
+TTAAGATTGCTGAGGGTCAGTGGTATCGTTATGCGCCTTCGTATGTTTCTCCTGCTTATCACCTTCTTGA
+AGGCTTCCCATTCATTCAGGAACCGCCTTCTGGTGATTTGCAAGAACGCGTACTTATTCGCCACCATGAT
+TATGACCAGTGTTTCCAGTCCGTTCAGTTGTTGCAGTGGAATAGTCAGGTTAAATTTAATGTGACCGTTT
+ATCGCAATCTGCCGACCACTCGCGATTCAATCATGACTTCGTGATAAAAGATTGAGTGTGAGGTTATAAC
+GCCGAAGCGGTAAAAATTTTAATTTTTGCCGCTGAGGGGTTGACCAAGCGAAGCGCGGTAGGTTTTCTGC
+TTAGGAGTTTAATCATGTTTCAGACTTTTATTTCTCGCCATAATTCAAACTTTTTTTCTGATAAGCTGGT
+TCTCACTTCTGTTACTCCAGCTTCTTCGGCACCTGTTTTACAGACACCTAAAGCTACATCGTCAACGTTA
+TATTTTGATAGTTTGACGGTTAATGCTGGTAATGGTGGTTTTCTTCATTGCATTCAGATGGATACATCTG
+TCAACGCCGCTAATCAGGTTGTTTCTGTTGGTGCTGATATTGCTTTTGATGCCGACCCTAAATTTTTTGC
+CTGTTTGGTTCGCTTTGAGTCTTCTTCGGTTCCGACTACCCTCCCGACTGCCTATGATGTTTATCCTTTG
+AATGGTCGCCATGATGGTGGTTATTATACCGTCAAGGACTGTGTGACTATTGACGTCCTTCCCCGTACGC
+CGGGCAATAACGTTTATGTTGGTTTCATGGTTTGGTCTAACTTTACCGCTACTAAATGCCGCGGATTGGT
+TTCGCTGAATCAGGTTATTAAAGAGATTATTTGTCTCCAGCCACTTAAGTGAGGTGATTTATGTTTGGTG
+CTATTGCTGGCGGTATTGCTTCTGCTCTTGCTGGTGGCGCCATGTCTAAATTGTTTGGAGGCGGTCAAAA
+AGCCGCCTCCGGTGGCATTCAAGGTGATGTGCTTGCTACCGATAACAATACTGTAGGCATGGGTGATGCT
+GGTATTAAATCTGCCATTCAAGGCTCTAATGTTCCTAACCCTGATGAGGCCGCCCCTAGTTTTGTTTCTG
+GTGCTATGGCTAAAGCTGGTAAAGGACTTCTTGAAGGTACGTTGCAGGCTGGCACTTCTGCCGTTTCTGA
+TAAGTTGCTTGATTTGGTTGGACTTGGTGGCAAGTCTGCCGCTGATAAAGGAAAGGATACTCGTGATTAT
+CTTGCTGCTGCATTTCCTGAGCTTAATGCTTGGGAGCGTGCTGGTGCTGATGCTTCCTCTGCTGGTATGG
+TTGACGCCGGATTTGAGAATCAAAAAGAGCTTACTAAAATGCAACTGGACAATCAGAAAGAGATTGCCGA
+GATGCAAAATGAGACTCAAAAAGAGATTGCTGGCATTCAGTCGGCGACTTCACGCCAGAATACGAAAGAC
+CAGGTATATGCACAAAATGAGATGCTTGCTTATCAACAGAAGGAGTCTACTGCTCGCGTTGCGTCTATTA
+TGGAAAACACCAATCTTTCCAAGCAACAGCAGGTTTCCGAGATTATGCGCCAAATGCTTACTCAAGCTCA
+AACGGCTGGTCAGTATTTTACCAATGACCAAATCAAAGAAATGACTCGCAAGGTTAGTGCTGAGGTTGAC
+TTAGTTCATCAGCAAACGCAGAATCAGCGGTATGGCTCTTCTCATATTGGCGCTACTGCAAAGGATATTT
+CTAATGTCGTCACTGATGCTGCTTCTGGTGTGGTTGATATTTTTCATGGTATTGATAAAGCTGTTGCCGA
+TACTTGGAACAATTTCTGGAAAGACGGTAAAGCTGATGGTATTGGCTCTAATTTGTCTAGGAAATAACCG
+TCAGGATTGACACCCTCCCAATTGTATGTTTTCATGCCTCCAAATCTTGGAGGCTTTTTTATGGTTCGTT
+CTTATTACCCTTCTGAATGTCACGCTGATTATTTTGACTTTGAGCGTATCGAGGCTCTTAAACCTGCTAT
+TGAGGCTTGTGGCATTTCTACTCTTTCTCAATCCCCAATGCTTGGCTTCCATAAGCAGATGGATAACCGC
+ATCAAGCTCTTGGAAGAGATTCTGTCTTTTCGTATGCAGGGCGTTGAGTTCGATAATGGTGATATGTATG
+TTGACGGCCATAAGGCTGCTTCTGACGTTCGTGATGAGTTTGTATCTGTTACTGAGAAGTTAATGGATGA
+ATTGGCACAATGCTACAATGTGCTCCCCCAACTTGATATTAATAACACTATAGACCACCGCCCCGAAGGG
+GACGAAAAATGGTTTTTAGAGAACGAGAAGACGGTTACGCAGTTTTGCCGCAAGCTGGCTGCTGAACGCC
+CTCTTAAGGATATTCGCGATGAGTATAATTACCCCAAAAAGAAAGGTATTAAGGATGAGTGTTCAAGATT
+GCTGGAGGCCTCCACTATGAAATCGCGTAGAGGCTTTGCTATTCAGCGTTTGATGAATGCAATGCGACAG
+GCTCATGCTGATGGTTGGTTTATCGTTTTTGACACTCTCACGTTGGCTGACGACCGATTAGAGGCGTTTT
+ATGATAATCCCAATGCTTTGCGTGACTATTTTCGTGATATTGGTCGTATGGTTCTTGCTGCCGAGGGTCG
+CAAGGCTAATGATTCACACGCCGACTGCTATCAGTATTTTTGTGTGCCTGAGTATGGTACAGCTAATGGC
+CGTCTTCATTTCCATGCGGTGCACTTTATGCGGACACTTCCTACAGGTAGCGTTGACCCTAATTTTGGTC
+GTCGGGTACGCAATCGCCGCCAGTTAAATAGCTTGCAAAATACGTGGCCTTATGGTTACAGTATGCCCAT
+CGCAGTTCGCTACACGCAGGACGCTTTTTCACGTTCTGGTTGGTTGTGGCCTGTTGATGCTAAAGGTGAG
+CCGCTTAAAGCTACCAGTTATATGGCTGTTGGTTTCTATGTGGCTAAATACGTTAACAAAAAGTCAGATA
+TGGACCTTGCTGCTAAAGGTCTAGGAGCTAAAGAATGGAACAACTCACTAAAAACCAAGCTGTCGCTACT
+TCCCAAGAAGCTGTTCAGAATCAGAATGAGCCGCAACTTCGGGATGAAAATGCTCACAATGACAAATCTG
+TCCACGGAGTGCTTAATCCAACTTACCAAGCTGGGTTACGACGCGACGCCGTTCAACCAGATATTGAAGC
+AGAACGCAAAAAGAGAGATGAGATTGAGGCTGGGAAAAGTTACTGTAGCCGACGTTTTGGCGGCGCAACC
+TGTGACGACAAATCTGCTCAAATTTATGCGCGCTTCGATAAAAATGATTGGCGTATCCAACCTGCA"""
+            fw.write(multilinestring)
 
     ## Make README.txt file
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Annotation")
@@ -551,10 +640,10 @@ def main():
     ##Change permissions for free consultation
     os.chdir(instalDir)
     os.system("chmod 777 igenomes")
-    os.system("chgrp biobix igenomes")
+    os.system("chgrp ohmx igenomes")
     os.chdir(instalDir+"/igenomes")
     os.system("chmod -R 777 "+speciesLong)
-    os.system("chgrp -R biobix "+speciesLong)
+    os.system("chgrp -R ohmx "+speciesLong)
 
     print("\n")
     print("   (***) igenomes folder download complete (***)")
@@ -619,7 +708,9 @@ def read_fasta(fasta):
             if ((re.search('^>', lines[i]))):
                 if(i!=0):
                     # Save previous entry
-                    input_data = input_data.append({'scaffold_id': scaffold_id, 'accession': accession, 'sequence': sequence}, ignore_index=True)
+                    #input_data = input_data.append({'scaffold_id': scaffold_id, 'accession': accession, 'sequence': sequence}, ignore_index=True)
+                    new_row = {'scaffold_id': scaffold_id, 'accession': accession, 'sequence': sequence}
+                    input_data = pd.concat([input_data, pd.DataFrame([new_row])], ignore_index=True)
                 # Get new entry accession and empty sequence
                 accession = lines[i]
                 m_id = re.search('^>(\S+)\s', accession)
@@ -631,7 +722,9 @@ def read_fasta(fasta):
                 sequence += lines[i]
         # Save the last entry
         if (sequence != ""):
-            input_data = input_data.append({'scaffold_id': scaffold_id, 'accession': accession, 'sequence': sequence}, ignore_index=True)
+            #input_data = input_data.append({'scaffold_id': scaffold_id, 'accession': accession, 'sequence': sequence}, ignore_index=True)
+            new_row = {'scaffold_id': scaffold_id, 'accession': accession, 'sequence': sequence}
+            input_data = pd.concat([input_data, pd.DataFrame([new_row])], ignore_index=True)
             accession = ""
             scaffold_id=""
             sequence = ""
@@ -743,6 +836,7 @@ def print_help():
     rat                         |   Rattus norvegicus
     horse                       |   Equus caballus
     arctic_squirrel             |   Urocitellus parryii
+    chinese_hamster             |   Cricetulus griseus
     fruitfly                    |   Drosophila_melanogaster
     yeast                       |   Saccharomyces cerevisiae
     zebrafish                   |   Danio rerio
