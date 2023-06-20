@@ -18,6 +18,7 @@ ARGUMENTS:
                                             human                       |   homo_sapiens
                                             mouse                       |   mus_musculus
                                             horse						|   equus_caballus
+                                            chinese_hamster             |   Cricetulus griseus
                                             arctic_squirrel             |   urocitellus_parryii
                                             fruitfly                    |   drosophila_melanogaster
                                             saccharomyces_cerevisiae    |   yeast
@@ -104,7 +105,7 @@ def main():
     # Dictionary for 3letter abbreviation for species
     #
 
-    speciesdict = {'zebrafish': 'dre','danio_rerio': 'dre','human': 'hsa', 'mouse': 'mmu', 'horse': 'eca', 'fruitfly': 'dme',
+    speciesdict = {'zebrafish': 'dre','danio_rerio': 'dre','human': 'hsa', 'mouse': 'mmu', 'horse': 'eca', 'chinese_hamster': 'cgr', 'fruitfly': 'dme',
                    'yeast': 'sce', 'c.elegans': 'cel',
                    'homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'equus_caballus': 'eca', 'arctic_squirrel': 'upa', 'drosophila_melanogaster': 'dme',
                    'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel','rat': 'rnv',
@@ -195,6 +196,14 @@ def main():
             print(("ERROR: unsupported ensembl version: " + ens_v))
             print("supported ensembl versions: from 75 till 100")
             sys.exit()
+    elif (species=='chinese_hamster'):
+        if(int(ens_v) >=96 and int(ens_v)<=109):
+            core='/cricetulus_griseus_picr_core_'+ens_v+'_1.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-'+ens_v+'/mysql/cricetulus_griseus_picr_core_'+ens_v+'_1/', core)
+        else:
+            print("ERROR: unsupported ensembl version: "+ens_v)
+            print("Supported ensembl versions: from 96 to 109")
+            sys.exit()
     elif (species=='arctic_squirrel'):
         if(int(ens_v) >=96 and int(ens_v)<=103):
             core='/urocitellus_parryii_core_'+ens_v+'_1.sql.gz'
@@ -272,6 +281,11 @@ def main():
         else:
             print("something went wrong trying to run gzip")
             raise
+
+    #From ensembl 109 onwards: MySQL Row formatting option that does not fit SQLite -> delete these options from dump file
+    if(int(ens_v)>=109):
+        os.system("sed -i 's/ ROW_FORMAT=DYNAMIC//g' *_"+ens_v+"_*.sql")
+        os.system("sed -i 's/ ROW_FORMAT=FIXED//g' *_"+ens_v+"_*.sql")
 
     #load db schema
     file = open("mysql2sqlite.sh", "w")
@@ -478,6 +492,7 @@ ARGUMENTS:
                                             mouse                       |   mus_musculus
                                             rat                         |   rattus_norvegicus
                                             horse                       |   equus_caballus
+                                            chinese_hamster             |   Cricetulus griseus
                                             arctic_squirrel             |   urocitellus_parryii
                                             fruitfly                    |   drosophila_melanogaster
                                             saccharomyces_cerevisiae    |   yeast
