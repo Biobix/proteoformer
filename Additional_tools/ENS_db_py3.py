@@ -287,6 +287,9 @@ def main():
         os.system("sed -i 's/ ROW_FORMAT=DYNAMIC//g' *_"+ens_v+"_*.sql")
         os.system("sed -i 's/ ROW_FORMAT=FIXED//g' *_"+ens_v+"_*.sql")
 
+    #Edit collating sequence
+    os.system("sed -i 's/COLLATE latin1_bin/COLLATE BINARY/g' *_"+ens_v+"_*.sql")
+
     #load db schema
     file = open("mysql2sqlite.sh", "w")
     file.write("""
