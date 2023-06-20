@@ -135,7 +135,7 @@ def main():
             sys.exit()
     else:
         if(ens_v>109):
-            print("Error: latest Ensembl version is 107!")
+            print("Error: latest Ensembl version is 109!")
             sys.exit()
     #Remove last "/" from instal dir path
     pattern=re.compile('^(\S+)/$')
