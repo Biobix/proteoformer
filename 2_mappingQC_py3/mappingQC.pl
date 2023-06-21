@@ -212,6 +212,7 @@ if ($cores) {
 my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus" 
 : (uc($species) eq "RAT") ? "Rattus_norvegicus" 
 : (uc($species) eq "HORSE") ? "Equus_caballus"
+: (uc($species) eq "CHINESE_HAMSTER_PICR") ? "Cricetulus_griseus_picr"
 : (uc($species) eq "ARCTIC_SQUIRREL") ? "Urocitellus_parryii" 
 : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" 
 : (uc($species) eq "SL1344") ? "SL1344" 
@@ -224,7 +225,8 @@ my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus"
 : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
 my $spec_short = (uc($species) eq "MOUSE") ? "mmu" 
 : (uc($species) eq "RAT") ? "rnor" 
-: (uc($species) eq "HORSE") ? "eca"
+: (uc($species) eq "HORSE") ? "eca" 
+: (uc($species) eq "CHINESE_HAMSTER_PICR") ? "cgr"
 : (uc($species) eq "ARCTIC_SQUIRREL") ? "upa" 
 : (uc($species) eq "CNECNA3") ? "cnecna3" 
 : (uc($species) eq "SL1344") ? "sl1344" 
@@ -241,7 +243,8 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 103 ) ? "GRCm39"
 : (uc($species) eq "MOUSE" && $version < 70 ) ? "NCBIM37"
 : (uc($species) eq "RAT" && $version >=80 ) ? "Rnor_6.0"
 : (uc($species) eq "RAT" && $version < 80) ? "Rnor_5.0"
-: (uc($species) eq "HORSE" && $version > 94) ? "EquCab3.0"
+: (uc($species) eq "HORSE" && $version > 94) ? "EquCab3.0" 
+: (uc($species) eq "CHINESE_HAMSTER_PICR" && $version>= 96) ? "CriGri-PICR"
 : (uc($species) eq "ARCTIC_SQUIRREL" && $version > 95) ? "ASM342692v1"
 : (uc($species) eq "HUMAN" && $version >= 76) ? "GRCh38"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
@@ -258,6 +261,7 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 103 ) ? "GRCm39"
 # Also take into account the assembly type, eg. for horse, GM20200620
 my $assembly_type = (uc($species) eq "HORSE") ? 'primary_assembly'
 : (uc($species) eq "ARCTIC_SQUIRREL") ? 'primary_assembly'
+: (uc($species) eq "CHINESE_HAMSTER_PICR") ? 'primary_assembly'
 : 'chromosome';
 
 
