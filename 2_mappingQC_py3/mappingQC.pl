@@ -957,7 +957,9 @@ sub metagenic_analysis_chr {
             #my $biotype = $biotypes[$random];
             #Better to take the biotype from a priority list if multiple biotypes are present at one position
             my $biotype = select_biotype_from_priority_list(\@biotypes);
-            $biotypes_nc{$biotype} = $biotypes_nc{$biotype} + $ribo_for->{$pos}{'count'};
+            if ($biotype ne ""){
+                $biotypes_nc{$biotype} = $biotypes_nc{$biotype} + $ribo_for->{$pos}{'count'};
+            }
         }else{
             $ribo_intergenic = $ribo_intergenic + $ribo_for->{$pos}{'count'};
         }
@@ -1045,8 +1047,9 @@ sub metagenic_analysis_chr {
             #my $biotype = $biotypes[$random];
             #Better to take the biotype from a priority list if multiple biotypes are present at one position
             my $biotype = select_biotype_from_priority_list(\@biotypes);
-            $biotypes_nc{$biotype} = $biotypes_nc{$biotype} + $ribo_rev->{$pos}{'count'};
-            
+            if($biotype ne ""){
+                $biotypes_nc{$biotype} = $biotypes_nc{$biotype} + $ribo_rev->{$pos}{'count'};
+            }
         }else{
             $ribo_intergenic = $ribo_intergenic + $ribo_rev->{$pos}{'count'};
         }
@@ -1083,6 +1086,11 @@ sub select_biotype_from_priority_list {
             $biotype = $biotype_candidate;
             last;
         }
+    }
+
+    #Check whether a biotype was selected from the priority list
+    if ($biotype eq ""){
+        print "No biotype was selected from the priority list for a read. Available biotypes for read: ".join(', ', @biotypes)."\n";
     }
 
     return($biotype);
