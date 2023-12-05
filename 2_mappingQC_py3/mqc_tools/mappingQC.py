@@ -15,6 +15,8 @@ from matplotlib.colors import hex2color
 from matplotlib import cm
 import seaborn as sns
 from matplotlib.ticker import ScalarFormatter
+from sklearn.metrics import r2_score
+from scipy.optimize import curve_fit
 import re
 import time
 
@@ -36,6 +38,8 @@ ARGUMENTS
                                                 (default STAR/fastq(1/2)/(un)treat.sam)
     -t | --treated                          Untreated or treated sample
                                                 (default: untreated) (should be untreated/treated)
+    -b | --testrun                          Whether data comes from a low-coverage test run (Y/N)
+                                                (default: N)
     -m | --mapping_unique                   Whether mapping was executed unique or not (Y/N)
                                                 (default: Y)
     -f | --firstRankMultiMap                Whether mapping was executed with first rank multimapping (Y/N)
@@ -48,6 +52,8 @@ ARGUMENTS
                                                 (default work_dir/tmp)
     -o | --outfolder                        The output folder for plots
                                                 (default images_plots)
+    -y | --suppl_out_folder                 The output folder for supplementary plots
+                                                (default suppl_plots)
     -h | --outhtml                          The output html file
                                                 (default mappingQC_out_(un)treated.html)
     -z | --outzip                           The output zip file name
@@ -69,7 +75,7 @@ def main():
 
     # Catch command line with getopt
     try:
-        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:m:f:u:x:a:o:h:z:p:i:e:c:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "plotrpftool=", "tmp_folder=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db=","comp_logo="])
+        myopts, args = getopt.getopt(sys.argv[1:], "w:r:s:t:b:m:f:u:x:a:o:y:h:z:p:i:e:c:", ["work_dir=", "result_db=", "input_samfile=", "treated=", "mapping_unique=", "firstRankMultiMap=", "unique=", "plotrpftool=", "tmp_folder=", "outfile=", "outhtml=", "outzip=", "plastid_option=", "plastid_img=" ,"ensembl_db=","comp_logo="])
     except getopt.GetoptError as err:
         print(err)
         sys.exit()
@@ -86,6 +92,8 @@ def main():
             samfile = a
         if o in ('-t', '--treated'):
             treated = a
+        if o in ('-b', '--testrun'):
+            testrun = a
         if o in ('-m', '--mapping_unique'):
             mapping_unique = a
         if o in ('-f', '--firstRankMultiMap'):
@@ -98,6 +106,8 @@ def main():
             tmpfolder = a
         if o in ('-o', '--outfolder'):
             outfolder = a
+        if o in ('-y', '--suppl_out_folder'):
+            suppl_out_folder = a
         if o in ('-h', '--outhtml'):
             outhtml = a
         if o in ('-z', '--outzip'):
@@ -128,6 +138,10 @@ def main():
     except:
         treated=''
     try:
+        testrun
+    except:
+        testrun = ''
+    try:
         mapping_unique
     except:
         mapping_unique = ''
@@ -147,6 +161,10 @@ def main():
         outfolder
     except:
         outfolder = ''
+    try:
+        suppl_out_folder
+    except:
+        suppl_out_folder = ''
     try:
         outhtml
     except:
@@ -192,6 +210,8 @@ def main():
     elif treated != "untreated" and treated != "treated":
         print("ERROR: treated option should be 'treated' or 'untreated'!")
         sys.exit()
+    if testrun == '':
+        testrun="N"
     if mapping_unique == '':
         mapping_unique = 'Y'
     if firstRankMultiMap == '':
@@ -202,6 +222,8 @@ def main():
         plotrpftool = "grouped2D"
     if outfolder == '':
         outfolder = workdir+"/images_plots/"
+    if suppl_out_folder == '':
+        suppl_out_folder = workdir+"/suppl_plots/"
     if outhtml == '':
         outhtml = outfolder+"/mappingQC.html"
         outhtml_short = "mappingQC.html"
@@ -258,9 +280,12 @@ def main():
     # MAIN #
     ########
 
-    #Make plot  directory
+    #Make plot directory
     if not os.path.exists(outfolder):
         os.system("mkdir -p "+outfolder)
+    #Make suppl plot directory
+    if not os.path.exists(suppl_out_folder):
+        os.system("mkdir -p "+suppl_out_folder)
 
     #Download biobix/ohmx image and mappingqc images
     if comp_logo == 'biobix':
@@ -308,6 +333,26 @@ def main():
     #Make codon usage plot
     if species=='human' or species=='mouse':
         codon_usage_plot(tmpfolder, codon_ref_file, outfolder, run_name, treated, triplet_distr)
+
+    #Make in-frame coverage plot
+    ifc_data = ifc_plot(tmpfolder, treated, suppl_out_folder)
+
+    #Make in-frame coverage statistic plot
+    ifc_stat_data = ifc_stat_plot(tmpfolder, treated, suppl_out_folder)
+
+    #Optional:
+    #combination of ifc vs ifc_stat
+    ifc_ifc_stat_plot(tmpfolder, treated, suppl_out_folder, ifc_data, ifc_stat_data)
+
+    #Make cov spread plot
+    cov_spread_data = cov_spread_plot(tmpfolder, treated, suppl_out_folder)
+
+    #Make a phase 0 cov spread plot
+    cov_spread_phase0_data = cov_spread_phase0_plot(tmpfolder, treated, suppl_out_folder)
+
+    #Combination of ifc_stat and cov spread
+    ifc_stat_cov_spread_plot(tmpfolder, treated, outfolder, suppl_out_folder, ifc_stat_data, cov_spread_data, testrun)
+    ifc_stat_cov_spread_phase0_plot(tmpfolder, treated, outfolder, suppl_out_folder, ifc_stat_data, cov_spread_phase0_data, testrun)
 
     #Write to output html file
     offsets_file = tmpfolder+"/mappingqc_"+treated+"/mappingqc_offsets_"+treated+".csv"
@@ -432,6 +477,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
         }
 """
         logo_main_string = """<img src=\"BIOBIX_logo.png\" alt="biobix_logo" id="biobix_logo">"""
+        footer_string = "BioBix lab Ghent (Belgium)"
     elif comp_logo=="ohmx":
         logo_header_string = """
         #ohmx_logo{
@@ -442,6 +488,7 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
         }
 """
         logo_main_string = """<img src=\"ohmx_logo01_2.svg\" alt="ohmx_logo" id="ohmx_logo">"""
+        footer_string = "OHMX.bio, Ghent (Belgium)"
 
     #Structure of html file
     html_string = """<!DOCTYPE html>
@@ -815,6 +862,8 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
             <li><a href="#section7">Phase - relative position distribution</a></li>
             <li><a href="#section8">Triplet identity plots</a></li>
             """+codon_usage_nav+"""
+            <li><a href="#section10">IFC stat vs. coverage spread</a></li>
+            <li><a href="#section11">IFC stat vs. phase 0 coverage spread</a></li>
         </ul>
     </nav>
 
@@ -945,11 +994,27 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
 
         """+codon_usage_part+"""
 
+        <span class="anchor" id="section10"></span>
+        <h2 id="ifc_stat_cov_spread">In-frame coverage statistic vs. coverage spread</h2>
+        <p>
+            <div class="img">
+            <img src=\"ifc_stat_cov_spread_plot.png" alt="ifc stat vs cov spread" id="ifc_stat_cov_spread_img">
+            </div>
+        </p>
+
+        <span class="anchor" id="section11"></span>
+        <h2 id="ifc_stat_cov_spread_phase0">In-frame coverage statistic vs. phase 0 coverage spread</h2>
+        <p>
+            <div class="img">
+            <img src=\"ifc_stat_cov_spread_phase0_plot.png" alt="ifc stat vs phase 0 cov spread" id="ifc_stat_cov_spread_phase0_img">
+            </div>
+        </p>
+
         <br><br>
     </div>
 
     <div id="footer">
-        <p id="footer_content">Generated with PROTEOFORMER - BioBix lab Ghent (Belgium) - Steven Verbruggen</p>
+        <p id="footer_content">Generated with PROTEOFORMER - """+footer_string+""" - Steven Verbruggen</p>
     </div>
 
 </body>
@@ -962,6 +1027,386 @@ def write_out_html(outfile, samfile, run_name, totmaps, plastid, offsets_file, o
     html_file.close()
 
     return
+
+def asymp_regr_phase0(tmpfolder, treated, suppl_out_folder, plot_data, testrun):
+    #Regression model: Y=a−(a−b)exp(−cX)
+    #where a is the maximum attainable Y, b is Y at x=0 and c is proportional to the relative rate of Y increase while X increases.
+
+    #Output file
+    output_file = suppl_out_folder+"/ifc_stat_cov_spread_phase0_asymp_regr.png"
+
+    #Select data with cov spread>0 and ifc_stat>0
+    plot_data = plot_data[plot_data['cov_spread_phase0']>0]
+    plot_data = plot_data[plot_data['ifc_stat']>0]
+
+    #Scatter
+    fig, ax = plt.subplots(1, 1, figsize=(9,8))
+    plt.scatter(plot_data["cov_spread_phase0"], plot_data["ifc_stat"], marker=".", s=10)
+    plt.xlim([0,100])
+    if testrun=="N":
+        plt.ylim([0,11])
+    else:
+        plt.ylim([0,7])
+    ax.set_ylabel('In-frame coverage statistic', fontsize=16)
+    ax.set_xlabel('Coverage spread in phase 0 percentage', fontsize=16)
+    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=12)
+
+    #Fit
+    param=""
+    param_cov=""
+    if testrun=="N":
+        param, param_cov = curve_fit(asymp_regr_func, plot_data["cov_spread_phase0"], plot_data["ifc_stat"])
+    else:
+        uncertainties = plot_data.apply(lambda x: 1/((((x.cov_spread_phase0)**2)+((x.ifc_stat)**2))**(1/2)), axis=1)
+        param, param_cov = curve_fit(asymp_regr_func, plot_data["cov_spread_phase0"], plot_data["ifc_stat"], sigma=uncertainties, absolute_sigma=True)
+    #print("Asymptotic regression parameters (cov spread phase 0):")
+    #print("\ta = "+str(round(param[0],2)))
+    #print("\tb = "+str(round(param[1],2)))
+    #print("\tc = "+str(round(param[2],5)))
+    regression_plot_x = np.linspace(0, 100, 200)
+    regression_plot_y = asymp_regr_func(regression_plot_x, param[0], param[1], param[2])
+    plt.plot(regression_plot_x, regression_plot_y, 'g')
+    r2 = r2_score(plot_data["ifc_stat"], asymp_regr_func(plot_data["cov_spread_phase0"], param[0], param[1], param[2]))
+    text = "Y = "+str(round(param[0],2))+" - ("+str(round(param[0],2))+" - "+str(round(param[1],2))+") exp(-"+str(round(param[2],5))+" X)\n"+r'$R^2$'+" = "+str(round(r2,3))
+    xtext=1
+    ylim=ax.get_ylim()
+    ytext=0.91*ylim[1]
+    plt.text(xtext, ytext, text, color='green', fontsize=16)
+
+    #Clean and export
+    plt.tight_layout()
+    fig.savefig(output_file)
+
+    return
+
+def asymp_regr(tmpfolder, treated, suppl_out_folder, plot_data, testrun):
+    #Regression model: Y=a−(a−b)exp(−cX)
+    #where a is the maximum attainable Y, b is Y at x=0 and c is proportional to the relative rate of Y increase while X increases.
+
+    #Output file
+    output_file = suppl_out_folder+"/ifc_stat_cov_spread_asymp_regr.png"
+
+    #Select data with cov spread>0 and ifc_stat>0
+    plot_data = plot_data[plot_data['cov_spread']>0]
+    plot_data = plot_data[plot_data['ifc_stat']>0]
+
+    #Scatter
+    fig, ax = plt.subplots(1, 1, figsize=(9,8))
+    plt.scatter(plot_data["cov_spread"], plot_data["ifc_stat"], marker=".", s=10)
+    plt.xlim([0,100])
+    if testrun=="N":
+        plt.ylim([0,11])
+    else:
+        plt.ylim([0,7])
+    ax.set_ylabel('In-frame coverage statistic', fontsize=16)
+    ax.set_xlabel('Coverage spread percentage', fontsize=16)
+    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=12)
+
+    #Fit
+    if testrun=="N":
+        param, param_cov = curve_fit(asymp_regr_func, plot_data["cov_spread"], plot_data["ifc_stat"])
+    else:
+        uncertainties = plot_data.apply(lambda x: 1/((((x.cov_spread)**2)+((x.ifc_stat)**2))**(1/2)), axis=1)
+        param, param_cov = curve_fit(asymp_regr_func, plot_data["cov_spread"], plot_data["ifc_stat"], sigma=uncertainties, absolute_sigma=True)
+    #print("Asymptotic regression parameters (cov spread):")
+    #print("\ta = "+str(round(param[0],2)))
+    #print("\tb = "+str(round(param[1],2)))
+    #print("\tc = "+str(round(param[2],5)))
+    regression_plot_x = np.linspace(0, 100, 200)
+    regression_plot_y = asymp_regr_func(regression_plot_x, param[0], param[1], param[2])
+    plt.plot(regression_plot_x, regression_plot_y, 'g')
+    r2 = r2_score(plot_data["ifc_stat"], asymp_regr_func(plot_data["cov_spread"], param[0], param[1], param[2]))
+    text = "Y = "+str(round(param[0],2))+" - ("+str(round(param[0],2))+" - "+str(round(param[1],2))+") exp(-"+str(round(param[2],5))+" X)\n"+r'$R^2$'+" = "+str(round(r2,3))
+    xtext=1
+    ylim=ax.get_ylim()
+    ytext=0.91*ylim[1]
+    plt.text(xtext, ytext, text, color='green', fontsize=16)
+
+    #Clean and export
+    plt.tight_layout()
+    fig.savefig(output_file)
+
+    return
+
+def asymp_regr_func(x, a, b, c):
+    return a-(a-b)*np.exp(-c*x)
+
+def poly_regr_phase0(tmpfolder, treated, suppl_out_folder, plot_data):
+
+    #Ouput file
+    output_file = suppl_out_folder+"/ifc_stat_cov_spread_phase0_poly_regr.png"
+
+    #Select data with cov spread>0 and ifc_stat>0
+    plot_data = plot_data[plot_data['cov_spread_phase0']>0]
+    plot_data = plot_data[plot_data['ifc_stat']>0]
+
+    #Scatter
+    fig, ax = plt.subplots(1, 1, figsize=(9,8))
+    plt.scatter(plot_data["cov_spread_phase0"], plot_data["ifc_stat"], marker=".", s=10)
+    plt.xlim([0,100])
+    ax.set_ylabel('In-frame coverage spread percentage', fontsize=16)
+    ax.set_xlabel('Coverage spread in phase 0 percentage', fontsize=16)
+    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=12)
+
+    #Regression
+    poly_fit = np.polyfit(plot_data["cov_spread_phase0"], plot_data["ifc_stat"], 2)
+    regression = np.poly1d(poly_fit)
+    regression_plot = np.linspace(0, 100, 200)
+    plt.plot(regression_plot, regression(regression_plot), 'g')
+    r2 = r2_score(plot_data["ifc_stat"], regression(plot_data["cov_spread_phase0"]))
+    text = str(round(poly_fit[0],6))+" "+r'$X^2$'+" + "+str(round(poly_fit[1],4))+" X + "+str(round(poly_fit[2],3))+"\n"+r'$R^2$'+" = "+str(round(r2,3))
+    xtext=1
+    ylim=ax.get_ylim()
+    ytext=0.91*ylim[1]
+    plt.text(xtext, ytext, text, color='green', fontsize=16)
+
+    #Clean and export
+    plt.tight_layout()
+    fig.savefig(output_file)
+
+    return
+
+def poly_regr(tmpfolder, treated, suppl_out_folder, plot_data):
+
+    #Ouput file
+    output_file = suppl_out_folder+"/ifc_stat_cov_spread_poly_regr.png"
+
+    #Select data with cov spread>0 and ifc_stat>0
+    plot_data = plot_data[plot_data['cov_spread']>0]
+    plot_data = plot_data[plot_data['ifc_stat']>0]
+
+    #Scatter
+    fig, ax = plt.subplots(1, 1, figsize=(9,8))
+    plt.scatter(plot_data["cov_spread"], plot_data["ifc_stat"], marker=".", s=10)
+    plt.xlim([0,100])
+    ax.set_ylabel('In-frame coverage spread percentage', fontsize=16)
+    ax.set_xlabel('Coverage spread percentage', fontsize=16)
+    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=12)
+
+    #Regression
+    poly_fit = np.polyfit(plot_data["cov_spread"], plot_data["ifc_stat"], 2)
+    regression = np.poly1d(poly_fit)
+    regression_plot = np.linspace(0, 100, 200)
+    plt.plot(regression_plot, regression(regression_plot), 'g')
+    r2 = r2_score(plot_data["ifc_stat"], regression(plot_data["cov_spread"]))
+    text = str(round(poly_fit[0],6))+" "+r'$X^2$'+" + "+str(round(poly_fit[1],4))+" X + "+str(round(poly_fit[2],3))+"\n"+r'$R^2$'+" = "+str(round(r2,3))
+    xtext=1
+    ylim=ax.get_ylim()
+    ytext=0.91*ylim[1]
+    plt.text(xtext, ytext, text, color='green', fontsize=16)
+
+    #Clean and export
+    plt.tight_layout()
+    fig.savefig(output_file)
+
+    return
+
+## Joint plot of ifc stat and in-frame cov spread
+def ifc_stat_cov_spread_phase0_plot(tmpfolder, treated, outfolder, suppl_out_folder, ifc_stat_data, cov_spread_phase0_data, testrun):
+
+    #Ouput file
+    output_file = outfolder+"/ifc_stat_cov_spread_phase0_plot.png"
+
+    #Plotting data
+    plot_data = pd.merge(ifc_stat_data, cov_spread_phase0_data, on="tr_id", how="inner")
+
+    #Plot
+    #Define figure and axes
+    sns.set_style(style="darkgrid")
+    sns.set_palette("terrain")
+    #Seaborn jointplot does not work with figure subplots as it has already several subfigures
+    h= sns.jointplot(data=plot_data, x="cov_spread_phase0", y="ifc_stat", height=12, marker=".",s=10)
+    h.ax_marg_x.set_xlim(0, 100)
+    h.ax_joint.set_xlabel('In-frame coverage spread percentage', fontsize=24)
+    h.ax_joint.set_ylabel('In-frame coverage statistic', fontsize=24)
+    sns.despine()
+    plt.tight_layout()
+
+    plt.savefig(output_file)
+
+    #poly_regr_phase0(tmpfolder, treated, suppl_out_folder, plot_data)
+    asymp_regr_phase0(tmpfolder, treated, suppl_out_folder, plot_data, testrun)
+
+    return
+
+## Joint plot of ifc stat and cov spread
+def ifc_stat_cov_spread_plot(tmpfolder, treated, outfolder, suppl_out_folder, ifc_stat_data, cov_spread_data, testrun):
+
+    #Ouput file
+    output_file = outfolder+"/ifc_stat_cov_spread_plot.png"
+
+    #Plotting data
+    plot_data = pd.merge(ifc_stat_data, cov_spread_data, on="tr_id", how="inner")
+
+    #Plot
+    #Define figure and axes
+    sns.set_style(style="darkgrid")
+    sns.set_palette("terrain")
+    #Seaborn jointplot does not work with figure subplots as it has already several subfigures
+    h= sns.jointplot(data=plot_data, x="cov_spread", y="ifc_stat", height=12, marker=".",s=10)
+    h.ax_marg_x.set_xlim(0, 100)
+    h.ax_joint.set_xlabel('Coverage spread percentage', fontsize=24)
+    h.ax_joint.set_ylabel('In-frame coverage statistic', fontsize=24)
+    sns.despine()
+    plt.tight_layout()
+
+    plt.savefig(output_file)
+
+    #poly_regr(tmpfolder, treated, suppl_out_folder, plot_data)
+    asymp_regr(tmpfolder, treated, suppl_out_folder, plot_data, testrun)
+
+    return
+
+## In frame cov spread plot
+def cov_spread_phase0_plot(tmpfolder, treated, suppl_out_folder):
+
+    #Output file
+    output_file = suppl_out_folder+"/cov_spread_phase0_plot.png"
+
+    #Load data
+    input_tmp_file = tmpfolder+"/mappingqc_"+treated+"/cov_spread_phase0_all.csv"
+    colnames=['tr_id', 'cov_spread_phase0']
+    cov_spread_phase0_data = pd.read_csv(input_tmp_file, sep=",", header=None, names=colnames)
+
+    #Plot data
+    #Define figure and axes
+    sns.set_style(style="darkgrid")
+    sns.set_palette("terrain")
+    fig, ax = plt.subplots(1, 1, figsize=(9,8))
+    cov_spread_phase0_data['cov_spread_phase0'] = cov_spread_phase0_data['cov_spread_phase0'].apply(lambda x: x*100) #Convert to percentage
+    sns.kdeplot(cov_spread_phase0_data['cov_spread_phase0'], ax=ax, shade=True)
+    plt.xlim([0,100])
+    ax.set_ylabel('Density', fontsize=16)
+    ax.set_xlabel('Coverage spread in phase 0 percentage', fontsize=16)
+    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=12)
+    sns.despine()
+    plt.tight_layout()
+
+    fig.savefig(output_file)
+
+    return(cov_spread_phase0_data)
+
+## Cov spread plot
+def cov_spread_plot(tmpfolder, treated, suppl_out_folder):
+
+    #Output file
+    output_file = suppl_out_folder+"/cov_spread_plot.png"
+
+    #Load data
+    input_tmp_file = tmpfolder+"/mappingqc_"+treated+"/cov_spread_all.csv"
+    colnames=['tr_id', 'cov_spread']
+    cov_spread_data = pd.read_csv(input_tmp_file, sep=",", header=None, names=colnames)
+
+    #Plot data
+    #Define figure and axes
+    sns.set_style(style="darkgrid")
+    sns.set_palette("terrain")
+    fig, ax = plt.subplots(1, 1, figsize=(9,8))
+    cov_spread_data['cov_spread'] = cov_spread_data['cov_spread'].apply(lambda x: x*100) #Convert to percentage
+    sns.kdeplot(cov_spread_data['cov_spread'], ax=ax, shade=True)
+    plt.xlim([0,100])
+    ax.set_ylabel('Density', fontsize=16)
+    ax.set_xlabel('Coverage spread percentage', fontsize=16)
+    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=12)
+    sns.despine()
+    plt.tight_layout()
+
+    fig.savefig(output_file)
+
+    return(cov_spread_data)
+
+## ifc - ifc stat 2D plot
+def ifc_ifc_stat_plot(tmpfolder, treated, suppl_out_folder, ifc_data, ifc_stat_data):
+
+    #Ouput file
+    output_file = suppl_out_folder+"/ifc_ifc_stat_plot.png"
+
+    #Plotting data
+    plot_data = pd.merge(ifc_data, ifc_stat_data, on="tr_id", how="inner")
+
+    #Plot
+    #Define figure and axes
+    sns.set_style(style="darkgrid")
+    sns.set_palette("terrain")
+    #Seaborn jointplot does not work with figure subplots as it has already several subfigures
+    h= sns.jointplot(data=plot_data, x="ifc", y="ifc_stat", height=12, marker=".",s=10)
+    h.ax_marg_x.set_xlim(0, 100)
+    h.ax_joint.set_xlabel('Percentage of the ORF coverage in-frame', fontsize=24)
+    h.ax_joint.set_ylabel('In-frame coverage statistic', fontsize=24)
+    sns.despine()
+    plt.tight_layout()
+
+    plt.savefig(output_file)
+
+    return
+
+## In-frame coverage statistic plot
+def ifc_stat_plot(tmpfolder, treated, suppl_out_folder):
+
+    #Ouput file
+    output_file = suppl_out_folder+"/ifc_stat_plot.png"
+
+    #Load data
+    input_tmp_file = tmpfolder+"/mappingqc_"+treated+"/ifc_stat_all.csv"
+    colnames=['tr_id', 'ifc_stat']
+    ifc_stat_data = pd.read_csv(input_tmp_file, sep=",", header=None, names=colnames)
+    #Filter out zeros
+    ifc_stat_data = ifc_stat_data[ifc_stat_data['ifc_stat']!=0]
+
+    #Plot data
+    #Define figure and axes
+    sns.set_style(style="darkgrid")
+    sns.set_palette("terrain")
+    fig, ax = plt.subplots(1, 1, figsize=(9,8))
+    ifc_stat_data['ifc_stat'] = np.log10(ifc_stat_data['ifc_stat']) #Convert to log scale
+    sns.kdeplot(ifc_stat_data['ifc_stat'], ax=ax, shade=True)
+    ax.set_ylabel('Density', fontsize=16)
+    ax.set_xlabel('In-frame coverage statistic', fontsize=16)
+    plt.yticks(fontsize=12)
+    plt.xticks(fontsize=12)
+
+    fig.savefig(output_file)
+
+    return(ifc_stat_data)
+
+## In-frame coverage plot
+def ifc_plot(tmpfolder, treated, suppl_out_folder):
+
+    #Output file
+    output_file = suppl_out_folder+"/ifc_plot.png"
+
+    #Load data
+    input_tmp_file = tmpfolder+"/mappingqc_"+treated+"/ifc_all.csv"
+    colnames=['tr_id', 'ifc']
+    ifc_data = pd.read_csv(input_tmp_file, sep=",", header=None, names=colnames)
+
+    #Plot data
+    #Define figure and axes
+    sns.set_style(style="darkgrid")
+    sns.set_palette("terrain")
+    fig, ax = plt.subplots(1, 1, figsize=(9,8))
+    ifc_data['ifc'] = ifc_data['ifc'].apply(lambda x: x*100) #Convert to percentage
+    sns.kdeplot(ifc_data['ifc'], ax=ax, shade=True)
+    plt.xlim([0,100])
+    ifc_med = round(ifc_data['ifc'].median(),2)
+    plt.axvline(x = ifc_med, color='b', label="Median")
+    ylim1, ylim2 = plt.ylim()
+    ax.text(ifc_med-2, ylim2/2, "Median = "+str(ifc_med), rotation=90, verticalalignment='center', color='b')
+    ax.set_ylabel('Density', fontsize=16)
+    ax.set_xlabel('Percentage of the ORF coverage in-frame', fontsize=16)
+    plt.yticks(fontsize=12)
+    ax.xaxis.set_major_formatter(matplotlib.ticker.PercentFormatter())
+    plt.xticks(fontsize=12)
+
+    fig.savefig(output_file)
+
+    return(ifc_data)
 
 ## Codon usage plot
 def codon_usage_plot(tmpfolder, codon_ref_file, outfolder, exp_name, treated, triplet_distr):
@@ -1018,7 +1463,6 @@ def plot_codon_perc(output_file, sorted_triplets, reference, codon_percs, name):
     plt.yticks(fontsize=30)
     ax.set_xticks(xpos)
     ax.set_xticklabels(labels, rotation='vertical', fontsize=30)
-    ax.set_title('Codon usage', fontsize=80)
     plt.legend(fontsize=40)
 
     plt.tight_layout()

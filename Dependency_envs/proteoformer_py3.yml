@@ -18,6 +18,7 @@ dependencies:
   - pandas
   - matplotlib
   - seaborn
+  - scikit-learn
   - perl-parallel-forkmanager
   - perl-bioperl
   - perl-dbd-sqlite

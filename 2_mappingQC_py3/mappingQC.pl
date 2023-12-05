@@ -19,7 +19,7 @@ use Cwd;
 
 # nohup perl ./mappingQC.pl --samfile STAR/fastq1/untreat.sam --treated 'untreated' --cores 20 --result_db SQLite/results.db --ens_db SQLite/ENS_mmu_82.db --offset plastid > nohup_mappingqc.txt &
 
-my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$unique,$ens_db,$offset_option,$offset_file,$offset_img,$output_folder,$tool_dir,$plotrpftool,$html,$zip,$comp_logo);
+my($work_dir,$sam,$treated,$cores,$resultdb,$tmpfolder,$unique,$testrun,$ens_db,$offset_option,$offset_file,$offset_img,$cov_spread_thr,$output_folder,$suppl_out_folder,$tool_dir,$plotrpftool,$html,$zip,$comp_logo);
 my $help;
 
 GetOptions(
@@ -30,11 +30,14 @@ GetOptions(
 "result_db=s"=>\$resultdb,              # The result db with mapping results                            Mandatory argument
 "tmp:s"=>\$tmpfolder,                   # The tmp folder                                                Optional argument (default: CWD/tmp)
 "unique=s"=>\$unique,                   # Wheter only unique reads should be used (Y/N)                 Optional argument (default: Y, mandatory Y for unique mapping)
+"testrun=s"=>\$testrun,                 # Whether data comes from a low coverage test run (Y/N)         Optional argument (default: N)
 "ens_db=s"=>\$ens_db,                   # The Ensembl db for annotation                                 Mandatory argument
 "offset:s" =>\$offset_option,           # The offset source for parsing alignments                      Optional argument (default: standard)
 "offset_file:s" =>\$offset_file,        # The offsets input file                                        Mandatory if offset option equals 'from_file'
 "offset_img=s" =>\$offset_img,          # The offsets image from plastid                                Mandatory if offset option equals 'plastid'
+"cov_spread_thr=f" =>\$cov_spread_thr,  # Threshold (perct) for a covered position in coverage spread   Optional argument (default: 0.2)
 "output_folder:s" => \$output_folder,   # The output folder for storing output files                    Optional argument (default: CWD/mappingQC_output/)
+"suppl_out_folder:s" => \$suppl_out_folder,  #The supplemental output folder for storing extra files    Optional argument (default: CWD/suppl_mQC_output/)
 "tool_dir:s" => \$tool_dir,             # The directory with all necessary tools                        Optional argument (default: CWD/mqc_tools/)
 "plotrpftool:s" => \$plotrpftool,       # The module that will be used for plotting the RPF-phase figure
                                             #grouped2D: use Seaborn to plot a grouped 2D bar chart (default)
@@ -76,6 +79,12 @@ if ($sam){
     print "the input sam file                                       : $sam\n";
 } else {
     die "\nDon't forget to pass the sam file!\n\n";
+}
+if ($testrun){
+    print "Test run                                                 : $testrun\n";
+} else {
+    $testrun = "N";
+    print "Test run                                                 : $testrun\n";
 }
 if ($treated){
     if ($treated eq "treated" || $treated eq "untreated"){
@@ -125,6 +134,12 @@ if ($offset_option eq "plastid"){
     }
 }
 
+if ($cov_spread_thr){
+    print "The cov spread threshold is set to                       : $cov_spread_thr\n";
+} else {
+    $cov_spread_thr = 0.2;
+    print "The cov spread threshold is set to                       : $cov_spread_thr\n";
+}
 if ($tool_dir){
     print "The tool directory is set to                             : $tool_dir\n";
 } else {
@@ -136,6 +151,12 @@ if ($output_folder){
 } else {
     $output_folder = $work_dir."/mappingQC_output/";
     print "The output folder is set to                              : $output_folder\n";
+}
+if ($suppl_out_folder){
+    print "The supplemental output folder is set to                 : $suppl_out_folder\n";
+} else {
+    $suppl_out_folder = $CWD."/suppl_mQC_output/";
+    print "The supplemental output folder is set to                 : $suppl_out_folder\n";
 }
 if ($plotrpftool){
     if ($plotrpftool eq "grouped2D" || $plotrpftool eq "pyplot3D" || $plotrpftool eq "mayavi"){
@@ -294,11 +315,12 @@ if (! -e $TMP."/mappingqc_".$treated){
     system("mkdir ".$TMP."/mappingqc_".$treated);
 }
 
-####### FOR TESTING on Y chromsome #######
+####### FOR TESTING on one small chromsome ######
 #my %chr_sizes22;
 #$chr_sizes22{'22'} = $chr_sizes{'22'};
 #%chr_sizes = %chr_sizes22;
 ##########################################
+
 
 ########
 # MAIN #
@@ -343,7 +365,6 @@ if (-e $uniquefile){
     print "Splitting genomic mapping per chromosome...\n";
     split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated,$unique,$firstRankMultiMap,$maxmultimap,$mapper);
 }
-
 
 # Construct p offset hash
 my $offset_hash = {};
@@ -440,7 +461,7 @@ foreach my $chr (keys %chr_sizes){
     my $dbh = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
     
     ### RIBO parsing
-    RIBO_parsing_genomic_per_chr($work_dir,$sam,$chr,$ens_db,$coord_system_id,$coord_system_id_plasmid, $offset_hash, $treated);
+    RIBO_parsing_genomic_per_chr($work_dir,$sam,$chr,$ens_db,$coord_system_id,$coord_system_id_plasmid, $offset_hash, $treated, $cov_spread_thr);
     
     ### Finish
     print "* Finished chromosome ".$chr."\n";
@@ -543,6 +564,54 @@ foreach my $triplet (keys %{$triplet_phase}){
 }
 close(OUT_TOTAL_TRIPLET);
 
+## IN-FRAME COVERAGE AND COVERAGE SPREAD
+#Cat in-frame coverage tmp files
+my $temp_csv_all_ifc = $TMP."/mappingqc_".$treated."/ifc_all.csv";
+if (-d $temp_csv_all_ifc){
+    system("rm -rf ".$temp_csv_all_ifc);
+}
+system("touch ".$temp_csv_all_ifc);
+foreach my $chr (keys %chr_sizes){
+    my $temp_csv_chr_ifc = $TMP."/mappingqc_".$treated."/ifc_".$chr.".csv";
+    system("cat ".$temp_csv_chr_ifc." >> ".$temp_csv_all_ifc);
+    system("rm -rf ".$temp_csv_chr_ifc);
+}
+
+#Cat ifc stat tmp files
+my $temp_csv_all_ifc_stat = $TMP."/mappingqc_".$treated."/ifc_stat_all.csv";
+if (-d $temp_csv_all_ifc_stat){
+    system("rm -rf ".$temp_csv_all_ifc_stat);
+}
+system("touch ".$temp_csv_all_ifc_stat);
+foreach my $chr (keys %chr_sizes){
+    my $temp_csv_chr_ifc_stat = $TMP."/mappingqc_".$treated."/ifc_stat_".$chr.".csv";
+    system("cat ".$temp_csv_chr_ifc_stat." >> ".$temp_csv_all_ifc_stat);
+    system("rm -rf ".$temp_csv_chr_ifc_stat);
+}
+
+#Cat coverage spread tmp files
+my $temp_csv_all_cov_spread = $TMP."/mappingqc_".$treated."/cov_spread_all.csv";
+if (-d $temp_csv_all_cov_spread){
+    system("rm -rf ".$temp_csv_all_cov_spread);
+}
+system("touch ".$temp_csv_all_cov_spread);
+foreach my $chr (keys %chr_sizes){
+    my $temp_csv_chr_cov_spread = $TMP."/mappingqc_".$treated."/cov_spread_".$chr.".csv";
+    system("cat ".$temp_csv_chr_cov_spread." >> ".$temp_csv_all_cov_spread);
+    system("rm -rf ".$temp_csv_chr_cov_spread);
+}
+
+#Cat coverage phase 0 spread tmp files
+my $temp_csv_all_cov_spread_phase0 = $TMP."/mappingqc_".$treated."/cov_spread_phase0_all.csv";
+if (-d $temp_csv_all_cov_spread_phase0){
+    system("rm -rf ".$temp_csv_all_cov_spread_phase0);
+}
+system("touch ".$temp_csv_all_cov_spread_phase0);
+foreach my $chr (keys %chr_sizes){
+    my $temp_csv_chr_cov_spread_phase0 = $TMP."/mappingqc_".$treated."/cov_spread_phase0_".$chr.".csv";
+    system("cat ".$temp_csv_chr_cov_spread_phase0." >> ".$temp_csv_all_cov_spread_phase0);
+    system("rm -rf ".$temp_csv_chr_cov_spread_phase0);
+}
 
 ## Save some results to results SQLite DB
 print "Store certain results in results DB\n";
@@ -581,8 +650,6 @@ system("rm -rf ".$temp_total_triplet);
 #Disconnect
 $dbh_results->disconnect;
 
-
-
 #Make output folder
 system("mkdir -p ".$output_folder);
 my $treated_meta_gene;
@@ -595,11 +662,11 @@ print "\n\n";
 print "# Metagenic classification #\n";
 # Metagenic classification
 metagenic_analysis($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique);
- 
+
 print "\n\n";
 print "# Run plot generation and output HTML file creation module #\n";
 #Run plot generation Python file
-my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -x ".$plotrpftool." -a ".$TMP." -o ".$output_folder." -p \"".$offset_option."\" -e ".$ens_db." -c ".$comp_logo." -h ".$html." -z ".$zip;
+my $python_command = "python ".$tool_dir."/mappingQC.py -r ".$resultdb." -s ".$sam." -t ".$treated." -b ".$testrun." -m ".$mapping_unique." -f ".$firstRankMultiMap." -u ".$unique." -x ".$plotrpftool." -a ".$TMP." -o ".$output_folder." -y ".$suppl_out_folder." -p \"".$offset_option."\" -e ".$ens_db." -c ".$comp_logo." -h ".$html." -z ".$zip;
 if ($offset_option eq "plastid"){
     $python_command = $python_command." -i ".$offset_img;
 }
@@ -1516,6 +1583,7 @@ sub RIBO_parsing_genomic_per_chr {
     my $coord_system_id_plasmid = $_[5];
     my $offset_hash = $_[6];
     my $treated = $_[7];
+    my $cov_spread_thr = $_[8];
     
     my @splitsam = split(/\//, $sam );
     my $samFileName = $splitsam[$#splitsam];
@@ -1523,10 +1591,13 @@ sub RIBO_parsing_genomic_per_chr {
     $samFileName = $splitsam[0];
     
     #Construct phase library
-    my ($phase_lib, $triplet_lib) = construct_phase_lib($chr, $ens_db, $coord_system_id,$coord_system_id_plasmid);
-    
-    #Initialize
+    my ($phase_lib, $triplet_lib, $per_orf_cov_lib) = construct_phase_lib($chr, $ens_db, $coord_system_id,$coord_system_id_plasmid);
+
+    #Initialize in-process variables
     my ($genmatchL,$offset,$start,$intron_total,$extra_for_min_strand);
+
+    #initialize tmp hashes and chr tmp files per output figure
+    #Phase-RPF length
     my $phase_count_RPF = {};
     for (my $i=$offset_hash->{'min'};$i<=$offset_hash->{'max'};$i++){
         for (my $j=0;$j<=2;$j++){
@@ -1538,16 +1609,36 @@ sub RIBO_parsing_genomic_per_chr {
         system("rm -rf ".$phase_count_file); #Remove already existing data
     }
     my $phase_count_triplet = {};
+    #Triplets
     my $triplet_count_file = $TMP."/mappingqc_".$treated."/triplet_phase_".$chr.".csv";
     if (-d $triplet_count_file){
         system("rm -rf ".$triplet_count_file); #Remove already existing data
     }
-    my $chr_sam_file = $TMP."/mappingqc_".$treated."/".$samFileName."_".$chr.".sam";
+    #Phase-relative position
     my $pos_file = $TMP."/mappingqc_".$treated."/phase_position_".$chr.".csv";
     if(-d $pos_file){
         system("rm -rf ".$pos_file); #Remove already existing data
     }
+    #For in-frame coverage and coverage spread stats
+    my $ifc_file = $TMP."/mappingqc_".$treated."/ifc_".$chr.".csv";
+    if(-d $ifc_file){
+        system("rm -rf ".$ifc_file); #Remove already existing data
+    }
+    my $ifc_stat_file = $TMP."/mappingqc_".$treated."/ifc_stat_".$chr.".csv";
+    if(-d $ifc_stat_file){
+        system("rm -rf ".$ifc_stat_file); #Remove already existing data
+    }
+    my $cov_spread_file = $TMP."/mappingqc_".$treated."/cov_spread_".$chr.".csv";
+    if(-d $cov_spread_file){
+        system("rm -rf ".$cov_spread_file); #Remove already existing data
+    }
+    my $cov_spread_phase0_file = $TMP."/mappingqc_".$treated."/cov_spread_phase0_".$chr.".csv";
+    if(-d $cov_spread_phase0_file){
+        system("rm -rf ".$cov_spread_phase0_file); #Remove already existing data
+    }
     
+    #Open in and output streams
+    my $chr_sam_file = $TMP."/mappingqc_".$treated."/".$samFileName."_".$chr.".sam";
     open (I,"<".$chr_sam_file) || die "Cannot open ".$chr_sam_file."\n";
     open (OUT_POS, "+>>".$pos_file) or die $!;
     
@@ -1573,16 +1664,27 @@ sub RIBO_parsing_genomic_per_chr {
         #Determine genomic position based on CIGAR string output and mapping position and direction
         $start = ($strand eq "+") ? $mapping_store[3] + $offset + $intron_total : ($strand eq "-") ? $mapping_store[3] - $offset - $intron_total + $extra_for_min_strand -1 : "";
         
+        #Check whether the alignment length is within P site offset limits
         if($genmatchL>=$offset_hash->{"min"} && $genmatchL<=$offset_hash->{"max"}){
+            #Check whether pinpointed alignment position is in phase lib
             if(exists $phase_lib->{$strandAlt}->{$start}->{"phase"}){
                 #Add for RPF-splitted phase distribution
                 $phase_count_RPF->{$genmatchL}->{$phase_lib->{$strandAlt}->{$start}->{"phase"}}++;
                 #Print to tmp chr phase-position distribbution
-                if(exists $phase_lib->{$strandAlt}->{$start}->{"transcriptomic_pos"}){
+                if(exists $phase_lib->{$strandAlt}->{$start}->{"norm_transcriptomic_pos"}){
                     my $read_phase = $phase_lib->{$strandAlt}->{$start}->{"phase"};
-                    print OUT_POS $read_phase.",".$phase_lib->{$strandAlt}->{$start}->{"transcriptomic_pos"}."\n";
+                    print OUT_POS $read_phase.",".$phase_lib->{$strandAlt}->{$start}->{"norm_transcriptomic_pos"}."\n";
+                }
+                #Save alignment in per ORF coverage
+                #Structure per orf cov lib: $per_orf_cov_lib -> tr_id -> tr_pos -> count = ...
+                #                                                            -> phase = ....
+                my $tr_id = $phase_lib->{$strandAlt}->{$start}->{"transcriptID"};
+                my $tr_pos = $phase_lib->{$strandAlt}->{$start}->{"transcriptomic_pos"};
+                if(exists $per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"count"}){
+                    $per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"count"}++;
                 }
             }
+            #Check whether pinpointed alignment position is in triplet lib
             if(exists $triplet_lib->{$strandAlt}->{$start}){
                 my $read_phase = $phase_lib->{$strandAlt}->{$start}->{"phase"};
                 my $read_triplet = $triplet_lib->{$strandAlt}->{$start};
@@ -1601,9 +1703,9 @@ sub RIBO_parsing_genomic_per_chr {
         }
     }
     
-    #Stop reading out of input files
+    #Stop reading out of input alignment files
     close(I);
-    
+
     #Write to chromosomal rpf phase tmp file
     open (OUT_RPF_PHASE, "+>>".$phase_count_file) or die $!;
     
@@ -1620,6 +1722,73 @@ sub RIBO_parsing_genomic_per_chr {
             print OUT_TRIPLET_PHASE $triplet.",".$phase.",".$phase_count_triplet->{$triplet}->{$phase}."\n";
         }
     }
+
+    #In-frame coverage and IFC statistic per transcript ID
+    #IFC = # counts in phase 0 for ORF / # counts in total for ORF
+    #IFC stat = sum((counts on pos x in phase 0) - (average pos count over ORF))^2 for x is every pos in ORF
+    #Open chromosomal in-frame coverage tmp files
+    open (OUT_IFC, "+>>".$ifc_file) or die $!;
+    open (OUT_IFC_STAT, "+>>".$ifc_stat_file) or die $!;
+    #Open chromosomal coverage spread tmp files
+    open (OUT_COV_SPREAD, "+>>".$cov_spread_file) or die $!;
+    open (OUT_COV_SPREAD_PHASE0, "+>>".$cov_spread_phase0_file) or die $!;
+    #Per transcript:
+    foreach my $tr_id (keys %{$per_orf_cov_lib}){
+        my $total_cov = 0;
+        my $total_cov_phase_0 = 0;
+        my $number_of_pos = 0;
+        my $number_of_pos_phase_0 = 0;
+        my $number_of_pos_over_thr = 0;
+        my $number_of_pos_over_thr_phase_0 = 0;
+        my $ifc_stat = 0;
+        #Go over all positions of the transcript
+        foreach my $tr_pos (keys %{$per_orf_cov_lib->{$tr_id}}){
+            $total_cov = $total_cov + $per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"count"};
+            $number_of_pos++;
+            if($per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"phase"}==0){
+                $total_cov_phase_0 = $total_cov_phase_0 + $per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"count"};
+                $number_of_pos_phase_0++;
+            }
+        }
+        #Write IFC of tr ID
+        if($total_cov!=0){
+            #Genes with no coverage at all, will not be saved for the IFC data
+            my $ifc = $total_cov_phase_0 / $total_cov;
+            print OUT_IFC $tr_id.",".$ifc."\n";
+        }
+        #Calculate average pos count over ORF
+        my $avg_pos_count = $total_cov / $number_of_pos;
+        #Calculate the transcript-specific coverage threshold
+        my $threshold = $cov_spread_thr * $avg_pos_count;
+        #Now that number of covered positions and average counts are known, go again over all positions of the transcript and calculate other stats
+        foreach my $tr_pos (keys %{$per_orf_cov_lib->{$tr_id}}){
+            #Check whether pos is over threshold
+            if($per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"count"} > $threshold){
+                $number_of_pos_over_thr++;
+            }
+            #for each in-phase position of ORF
+            if($per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"phase"}==0){
+                #Add a term to the IFC stat
+                $ifc_stat = $ifc_stat + (($per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"count"} - $avg_pos_count) ** 2);
+                #Check whether in-frame pos is over threshold
+                if($per_orf_cov_lib->{$tr_id}->{$tr_pos}->{"count"} > $threshold){
+                    $number_of_pos_over_thr_phase_0++;
+                }
+            }
+        }
+        #Write IFC stat of tr ID
+        print OUT_IFC_STAT $tr_id.",".$ifc_stat."\n";
+        #Calculate coverage spread stats of tr ID
+        my $cov_spread_stat = $number_of_pos_over_thr / $number_of_pos;
+        my $cov_spread_stat_phase_0 = $number_of_pos_over_thr_phase_0 / $number_of_pos_phase_0;
+        #Write cov spread stats of tr ID
+        print OUT_COV_SPREAD $tr_id.",".$cov_spread_stat."\n";
+        print OUT_COV_SPREAD_PHASE0 $tr_id.",".$cov_spread_stat_phase_0."\n";
+    }
+    close(OUT_IFC);
+    close(OUT_IFC_STAT);
+    close(OUT_COV_SPREAD);
+    close(OUT_COV_SPREAD_PHASE0);
     
     return;
 }
@@ -1636,6 +1805,7 @@ sub construct_phase_lib{
     #Init
     my $phase_lib = {};
     my $triplet_lib = {};
+    my $per_orf_cov_lib = {};
     my $dsn_sqlite_ens = "DBI:SQLite:dbname=$eDB";
     my $us_sqlite_ens  = "";
     my $pw_sqlite_ens  = "";
@@ -1652,13 +1822,13 @@ sub construct_phase_lib{
     #Get exon structure of each transcript
     foreach my $transcript (@$transcripts){
         my($exon_struct,$strand,$max_tr_rank) = get_exon_struct_transcript($dbh_ens, $transcript, $chr);
-        ($phase_lib, $triplet_lib) = add_transcript_to_phase_lib($phase_lib, $triplet_lib, $exon_struct, $strand, $max_tr_rank);
+        ($phase_lib, $triplet_lib, $per_orf_cov_lib) = add_transcript_to_phase_lib($phase_lib, $triplet_lib, $per_orf_cov_lib, $exon_struct, $strand, $max_tr_rank, $transcript);
     }
     
     #Disconnect
     $dbh_ens->disconnect;
     
-    return ($phase_lib, $triplet_lib);
+    return ($phase_lib, $triplet_lib, $per_orf_cov_lib);
 }
 
 #Add transcript to phase lib
@@ -1667,9 +1837,11 @@ sub add_transcript_to_phase_lib{
     #Catch
     my $phase_lib = $_[0];
     my $triplet_lib = $_[1];
-    my $exon_struct = $_[2];
-    my $strand = $_[3];
-    my $max_tr_rank = $_[4];
+    my $per_orf_cov_lib = $_[2];
+    my $exon_struct = $_[3];
+    my $strand = $_[4];
+    my $max_tr_rank = $_[5];
+    my $transcript = $_[6];
     
     my $cur_phase = 0;
     my $cur_transcriptomic_pos = 1;
@@ -1684,7 +1856,11 @@ sub add_transcript_to_phase_lib{
                     $cur_triplet = substr($exon_struct->{'sequence'},$cur_transcriptomic_pos-1,3);
                 }
                 $triplet_lib->{$strand}->{$position} = $cur_triplet;#Add triplet to triplet lib
-                $phase_lib->{$strand}->{$position}->{"transcriptomic_pos"} = $cur_transcriptomic_pos; #For rel position calculation
+                $phase_lib->{$strand}->{$position}->{"transcriptomic_pos"} = $cur_transcriptomic_pos; #For rel position calculation, but also for in-frame coverage plots
+                $phase_lib->{$strand}->{$position}->{"transcriptID"} = $transcript;
+                #Init transcriptomic positions in for all ORF positions
+                $per_orf_cov_lib->{$transcript}->{$cur_transcriptomic_pos}->{"count"} = 0;
+                $per_orf_cov_lib->{$transcript}->{$cur_transcriptomic_pos}->{"phase"} = $cur_phase;
                 #Get ready for next position
                 $cur_phase++;
                 if($cur_phase == 3){
@@ -1700,7 +1876,7 @@ sub add_transcript_to_phase_lib{
         for(my $i=1;$i<=$max_tr_rank;$i++){
             my $position2 = $exon_struct->{$i}->{'start'};
             while($position2<=$exon_struct->{$i}->{'end'}){
-                $phase_lib->{$strand}->{$position2}->{"transcriptomic_pos"} = $phase_lib->{$strand}->{$position2}->{"transcriptomic_pos"} / $seq_length;
+                $phase_lib->{$strand}->{$position2}->{"norm_transcriptomic_pos"} = $phase_lib->{$strand}->{$position2}->{"transcriptomic_pos"} / $seq_length;
                 $position2++;
             }
         }
@@ -1714,6 +1890,10 @@ sub add_transcript_to_phase_lib{
                 }
                 $triplet_lib->{$strand}->{$position} = $cur_triplet;
                 $phase_lib->{$strand}->{$position}->{"transcriptomic_pos"} = $cur_transcriptomic_pos;
+                $phase_lib->{$strand}->{$position}->{"transcriptID"} = $transcript;
+                #Init transcriptomic positions in for all ORF positions
+                $per_orf_cov_lib->{$transcript}->{$cur_transcriptomic_pos}->{"count"} = 0;
+                $per_orf_cov_lib->{$transcript}->{$cur_transcriptomic_pos}->{"phase"} = $cur_phase;
                 #Set for next position
                 $cur_phase++;
                 if($cur_phase == 3){
@@ -1730,13 +1910,13 @@ sub add_transcript_to_phase_lib{
         for(my $i=1; $i<=$max_tr_rank; $i++){
             my $position = $exon_struct->{$i}->{'start'}; #strand relative
             while($position>=$exon_struct->{$i}->{'end'}){
-                $phase_lib->{$strand}->{$position}->{"transcriptomic_pos"} = $phase_lib->{$strand}->{$position}->{"transcriptomic_pos"} / $seq_length;
+                $phase_lib->{$strand}->{$position}->{"norm_transcriptomic_pos"} = $phase_lib->{$strand}->{$position}->{"transcriptomic_pos"} / $seq_length;
                 $position--;
             }
         }
     }
     
-    return $phase_lib, $triplet_lib;
+    return ($phase_lib, $triplet_lib, $per_orf_cov_lib);
 }
 
 sub get_exon_struct_transcript{
@@ -1881,6 +2061,10 @@ sub get_can_transcripts{
     
     #Take all protein-coding genes and take the canonical transcript ID's from them for the chromosome (seq_region_id)
     my $query = "SELECT t.transcript_id FROM transcript as t JOIN gene as g ON g.canonical_transcript_id=t.transcript_id WHERE g.seq_region_id='$seq_region_id' AND g.biotype='protein_coding';";
+    #### TO TEST ONE TRANSCRIPT ####
+    #Uncomment the line below and comment the line above.
+    #my $query = "SELECT t.transcript_id FROM transcript as t JOIN gene as g ON g.canonical_transcript_id=t.transcript_id WHERE g.seq_region_id='$seq_region_id' AND g.biotype='protein_coding' AND g.stable_id='ENSG00000128185';";
+    ################################
     my $sth = $dbh->prepare($query);
     $sth->execute();
     
@@ -2524,6 +2708,7 @@ sub print_help_text {
     --work_dir                      working directory to run the script in (default: current working directory)
     --samfile                       the samfile to do the analysis on (mandatory)
     --treated                       whether the samfile is from the treated or untreated sample (untreated/treated, default untreated)
+    --testrun                       whether data comes from a low coverage test run (Y/N, default: N)
     --cores                         the amount of cores to use (integer, default: 5)
     --result_db                     the result db with mapping results (mandatory)
     --tmp                           temporary files folder (default: work_dir/tmp)
@@ -2538,7 +2723,9 @@ sub print_help_text {
                                         - cst_3prime: use constant 3prime offsets (constant relative to the 3prime end of the read)
     --offset_file                   the offsets input file (cfr. supra) (mandatory if offset=from_file)
     --offset_img                    the offsets image from plastid generated during mapping (mandatory if offset=plastid)
+    --cov_spread_thr                Threshold (percentage of average coverage) for a covered position in coverage spread (default: 0.2)
     --output_folder                 the output folder for storing output files (default: work_dir/mappingQC_output)
+    --suppl_out_folder              the supplemental output folder for storing extra files (default: work_dir/suppl_mQC_output)
     --tool_dir                      the directory with all necessary underlying tools (default: work_dir/mqc_tools)
     --plotrpftool                   the module that will be used for plotting the RPF-phase figure
                                         possible options:

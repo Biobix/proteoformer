@@ -38,6 +38,8 @@ PHIX="Y"												# Y or N
 RRNA="Y"												# Y or N
 SNORNA="Y"												# Y or N
 TRNA="Y"												# Y or N
+TRCOORD="Y"                                             # Y or N
+TESTRUN="N"                                             # Y or N
 IGENOMESROOT="/data/igenomes/"
 ENSEMBLDICT="/share/steven/Ensembl/"
 ENSEMBLDB="ENS_${SPECIES_SHORT}_${ENSEMBL_ANNOT}.db"
@@ -58,13 +60,14 @@ echo "Clipper = $CLIPPER"
 echo "Phix filtering = $PHIX"
 echo "rRNA filtering = $RRNA"
 echo "tRNA filtering = $TRNA"
+echo "Test run = $TESTRUN"
 echo "sn(o)RNA filtering = $SNORNA"
 echo "iGenomes root folder = $IGENOMESROOT"
 echo "Ensembl DB location = ${ENSEMBLDICT}${ENSEMBLDB}" 
 echo -e "\n\n"
 
 ##Activate PROTEOFORMER Conda Environment##
-source activate proteoformer
+#source activate proteoformer
 
 ##Reference information##
 #echo -e "Download reference info\n\n"
@@ -79,6 +82,7 @@ mkdir $BASEDIR/fastqc_raw
 mkdir $BASEDIR/fastqc_mapped
 mkdir $BASEDIR/statistics
 mkdir $BASEDIR/mqc
+mkdir $BASEDIR/mqc_suppl
 
 # Cat files for statistics
 TOTAL_STATS_FILE=${BASEDIR}/statistics/total_stats.csv
@@ -116,7 +120,7 @@ fastqc $UNZIPFILE -o $BASEDIR/fastqc_raw -t $CORES
 echo -e "FastQC raw file $ID done \n"
 
 echo -e "2) Mapping $ID \n"
-perl $SCRIPTDIR/proteoformer/1_mapping/mapping.pl --inputfile1 $UNZIPFILE --readtype ribo_untr --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper $CLIPPER --adaptor $ADAPTORSEQ --phix $PHIX --rRNA $RRNA --snRNA $SNORNA --tRNA $TRNA --rpf_split N --price_files $PRICE --suite $ORF --suite_tools_loc $SCRIPTDIR/proteoformer/1_mapping/ > $BASEDIR/$ID/mapping_$ID.txt 2>&1
+perl $SCRIPTDIR/proteoformer/1_mapping/mapping.pl --inputfile1 $UNZIPFILE --readtype ribo_untr --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper $CLIPPER --adaptor $ADAPTORSEQ --phix $PHIX --rRNA $RRNA --snRNA $SNORNA --tRNA $TRNA --rpf_split N --tr_coord $TRCOORD --price_files $PRICE --suite $ORF --suite_tools_loc $SCRIPTDIR/proteoformer/1_mapping/ > $BASEDIR/$ID/mapping_$ID.txt 2>&1
 #Copy stats for multiQC
 cp STAR/fastq1/Log.final.out $BASEDIR/fastqc_mapped/${ID}_fastqc.Log.final.out
 echo -e "Mapping done for $ID \n"
@@ -139,8 +143,9 @@ END_SQL
 echo -e "Statistics written for $ID \n"
 
 mkdir $BASEDIR/mqc/$ID
+mkdir $BASEDIR/mqc_suppl/$ID
 echo -e "4) mQC $ID \n"
-perl $SCRIPTDIR/proteoformer/2_mappingQC_py3/mappingQC.pl --samfile $BASEDIR/$ID/STAR/fastq1/untreat.sam --treated untreated --cores $CORES --result_db $BASEDIR/$ID/SQLite/results.db --unique $UNIQUEMAPPING --ens_db $ENSEMBLDICT/$ENSEMBLDB --offset $ORF  --offset_img $BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png --tool_dir $SCRIPTDIR/proteoformer/2_mappingQC_py3/mqc_tools/ --plotrpftool pyplot3D --output_folder $BASEDIR/mqc/$ID --html $BASEDIR/mqc/mqc_$ID.html --zip $BASEDIR/mqc/mqc_$ID.zip --tmp $BASEDIR/$ID/tmp/ --comp_logo $COMPLOGO > $BASEDIR/$ID/mQC_$ID.txt 2>&1
+perl $SCRIPTDIR/proteoformer/2_mappingQC_py3/mappingQC.pl --samfile $BASEDIR/$ID/STAR/fastq1/untreat.sam --treated untreated --testrun $TESTRUN --cores $CORES --result_db $BASEDIR/$ID/SQLite/results.db --unique $UNIQUEMAPPING --ens_db $ENSEMBLDICT/$ENSEMBLDB --offset $ORF  --offset_img $BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png --tool_dir $SCRIPTDIR/proteoformer/2_mappingQC_py3/mqc_tools/ --plotrpftool pyplot3D --output_folder $BASEDIR/mqc/$ID --suppl_out_folder $BASEDIR/mqc_suppl/$ID --html $BASEDIR/mqc/mqc_$ID.html --zip $BASEDIR/mqc/mqc_$ID.zip --tmp $BASEDIR/$ID/tmp/ --comp_logo $COMPLOGO > $BASEDIR/$ID/mQC_$ID.txt 2>&1
 rm -rf $BASEDIR/$ID/tmp/mappingqc_untreated
 echo -e "mQC performed for $ID \n"
 echo -e "\n"
@@ -210,5 +215,5 @@ do
 done
 
 ##Deactivate conda environment
-conda deactivate
+#conda deactivate
 
