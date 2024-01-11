@@ -70,7 +70,7 @@ echo -e "\n\n"
 eval "$(conda shell.bash hook)"
 
 ##Activate PROTEOFORMER Conda Environment##
-#source activate proteoformer
+#conda activate proteoformer
 
 ##Reference information##
 #echo -e "Download reference info\n\n"
@@ -162,19 +162,19 @@ echo -e "Transcript calling performed on $ID \n"
 
 ##To run price, another ENV needs to be loaded.
 conda deactivate
-source activate price
+conda activate price
 
 echo -e "6) PRICE $ID \n"
 python $SCRIPTDIR/proteoformer/4_ORF_calling/using_PRICE/PRICE.py -r $BASEDIR/$ID/SQLite/results.db > $BASEDIR/$ID/PRICE_orf_$ID.txt 2>&1
 echo -e "PRICE ORF calling performed on $ID \n"
 
 conda deactivate
-source activate proteoformer
+conda activate proteoformer
 
 
 ##To run spectre, another ENV needs to be loaded.
 conda deactivate
-source activate spectre
+conda activate spectre
 
 echo -e "7) SPECTRE $ID \n"
 python $SCRIPTDIR/proteoformer/4_ORF_calling/using_SPECtre/SPECtre.py -r $BASEDIR/$ID/SQLite/results.db -o 28:12,29:12,30:12 -c 60 -x 3 > $BASEDIR/$ID/SPECtre_orf_$ID.txt 2>&1
@@ -193,6 +193,9 @@ echo -e "\n\n"
 
 done
 #End loop
+
+#MultiQC is in base environment
+conda deactivate
 
 cd $BASEDIR/fastqc_raw
 multiqc -i "Raw Read Data" .
