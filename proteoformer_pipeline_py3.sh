@@ -70,7 +70,7 @@ echo -e "\n\n"
 eval "$(conda shell.bash hook)"
 
 ##Activate PROTEOFORMER Conda Environment##
-#conda activate proteoformer
+#conda activate proteoformer_py3
 
 ##Reference information##
 #echo -e "Download reference info\n\n"
