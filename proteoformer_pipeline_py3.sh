@@ -66,6 +66,9 @@ echo "iGenomes root folder = $IGENOMESROOT"
 echo "Ensembl DB location = ${ENSEMBLDICT}${ENSEMBLDB}" 
 echo -e "\n\n"
 
+#Activate conda for in-shell usage
+eval "$(conda shell.bash hook)"
+
 ##Activate PROTEOFORMER Conda Environment##
 #source activate proteoformer
 
