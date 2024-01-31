@@ -15,20 +15,15 @@ echo -e "\n\n"
 
 ## GLOBAL VARIABLES
 
-declare -A datasets=(["OHMX20200619_005"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/20191030_Ribo1_MHU-L-041709_S177_L008_R1_001.fastq.gz"
-                     ["OHMX20200619_006"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/20191030_Ribo2_MHU-L-061019_S178_L008_R1_001.fastq.gz"
-                     ["OHMX20200619_007"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/20191030_Ribo3_MHU-L-091307_S179_L008_R1_001.fastq.gz"
-                     ["OHMX20200619_001"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/a20190013_001_FKDL202574961-1a-AK2178-AK1031_HK7NYDRXX_L1.fq.gz"
-                     ["OHMX20200619_004"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/a20190013_004_FKDL202574961-1a-AK2180-AK10751_HK7NYDRXX_L1.fq.gz"
-                     ["OHMX20200619_002"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/a20190013_002_FKDL202574961-1a-AK870-AK10750_HK7NYDRXX_L1.fq.gz"
-                     ["OHMX20200619_003"]="/data/gerbenm/20200619_Novo_GST_Frame/Novo/a20190013_003_FKDL202574961-1a-AK1958-AK2941_HK7NYDRXX_L1.fq.gz")
+declare -A datasets=(["OHMX202X0XXX_00X"]="/path/to/fastq/gz/file1.fastq.gz"
+                     ["OHMX202X0XXX_00X"]="/path/to/fastq/gz/file2.fastq.gz")
 
 ##Input arguments##
 echo "INPUT ARUGMENTS:"
 ENSEMBL_ANNOT="100"
 SPECIES="human"
 SPECIES_SHORT="hsa"
-ORF="plastid"  											# Mostly standard or plastid
+SUITE="standard"  											# Mostly standard or plastid
 PRICE="Y"
 CORES="20"
 UNIQUEMAPPING="Y"
@@ -41,17 +36,17 @@ TRNA="Y"												# Y or N
 TRCOORD="Y"                                             # Y or N
 TESTRUN="N"                                             # Y or N
 IGENOMESROOT="/data/igenomes/"
-ENSEMBLDICT="/share/steven/Ensembl/"
+ENSEMBLDICT="/share/user/Ensembl/"
 ENSEMBLDB="ENS_${SPECIES_SHORT}_${ENSEMBL_ANNOT}.db"
 COMPLOGO='ohmx'											# ohmx or biobix
-SCRIPTDIR="/home/gerben/scripts/"
-BASEDIR="/data/gerbenm/20200619_Novo_GST_Frame/Novo"
+SCRIPTDIR="/home/user/scripts/"
+BASEDIR="/data/user/project_folder/folder/"
 echo "basedir = $BASEDIR"
 echo -e "scriptdir = $SCRIPTDIR\n"
 
 echo "Ensembl annotation = $ENSEMBL_ANNOT"
 echo "Species = $SPECIES"
-echo "Offset calling method = $ORF"
+echo "Offset calling method = $SUITE"
 echo "PRICE-adapted mapping files = $PRICE"
 echo "Cores = $CORES"
 echo "Unique mapping = $UNIQUEMAPPING"
@@ -70,7 +65,7 @@ echo -e "\n\n"
 eval "$(conda shell.bash hook)"
 
 ##Activate PROTEOFORMER Conda Environment##
-#conda activate proteoformer_py3
+conda activate proteoformer_general
 
 ##Reference information##
 #echo -e "Download reference info\n\n"
@@ -122,18 +117,67 @@ echo -e "1) FastQC raw file $ID \n"
 fastqc $UNZIPFILE -o $BASEDIR/fastqc_raw -t $CORES
 echo -e "FastQC raw file $ID done \n"
 
+
+
 echo -e "2) Mapping $ID \n"
-perl $SCRIPTDIR/proteoformer/1_mapping/mapping.pl --inputfile1 $UNZIPFILE --readtype ribo_untr --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper $CLIPPER --adaptor $ADAPTORSEQ --phix $PHIX --rRNA $RRNA --snRNA $SNORNA --tRNA $TRNA --rpf_split N --tr_coord $TRCOORD --price_files $PRICE --suite $ORF --suite_tools_loc $SCRIPTDIR/proteoformer/1_mapping/ > $BASEDIR/$ID/mapping_$ID.txt 2>&1
+##Mapping specific arguments
+READTYPE="ribo_untr"
+OFFSET_FILE_UNTR="path_to_file"
+OFFSET_FILE_TR="path_to_file"
+OFFSET_IMG_UNTR=$BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png
+OFFSET_IMG_TR=$BASEDIR/$ID/plastid/${ID}_treated_p_offsets.png
+
+## Start with basic mapping
+perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping.pl --inputfile1 $UNZIPFILE --readtype $READTYPE --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper $CLIPPER --adaptor $ADAPTORSEQ --phix $PHIX --rRNA $RRNA --snRNA $SNORNA --tRNA $TRNA --rpf_split N --tr_coord $TRCOORD --price_files $PRICE --suite $SUITE > $BASEDIR/$ID/mapping_$ID.txt 2>&1
+
+##Then, go over the different suite options
+if [[ $SUITE = "standard" ]] || [[ $SUITE = "cst_5prime" ]] || [[ $SUITE = "cst_3prime" ]]
+then
+    echo -e "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n"
+    perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping_parsing.pl --out_sqlite $BASEDIR/$ID/SQLite/results.db --offset $SUITE > $BASEDIR/$ID/mapping_parsing_$ID.txt 2>&1
+elif [[ $SUITE = "from_file" ]]
+then
+    if [[ $READTYPE = "ribo_untr" ]]
+    then
+        echo -e "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n"
+        perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping_parsing.pl --out_sqlite $BASEDIR/$ID/SQLite/results.db --offset $SUITE --offset_file_untr $OFFSET_FILE_UNTR > $BASEDIR/$ID/mapping_parsing_$ID.txt 2>&1
+    elif [[ $READTYPE = "ribo" ]]
+    then
+        echo -e "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING (treated+untreated)\n\n\n"
+        perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping_parsing.pl --out_sqlite $BASEDIR/$ID/SQLite/results.db --offset $SUITE --offset_file_untr $OFFSET_FILE_UNTR --offset_file_tr $OFFSET_FILE_TR > $BASEDIR/$ID/mapping_parsing_$ID.txt 2>&1
+    else
+        echo -e "from_file suite can only occur with the ribo and ribo_untr readtypes!"
+    fi
+elif [[ $SUITE = "plastid" ]]
+then
+    conda deactivate
+    conda activate proteoformer_plastid
+    echo -e "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (UNTREATED)\n\n\n"
+    perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping_plastid.pl --out_sqlite $BASEDIR/$ID/SQLite/results.db --treated untreated  --offset_img $OFFSET_IMG_UNTR > $BASEDIR/$ID/mapping_plastid_$ID.txt 2>&1
+    if [[ $READTYPE = "ribo" ]]
+    then
+        echo -e "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH PLASTID (TREATED)\n\n\n"
+        perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping_plastid.pl --out_sqlite $BASEDIR/$ID/SQLite/results.db --treated treated --offset_img $OFFSET_IMG_TR > $BASEDIR/$ID/mapping_plastid_tr_$ID.txt 2>&1
+    fi
+    conda deactivate
+    conda activate proteoformer_general
+    echo -e "\n\n\n\n\n\n\n\t\tS U I T E:     GO THROUGH WITH MAPPING PARSING\n\n\n"
+    perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping_parsing.pl --out_sqlite $BASEDIR/$ID/SQLite/results.db --offset $SUITE > $BASEDIR/$ID/mapping_parsing_$ID.txt 2>&1
+else
+    echo "Suite option is not in the list of possible options!"
+fi
+
 #Copy stats for multiQC
 cp STAR/fastq1/Log.final.out $BASEDIR/fastqc_mapped/${ID}_fastqc.Log.final.out
 echo -e "Mapping done for $ID \n"
 
 ln -s  $BASEDIR/$ID/STAR/fastq1/untreat.bam $BASEDIR/$ID/$ID.bam
 
+
+
 echo -e "3) FastQC mapped file $ID \n"
 fastqc $BASEDIR/$ID/$ID.bam -o $BASEDIR/fastqc_mapped -t $CORES
 echo -e "FastQC on the mapped file done for $ID\n"
-
 
 sqlite3 SQLite/results.db <<END_SQL
 .timeout 2000
@@ -148,40 +192,40 @@ echo -e "Statistics written for $ID \n"
 mkdir $BASEDIR/mqc/$ID
 mkdir $BASEDIR/mqc_suppl/$ID
 echo -e "4) mQC $ID \n"
-perl $SCRIPTDIR/proteoformer/2_mappingQC_py3/mappingQC.pl --samfile $BASEDIR/$ID/STAR/fastq1/untreat.sam --treated untreated --testrun $TESTRUN --cores $CORES --result_db $BASEDIR/$ID/SQLite/results.db --unique $UNIQUEMAPPING --ens_db $ENSEMBLDICT/$ENSEMBLDB --offset $ORF  --offset_img $BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png --tool_dir $SCRIPTDIR/proteoformer/2_mappingQC_py3/mqc_tools/ --plotrpftool pyplot3D --output_folder $BASEDIR/mqc/$ID --suppl_out_folder $BASEDIR/mqc_suppl/$ID --html $BASEDIR/mqc/mqc_$ID.html --zip $BASEDIR/mqc/mqc_$ID.zip --tmp $BASEDIR/$ID/tmp/ --comp_logo $COMPLOGO > $BASEDIR/$ID/mQC_$ID.txt 2>&1
+perl $SCRIPTDIR/proteoformer/2_mappingQC_py3/mappingQC.pl --samfile $BASEDIR/$ID/STAR/fastq1/untreat.sam --treated untreated --testrun $TESTRUN --cores $CORES --result_db $BASEDIR/$ID/SQLite/results.db --unique $UNIQUEMAPPING --ens_db $ENSEMBLDICT/$ENSEMBLDB --offset $SUITE  --offset_img $OFFSET_IMG_UNTR --tool_dir $SCRIPTDIR/proteoformer/2_mappingQC_py3/mqc_tools/ --plotrpftool pyplot3D --output_folder $BASEDIR/mqc/$ID --suppl_out_folder $BASEDIR/mqc_suppl/$ID --html $BASEDIR/mqc/mqc_$ID.html --zip $BASEDIR/mqc/mqc_$ID.zip --tmp $BASEDIR/$ID/tmp/ --comp_logo $COMPLOGO > $BASEDIR/$ID/mQC_$ID.txt 2>&1
 rm -rf $BASEDIR/$ID/tmp/mappingqc_untreated
 echo -e "mQC performed for $ID \n"
 echo -e "\n"
 
 rm -rf  fastq/fastq1_nophix.fq fastq/nophix/  fastq/fastq1_clip* fastq/Unmapped.out.mate1  fastq/Log.* fastq/SJ.out.tab  fastq/Aligned.out.sam fastq/fastq1_norrna.fq fastq/fastq1_norrna_nosnrna.fq fastq/fastq1_norrna_nosnrna_notrna.fq
 
-echo -e "5) Transcript calling $ID \n"
-perl $SCRIPTDIR/proteoformer/3_tr_calling/Rule-based/ribo_translation.pl --in_sqlite $BASEDIR/$ID/SQLite/results.db --out_sqlite $BASEDIR/$ID/SQLite/results.db --ens_db $ENSEMBLDICT/$ENSEMBLDB > $BASEDIR/$ID/tr_translation_$ID.txt 2>&1
-echo -e "Transcript calling performed on $ID \n"
+# echo -e "5) Transcript calling $ID \n"
+# perl $SCRIPTDIR/proteoformer/3_tr_calling/Rule-based/ribo_translation.pl --in_sqlite $BASEDIR/$ID/SQLite/results.db --out_sqlite $BASEDIR/$ID/SQLite/results.db --ens_db $ENSEMBLDICT/$ENSEMBLDB > $BASEDIR/$ID/tr_translation_$ID.txt 2>&1
+# echo -e "Transcript calling performed on $ID \n"
 
 
-##To run price, another ENV needs to be loaded.
-conda deactivate
-conda activate price
+# ##To run price, another ENV needs to be loaded.
+# conda deactivate
+# conda activate price
 
-echo -e "6) PRICE $ID \n"
-python $SCRIPTDIR/proteoformer/4_ORF_calling/using_PRICE/PRICE.py -r $BASEDIR/$ID/SQLite/results.db > $BASEDIR/$ID/PRICE_orf_$ID.txt 2>&1
-echo -e "PRICE ORF calling performed on $ID \n"
+# echo -e "6) PRICE $ID \n"
+# python $SCRIPTDIR/proteoformer/4_ORF_calling/using_PRICE/PRICE.py -r $BASEDIR/$ID/SQLite/results.db > $BASEDIR/$ID/PRICE_orf_$ID.txt 2>&1
+# echo -e "PRICE ORF calling performed on $ID \n"
 
-conda deactivate
-conda activate proteoformer
+# conda deactivate
+# conda activate proteoformer
 
 
-##To run spectre, another ENV needs to be loaded.
-conda deactivate
-conda activate spectre
+# ##To run spectre, another ENV needs to be loaded.
+# conda deactivate
+# conda activate spectre
 
-echo -e "7) SPECTRE $ID \n"
-python $SCRIPTDIR/proteoformer/4_ORF_calling/using_SPECtre/SPECtre.py -r $BASEDIR/$ID/SQLite/results.db -o 28:12,29:12,30:12 -c 60 -x 3 > $BASEDIR/$ID/SPECtre_orf_$ID.txt 2>&1
-echo -e "SPECTRE ORF calling performed on $ID \n"
+# echo -e "7) SPECTRE $ID \n"
+# python $SCRIPTDIR/proteoformer/4_ORF_calling/using_SPECtre/SPECtre.py -r $BASEDIR/$ID/SQLite/results.db -o 28:12,29:12,30:12 -c 60 -x 3 > $BASEDIR/$ID/SPECtre_orf_$ID.txt 2>&1
+# echo -e "SPECTRE ORF calling performed on $ID \n"
 
-conda deactivate
-source activate proteoformer
+# conda deactivate
+# conda activate proteoformer
 
 ##Go back to the BaseDir
 cd ..
@@ -196,6 +240,7 @@ done
 
 #MultiQC is in base environment
 conda deactivate
+conda activate proteoformer_multiqc
 
 cd $BASEDIR/fastqc_raw
 multiqc -i "Raw Read Data" .
@@ -206,6 +251,8 @@ multiqc -i "Mapped Read Data" .
 cd $BASEDIR
 
 echo -e "MultiQC on all raw/mapped data performed\n"
+
+conda deactivate
 
 ##Cat all stats files
 #Do this in a sorted ID manner

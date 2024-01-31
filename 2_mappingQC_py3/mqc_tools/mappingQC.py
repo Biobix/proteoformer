@@ -1278,7 +1278,7 @@ def cov_spread_phase0_plot(tmpfolder, treated, suppl_out_folder):
     sns.set_palette("terrain")
     fig, ax = plt.subplots(1, 1, figsize=(9,8))
     cov_spread_phase0_data['cov_spread_phase0'] = cov_spread_phase0_data['cov_spread_phase0'].apply(lambda x: x*100) #Convert to percentage
-    sns.kdeplot(cov_spread_phase0_data['cov_spread_phase0'], ax=ax, shade=True)
+    sns.kdeplot(cov_spread_phase0_data['cov_spread_phase0'], ax=ax, fill=True)
     plt.xlim([0,100])
     ax.set_ylabel('Density', fontsize=16)
     ax.set_xlabel('Coverage spread in phase 0 percentage', fontsize=16)
@@ -1308,7 +1308,7 @@ def cov_spread_plot(tmpfolder, treated, suppl_out_folder):
     sns.set_palette("terrain")
     fig, ax = plt.subplots(1, 1, figsize=(9,8))
     cov_spread_data['cov_spread'] = cov_spread_data['cov_spread'].apply(lambda x: x*100) #Convert to percentage
-    sns.kdeplot(cov_spread_data['cov_spread'], ax=ax, shade=True)
+    sns.kdeplot(cov_spread_data['cov_spread'], ax=ax, fill=True)
     plt.xlim([0,100])
     ax.set_ylabel('Density', fontsize=16)
     ax.set_xlabel('Coverage spread percentage', fontsize=16)
@@ -1365,7 +1365,7 @@ def ifc_stat_plot(tmpfolder, treated, suppl_out_folder):
     sns.set_palette("terrain")
     fig, ax = plt.subplots(1, 1, figsize=(9,8))
     ifc_stat_data['ifc_stat'] = np.log10(ifc_stat_data['ifc_stat']) #Convert to log scale
-    sns.kdeplot(ifc_stat_data['ifc_stat'], ax=ax, shade=True)
+    sns.kdeplot(ifc_stat_data['ifc_stat'], ax=ax, fill=True)
     ax.set_ylabel('Density', fontsize=16)
     ax.set_xlabel('In-frame coverage statistic', fontsize=16)
     plt.yticks(fontsize=12)
@@ -1392,7 +1392,7 @@ def ifc_plot(tmpfolder, treated, suppl_out_folder):
     sns.set_palette("terrain")
     fig, ax = plt.subplots(1, 1, figsize=(9,8))
     ifc_data['ifc'] = ifc_data['ifc'].apply(lambda x: x*100) #Convert to percentage
-    sns.kdeplot(ifc_data['ifc'], ax=ax, shade=True)
+    sns.kdeplot(ifc_data['ifc'], ax=ax, fill=True)
     plt.xlim([0,100])
     ifc_med = round(ifc_data['ifc'].median(),2)
     plt.axvline(x = ifc_med, color='b', label="Median")

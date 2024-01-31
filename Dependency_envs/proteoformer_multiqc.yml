@@ -1,0 +1,9 @@
+name: proteoformer_multiqc
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - r
+dependencies:
+  - python=3.5
+  - multiqc

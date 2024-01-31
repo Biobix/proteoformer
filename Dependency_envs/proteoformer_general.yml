@@ -1,0 +1,27 @@
+name: proteoformer_general
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+  - r
+dependencies:
+  - python>=3.7
+  - pigz
+  - trimmomatic
+  - sqlite
+  - fastqc
+  - samtools
+  - bowtie
+  - STAR
+  - r-base
+  - numpy
+  - pyarrow
+  - pandas
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - perl-parallel-forkmanager
+  - perl-bioperl
+  - perl-dbd-sqlite
+  - perl-dbi
+  - zip
