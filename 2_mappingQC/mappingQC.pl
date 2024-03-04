@@ -262,8 +262,13 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 103 ) ? "GRCm39"
 : (uc($species) eq "ZEBRAFISH") ? "GRCz10"
 : (uc($species) eq "YEAST") ? "R64-1-1"
 : (uc($species) eq "CNECNA3") ? "CNA3"
-: (uc($species) eq "FRUITFLY" && $version < 79) ? "BDGP5"
-: (uc($species) eq "FRUITFLY" && $version >= 79) ? "BDGP6" : "";
+: (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 79 && $ensemblversion < 96) ? "BDGP6"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 96 && $ensemblversion < 99) ? "BDGP6.22"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 99 && $ensemblversion < 103) ? "BDGP6.28"
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 103 && $ensemblversion < 110) ? "BDGP6.32" 
+: (uc($species) eq "FRUITFLY" && $ensemblversion >= 110) ? "BDGP6.46"
+: "";
 
 # Also take into account the assembly type, eg. for horse, GM20200620
 my $assembly_type = (uc($species) eq "HORSE") ? 'primary_assembly'
