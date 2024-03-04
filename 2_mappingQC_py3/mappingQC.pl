@@ -283,6 +283,7 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 103 ) ? "GRCm39"
 my $assembly_type = (uc($species) eq "HORSE") ? 'primary_assembly'
 : (uc($species) eq "ARCTIC_SQUIRREL") ? 'primary_assembly'
 : (uc($species) eq "CHINESE_HAMSTER_PICR") ? 'primary_assembly'
+: (uc($speces) eq "FRUITFLY" && $version >=103) ? 'primary_assembly'
 : 'chromosome';
 
 

@@ -213,7 +213,19 @@ def main():
             print("supported ensembl versions: from 96 till 103")
             sys.exit()
     elif (species=='fruitfly' or species=='drosophila_melanogaster'):
-        if(int(ens_v) >= 74 and int(ens_v) <= 90):
+        if(int(ens_v) >= 110):
+            core='/drosophila_melanogaster_core_' + ens_v + '_10.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/drosophila_melanogaster_core_' + ens_v +'_10/',core)
+        elif(int(ens_v) >= 109 and int(ens_v) <= 103):
+            core='/drosophila_melanogaster_core_' + ens_v + '_9.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/drosophila_melanogaster_core_' + ens_v +'_9/',core)
+        elif(int(ens_v) >= 102 and int(ens_v) <= 99):
+            core='/drosophila_melanogaster_core_' + ens_v + '_8.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/drosophila_melanogaster_core_' + ens_v +'_8/',core)
+        elif(int(ens_v) >= 98 and int(ens_v) <= 96):
+            core='/drosophila_melanogaster_core_' + ens_v + '_7.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/drosophila_melanogaster_core_' + ens_v +'_7/',core)
+        elif(int(ens_v) >= 74 and int(ens_v) <= 95):
             core='/drosophila_melanogaster_core_' + ens_v + '_6.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/drosophila_melanogaster_core_' + ens_v +'_6/',core)
         else:
