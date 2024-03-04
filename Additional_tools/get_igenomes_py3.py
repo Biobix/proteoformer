@@ -134,8 +134,8 @@ def main():
             print("Error: latest Ensembl Bacteria/Fungi version is 45!")
             sys.exit()
     else:
-        if(ens_v>109):
-            print("Error: latest Ensembl version is 109!")
+        if(ens_v>111):
+            print("Error: latest Ensembl version is 111!")
             sys.exit()
     #Remove last "/" from instal dir path
     pattern=re.compile('^(\S+)/$')
@@ -204,7 +204,19 @@ def main():
 #####TO EDIT            
     elif(species=='fruitfly'):
         speciesLong='Drosophila_melanogaster'
-        if(ens_v>78):
+        if(ens_v>109):
+            assembly='BDGP6.46'
+            ucscCode='dm6'
+        elif(ens_v>102 and ens_v<110):
+            assembly='BDGP6.32'
+            ucscCode='dm6'
+        elif(ens_v>98 and ens_v<103):
+            assembly='BDGP6.28'
+            ucscCode='dm6'
+        elif(ens_v>95 and ens_v<99):
+            assembly='BDGP6.22'
+            ucscCode='dm6'
+        elif(ens_v>78 and ens_v<96):
             assembly='BDGP6'
             ucscCode='dm6'
         else:
@@ -763,7 +775,11 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
     else:#use rsync for other species
         if(chr=='MT' or chr=='M'):
             if(species=='fruitfly'):#Other name 'dmel_mitochondrion_genome' for fruitfly
-                if(ens_v>75):
+                if(ens_v>102):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.primary_assembly.mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
+                elif(ens_v>95 and ens_v<103):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
+                elif(ens_v>75 and ens_v<96):
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
                 else:
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.dmel_mitochondrion_genome.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/M.fa.gz")
@@ -798,6 +814,15 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
                 os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa")
+            elif (species=="fruitfly"):
+                if(ens_v>102):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                elif(ens_v>75 and ens_v<103):
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                    #print("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                else:
+                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
+                os.system("gunzip "+chr+".fa.gz")
             else:
                 if(ens_v>75):
                     if (species=="horse"):
