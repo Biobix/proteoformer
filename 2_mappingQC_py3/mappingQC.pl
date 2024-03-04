@@ -342,8 +342,7 @@ my $db_ENS  = $ens_db;
 my $dsn_ENS = "DBI:SQLite:dbname=$db_ENS";
 my $us_ENS  = "";
 my $pw_ENS  = "";
-my $chrs = get_chrs($dsn_ENS,$us_ENS,$pw_ENS,\%chr_sizes,$assembly, $assembly_type);
-
+my $chrs = get_chrs($dsn_ENS,$us_ENS,$pw_ENS,\%chr_sizes,$assembly, $assembly_type, $species, $version);
 
 # Create binary chromosomes if they don't exist
 print "Checking/Creating binary chrom files ...\n";
@@ -363,13 +362,13 @@ if (-e $uniquefile){
     chomp($line);
     if ($line ne $unique){
         print "Splitting genomic mapping per chromosome...\n";
-        split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated,$unique,$firstRankMultiMap,$maxmultimap,$mapper);
+        split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated,$unique,$firstRankMultiMap,$maxmultimap,$mapper,$species,$version);
     } else {
         print "SAM splitted files already exist...\n";
     }
 } else {
     print "Splitting genomic mapping per chromosome...\n";
-    split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated,$unique,$firstRankMultiMap,$maxmultimap,$mapper);
+    split_SAM_per_chr(\%chr_sizes,$work_dir,$sam,$treated,$unique,$firstRankMultiMap,$maxmultimap,$mapper,$species,$version);
 }
 
 # Construct p offset hash
@@ -467,7 +466,7 @@ foreach my $chr (keys %chr_sizes){
     my $dbh = dbh($dsn_sqlite_results,$us_sqlite_results,$pw_sqlite_results);
     
     ### RIBO parsing
-    RIBO_parsing_genomic_per_chr($work_dir,$sam,$chr,$ens_db,$coord_system_id,$coord_system_id_plasmid, $offset_hash, $treated, $cov_spread_thr);
+    RIBO_parsing_genomic_per_chr($work_dir,$sam,$chr,$ens_db,$coord_system_id,$coord_system_id_plasmid, $offset_hash, $treated, $cov_spread_thr,$species,$version);
     
     ### Finish
     print "* Finished chromosome ".$chr."\n";
@@ -662,7 +661,7 @@ my $treated_meta_gene;
 
 print "\n\n";
 print "# Gene distribution #\n";
-gene_distribution($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique);
+gene_distribution($ens_db, \%chr_sizes, $cores, $tool_dir, $resultdb, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique, $species, $version);
 
 print "\n\n";
 print "# Metagenic classification #\n";
@@ -1276,6 +1275,8 @@ sub gene_distribution_chr {
     my $treated = $_[5];
     my $mapping_unique = $_[6];
     my $unique = $_[7];
+    my $species = $_[8];
+    my $version = $_[9];
     
     #Open files
     my $out_chr_table = $TMP."/mappingqc_".$treated."/genedistribution_".$chr.".txt";
@@ -1288,7 +1289,7 @@ sub gene_distribution_chr {
     my $dbh = dbh($dsn_ENS, $us_ENS, $pw_ENS);
     
     #Get seq region id
-    my $seq_region = get_seq_region_id($dbh, $chr, $coord_system_id, $coord_system_id_plasmid);
+    my $seq_region = get_seq_region_id($dbh, $chr, $coord_system_id, $coord_system_id_plasmid, $species, $version);
     
     #Get all genes with start and stop position
     my $query1 = "SELECT stable_id,seq_region_start,seq_region_end,seq_region_strand FROM gene WHERE seq_region_id = '$seq_region'";
@@ -1452,6 +1453,8 @@ sub gene_distribution {
     my $treated = $_[7];
     my $mapping_unique = $_[8];
     my $unique = $_[9];
+    my $species = $_[10];
+    my $version = $_[11];
     
     # Open files
     my $out_table = $TMP."/mappingqc_".$treated."/genedistribution.txt";
@@ -1472,7 +1475,7 @@ sub gene_distribution {
         $pm->start and next;
         
         #Chromosomal gene distribution construction
-        gene_distribution_chr($ens_db, $resultdb, $chr, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique);
+        gene_distribution_chr($ens_db, $resultdb, $chr, $coord_system_id,$coord_system_id_plasmid, $treated, $mapping_unique, $unique, $species, $version);
         
         # Close process
         $pm->finish;
@@ -1590,6 +1593,8 @@ sub RIBO_parsing_genomic_per_chr {
     my $offset_hash = $_[6];
     my $treated = $_[7];
     my $cov_spread_thr = $_[8];
+    my $species = $_[9];
+    my $version = $_[10];
     
     my @splitsam = split(/\//, $sam );
     my $samFileName = $splitsam[$#splitsam];
@@ -1597,7 +1602,7 @@ sub RIBO_parsing_genomic_per_chr {
     $samFileName = $splitsam[0];
     
     #Construct phase library
-    my ($phase_lib, $triplet_lib, $per_orf_cov_lib) = construct_phase_lib($chr, $ens_db, $coord_system_id,$coord_system_id_plasmid);
+    my ($phase_lib, $triplet_lib, $per_orf_cov_lib) = construct_phase_lib($chr, $ens_db, $coord_system_id,$coord_system_id_plasmid,$species,$version);
 
     #Initialize in-process variables
     my ($genmatchL,$offset,$start,$intron_total,$extra_for_min_strand);
@@ -1807,6 +1812,8 @@ sub construct_phase_lib{
     my $eDB = $_[1];
     my $coord_system_id = $_[2];
     my $coord_system_id_plasmid = $_[3];
+    my $species = $_[4];
+    my $version = $_[5];
     
     #Init
     my $phase_lib = {};
@@ -1820,7 +1827,7 @@ sub construct_phase_lib{
     my $dbh_ens = dbh($dsn_sqlite_ens,$us_sqlite_ens,$pw_sqlite_ens);
     
     #Get seq_region_id
-    my $seq_region_id = get_seq_region_id($dbh_ens, $chr, $coord_system_id,$coord_system_id_plasmid);
+    my $seq_region_id = get_seq_region_id($dbh_ens, $chr, $coord_system_id,$coord_system_id_plasmid,$species,$version);
     
     #Get transcripts (canonical protein-coding)
     my $transcripts = get_can_transcripts($dbh_ens, $seq_region_id);
@@ -2210,6 +2217,8 @@ sub split_SAM_per_chr {
     my $firstRankMultiMap = $_[5];
     my $maxmultimap = $_[6];
     my $mapper = $_[7];
+    my $species = $_[8];
+    my $version = $_[9];
     
     my @splitsam = split(/\//, $sam );
     my $samFileName = $splitsam[$#splitsam];
@@ -2249,6 +2258,13 @@ sub split_SAM_per_chr {
         #Process alignment line
         @mapping_store = split(/\t/,$line);
         $chr = $mapping_store[2];
+
+        #Convert name of fruitfly mitochondral chromosome
+        if ($species eq "fruitfly"){
+            if($chr eq "mitochondrion_genome" || $chr eq "dmel_mitochondrion_genome"){
+                $chr = "M";
+            }
+        }
         
         # Unique vs. (Unique+Multiple) alignment selection
         # NH:i:1 means that only 1 alignment is present
@@ -2415,6 +2431,8 @@ sub get_chrs {
     my $chr_sizes   =   $_[3];
     my $assembly    =   $_[4];
     my $assembly_type    =   $_[5];
+    my $species = $_[6];
+    my $version = $_[7];
     
     # Init
     my $chrs    =   {};
@@ -2435,7 +2453,11 @@ sub get_chrs {
     foreach my $key (keys(%{$chr_sizes})) {
         if ($species eq "fruitfly"){
             if($key eq "M"){
-                $chr = "dmel_mitochondrion_genome";
+                if ($version>=96){
+                    $chr = "mitochondrion_genome";
+                } else {
+                    $chr = "dmel_mitochondrion_genome";
+                }
             }else{
                 $chr = $key;
             }
@@ -2448,7 +2470,7 @@ sub get_chrs {
         $sth->execute();
         @ids = $sth->fetchrow_array;
         $seq_region_id = $ids[0];
-        $chrs->{$chr}{'seq_region_id'} = $seq_region_id;
+        $chrs->{$key}{'seq_region_id'} = $seq_region_id;
         $sth->finish();
     }
     
@@ -2605,6 +2627,8 @@ sub get_seq_region_id{
     my $chr = $_[1];
     my $coord_system_id = $_[2];
     my $coord_system_id_plasmid = $_[3];
+    my $species = $_[4];
+    my $version = $_[5];
     
     #Init
     my $seq_region_id;
@@ -2613,6 +2637,13 @@ sub get_seq_region_id{
     if($chr =~ m/.+_SL1344$/){
         $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id_plasmid' AND name = '$chr';";
     } else {
+        if($species eq "fruitfly" && $chr eq "M"){
+            if ($version>=96){
+                $chr = "mitochondrion_genome";
+            } else {
+                $chr = "dmel_mitochondrion_genome";
+            }
+        }
         $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr';";
     }
     my $sth = $dbh->prepare($query);
