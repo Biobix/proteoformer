@@ -170,7 +170,10 @@ def main():
             ucscCode='mm9'
     elif(species=='rat'):
         speciesLong='Rattus_norvegicus'
-        if(ens_v>79):
+        if(ens_v>=105):
+            assembly='mRatBN7.2'
+            ucscCode='rn7'
+        if(ens_v>79 and ens_v<105):
             assembly='Rnor_6.0'
             ucscCode='rn6'
         else:
