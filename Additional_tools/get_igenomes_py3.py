@@ -173,7 +173,7 @@ def main():
         if(ens_v>=105):
             assembly='mRatBN7.2'
             ucscCode='rn7'
-        if(ens_v>79 and ens_v<105):
+        elif(ens_v>79 and ens_v<105):
             assembly='Rnor_6.0'
             ucscCode='rn6'
         else:
@@ -428,8 +428,8 @@ def main():
                 chromList[m.group(1)]=m.group(2)
     else:
         #Other species: download from UCSC
-        os.system("wget -q ftp://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz")
-        print(("wget -q ftp://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz"))
+        os.system("rsync -aqzP rsync://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz .")
+        print(("rsync -aqzP rsync://hgdownload.cse.ucsc.edu/goldenPath/"+ucscCode+"/database/chromInfo.txt.gz ."))
         os.system("gzip -d chromInfo.txt.gz")
         os.system("mv chromInfo.txt tmpChromInfo.txt")
         #Retain only the standard chromosomes
@@ -805,9 +805,12 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz")
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome.MT.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa")
             else:#MT for other species
-                if(ens_v>75 and species != "horse"):
-                    os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
-                    #print ("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                if(ens_v>75):
+                    if (species=="horse" or species=="rat"):
+                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                    else:
+                        os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
+                        #print ("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 else:
                     os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.MT.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa.gz")
                 os.system("gunzip MT.fa.gz")
@@ -828,7 +831,7 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 os.system("gunzip "+chr+".fa.gz")
             else:
                 if(ens_v>75):
-                    if (species=="horse"):
+                    if (species=="horse" or species=="rat"):
                         os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
                         #print("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.primary_assembly."+chr+".fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa.gz")
                     else:
