@@ -79,7 +79,7 @@ We set up our own Galaxy environment at: [http://galaxy.ugent.be](http://galaxy.
 
 ## Dependencies <a name="dependencies"></a>
 
-Proteoformer is built in Perl 5, Python 2.7 and Bash. All necessary scripts are included in this GitHub repository. Some parts are updated to Python 3.10.
+Proteoformer is built in Perl 5, Python 2.7 and Bash. All necessary scripts are included in this GitHub repository. Some parts are updated to Python 3.10. Check lower in this paragraph for more details.
 
 To prevent problems with missing dependencies, we included all necessary dependencies in a [Conda](https://conda.io/docs/) environment.
 For more information about Conda installation, click [here](https://docs.conda.io/projects/conda/en/latest/user-guide/index.htmll).
@@ -124,13 +124,17 @@ source deactivate
 For running this pipeline with Python 3.10, we advise to use Mamba to install the tool. Mamba is very similar to Conda but performs much faster. More info can be found [here](https://mamba.readthedocs.io/en/latest/).
 To install the dependencies for the Python 3.10 version of PROTEOFORMER, run the following commands:
 ```
-mamba env create -f Dependency_envs/proteoformer_py3.yml
+mamba env create -f Dependency_envs/proteoformer_general.yml
+mamba env create -f Dependency_envs/proteoformer_plastid.yml
+mamba env create -f Dependency_envs/proteoformer_multiqc.yml
 ```
+
+The proteoformer_general provides the general tool environment for most steps. In master script of the full pipeline workflow, bash will automatically switch between environments for the Plastid and MultiQC steps when needed.
 
 Then, use the following environment instead of the default proteoformer environment for running tools:
 
 ```
-mamba activate proteoformer_py3
+mamba activate proteoformer_general
 ```
 
 To exit this environment:
@@ -343,6 +347,13 @@ perl mapping.pl --inputfile1 link/to/your/untr_data.fq --inputfile2 link/to/your
 perl mapping.pl --inputfile1 link/to/your/untr_data.fq --inputfile2 link/to/your/tr_data.fq --name my_experiment --species human --ensembl 92 --cores 20 --unique Y --igenomes_root /user/igenomes --readtype ribo --clipper fastx --adaptor CTGTAGGCACCATCAAT --phix Y --rRNA Y --snRNA Y --tRNA Y --rpf_split Y --pricefiles Y --suite plastid
 ```
 
+There are Python 3.10 versions of the mapping steps available. Example:
+
+```
+#Combination of untreated and treated data
+perl 1_mapping_py3/mapping.pl --inputfile1 link/to/your/untr_data.fq --inputfile2 link/to/your/tr_data.fq --name my_experiment --species human --ensembl 92 --cores 20 --unique Y --igenomes_root /user/igenomes --readtype ribo
+```
+
 Input arguments:
 
 | Argument               | Default                                           | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -410,6 +421,18 @@ perl mapping_plastid.pl --out_sqlite SQLite/results.db --treated treated
 #Parsing of all results into counts (mapping itself, Plastid untreated, Plastid treated)
 perl mapping_parsing.pl --out_sqlite SQLite/results.db --offset plastid
 ```
+
+There are Python 3.10 versions of the mapping steps available. Example:
+
+```
+#Plastid for untreated sample
+perl 1_mapping_py3/mapping_plastid.pl --out_sqlite SQLite/results.db --treated untreated
+#Plastid for treated sample
+perl 1_mapping_py3/mapping_plastid.pl --out_sqlite SQLite/results.db --treated treated
+#Parsing of all results into counts (mapping itself, Plastid untreated, Plastid treated)
+perl 1_mapping_py3/mapping_parsing.pl --out_sqlite SQLite/results.db --offset plastid
+```
+
 
 Input arguments of mapping_plastid.pl:
 
@@ -523,9 +546,11 @@ Input arguments:
 | --result_db     | Mandatory                          | The result database with all mapping results                                                                                                                                                                                           |
 | --unique        | Y                                  | Whether to use only the unique alignments (Y/N) (has to be Y if the mapping was done uniquely)                                                                                                                                         |
 | --ens_db        | Mandatory                          | The Ensembl database with annotation info                                                                                                                                                                                              |
+| --testrun       | N                                  | Whether data comes from a low coverage test run (Y/N)                                                                                                                                                                                  |
 | --offset        | standard                           | The source of offsets: calculated with Plastid during mapping (plastid), standard offsets from Ingolia 2019 (standard), from an input file (from_file), constant 5 prime offsets (cst_5prime) or constant 3 prime offsets (cst_3prime) |
 | --offset_file   | Mandatory if offset=from_file      | The offsets input file                                                                                                                                                                                                                 |
 | --offset_img    | Mandatory if offset=plastid        | The offsets image Plastid generated during mapping                                                                                                                                                                                     |
+| --cov_spread_thr| 0.2                                | Threshold (perct) for a covered position in coverage spread                                                                                                                                                                            |
 | --output_folder | work_dir/mappingQC_output          | The output folder for storing output files                                                                                                                                                                                             |
 | --tool_dir      | work_dir/mqc_tools                 | The directory with all necessary underlying tools                                                                                                                                                                                      |
 | --plotrpftool   | grouped2D                          | Module used for plotting the RPF-phase figure: Seaborn grouped 2D chart (grouped2D), mplot3d 3D bar chart (pyplot3D) or mayavi 3D bar chart (mayavi)                                                                                   |
