@@ -181,7 +181,7 @@ def main():
         if(int(ens_v) >= 74 and int(ens_v) < 103):
             core='/mus_musculus_core_' + ens_v + '_38.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/mus_musculus_core_' + ens_v +'_38/',core)
-        elif(int(ens_v) >= 103 and int(ens_v) <= 104):
+        elif(int(ens_v) >= 103 and int(ens_v) <= 109):
             core='/mus_musculus_core_' + ens_v + '_39.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-'+ ens_v + '/mysql/mus_musculus_core_' + ens_v +'_39/',core)
         else:
