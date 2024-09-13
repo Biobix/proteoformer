@@ -41,7 +41,7 @@ use Cwd;
 #mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset,$offset_file_untr,$offset_file_tr,$suite);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$save_unmapped,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset,$offset_file_untr,$offset_file_tr,$suite);
 my $help;
 
 GetOptions(
@@ -81,6 +81,7 @@ GetOptions(
 "rRNA:s" =>\$rRNA,                      	# map to rRNA DB prior to genomic mapping (Y or N)                  			optional argument (default = Y)
 "snRNA:s" =>\$snRNA,                    	# map to snRNA DB prior to genomic mapping (Y or N)                				optional argument (default = N)
 "tRNA:s" =>\$tRNA,                      	# map to tRNA DB prior to genomic mapping (Y or N)                   			optional argument (default = N)
+"save_unmapped:s" =>\$save_unmapped,             # save unmapped reads as a fastq (Y or N)                                       optional argument (default = N)
 "tr_coord=s" =>\$tr_coord,					      # Generate alignment file based on transcript coordinates (Y or N)				optional argument (default = N)
 "truseq=s" =>\$truseq,                    # If strands (+ and -) are assigned as in TruSeq or not (Y or N)          optional argument (default = Y)
 "mismatch=i" =>\$mismatch,	              # Alignment will be output only if it has fewer mismatches than this value		optional argument (default = 2)
@@ -327,6 +328,12 @@ if ($tRNA){
     #Choose default value for snRNA
     $tRNA = 'N';
     print "tRNA mapping prior to genomic                            : $tRNA\n";
+}
+if ($save_unmapped){
+    print "Save unmapped reads to fastq                             : $save_unmapped\n";
+} else {
+    $save_unmapped = 'N';
+    print "Save unmapped reads to fastq                             : $save_unmapped\n";
 }
 if ($tr_coord){
     print "generate alignment file based on transcriptome coord     : $tr_coord\n";
@@ -1134,13 +1141,13 @@ sub map_STAR {
     print "     Mapping against genomic $seqFileName"."\n";
 
     if (uc($readtype) eq "RIBO" || $readtype eq "ribo_untr") {
-
 		    if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
         $ref_loc = get_ref_loc($mapper);
         $command = $STAR_loc." --outSAMattributes Standard --outSAMtype BAM SortedByCoordinate --genomeLoad NoSharedMemory ".$clip_stat." --seedSearchStartLmaxOverLread .5 --outFilterMultimapNmax ".$maxmultimap." --outMultimapperOrder Random --outFilterMismatchNmax ".$mismatch." --genomeDir ".$ref_loc.$STARIndexGenomeFolder." --runThreadN ".$cores." --outFileNamePrefix ".$directory." --readFilesIn ".$fasta;
 		    if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Output transcriptome coordinate to bam file
         if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
         if ($FirstRankMultiMap eq 'Y') {$command .= " --outSAMmultNmax 1 "}   # To ensure to output only first hit to SAM (either the best scoring one or a random chosen one from a list of equally scoring hits)
+        if ($save_unmapped eq 'Y') {$command .= " --outReadsUnmapped Fastx "}
     } elsif (uc($readtype) =~ m/PE/) {
 
 		    if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
@@ -1148,6 +1155,7 @@ sub map_STAR {
 		    if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
         if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
         if ($FirstRankMultiMap eq 'Y') {$command .= " --outSAMmultNmax 1 "}   # To ensure to output only first hit to SAM (either the best scoring one or a random chosen one from a list of equally scoring hits)
+        if ($save_unmapped eq 'Y') {$command .= " --outReadsUnmapped Fastx "}
     } elsif (uc($readtype) =~ m/SE/) {
 
 		    if ($unique eq 'Y') {$maxmultimap = 1;}	# to ensure unique mapping
@@ -1155,6 +1163,7 @@ sub map_STAR {
 		    if (uc($tr_coord) eq 'Y') {$command .= " --quantMode TranscriptomeSAM "}		# Add transcript coordinate to bam output
         if (uc($splicing) eq 'N') {$command .= " --alignIntronMax 1 --alignIntronMin 2 "}        # Don't allow splicing if splicing is set to 'N'
         if ($FirstRankMultiMap eq 'Y') {$command .= " --outSAMmultNmax 1 "}   # To ensure to output only first hit to SAM (either the best scoring one or a random chosen one from a list of equally scoring hits)
+        if ($save_unmapped eq 'Y') {$command .= " --outReadsUnmapped Fastx "}   # Save the unmapped reads to a FASTQ when required
     }
 
 
@@ -1175,6 +1184,9 @@ sub map_STAR {
     # # Output bamfile
     my $outbam = ($seqFileName eq 'fastq1') ? $out_bam_untr : $out_bam_tr;
     system("cp ".$directory."Aligned.sortedByCoord.out.bam ".$outbam);
+    if ($save_unmapped eq 'Y') {
+        system("mv ".$directory."/Unmapped.out.mate1 ".$directory."/unmapped.fastq");
+    }
     
     # #  convert BAM back to SAM file
      print "converting BAM back to SAM...\n";
@@ -2144,6 +2156,7 @@ Example:
             --rRNA                              Map to rRNA DB prior to genomic mapping (Y or N) (default: Y)
             --snRNA                             Map to snRNA DB prior to genomic mapping (Y or N) (default: N)
             --tRNA                              Map to tRNA DB prior to genomic mapping (Y or N) (default: N)
+            --save_unmapped                     Save unmapped reads as a fastq (Y or N) (default: N)
             --tr_coord                          Generate alignment file based on transcript coordinates (Y or N) (default: N)
             --truseq                            If strands (+ and -) are assigned as in TruSeq or not for RNAseq (Y or N) (default: Y)
             --mismatch                          Alignment will be output only if it has fewer mismatches than this value (default: 2)
