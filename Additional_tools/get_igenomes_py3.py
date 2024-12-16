@@ -126,16 +126,16 @@ def main():
         print("Error: the amount of cores cannot be larger than 15!")
         sys.exit()
     if(species == 'arabidopsis' or species =='earthmoss'):
-        if(ens_v>51):
-            print("Error: latest Ensembl Plants version is 51!")
+        if(ens_v>60):
+            print("Error: latest Ensembl Plants version is 60!")
             sys.exit()
     elif(species =='SL1344' or species =='MYC_ABS_ATCC_19977' or species =='CNECNA3'):
         if(ens_v>45):
             print("Error: latest Ensembl Bacteria/Fungi version is 45!")
             sys.exit()
     else:
-        if(ens_v>111):
-            print("Error: latest Ensembl version is 111!")
+        if(ens_v>113):
+            print("Error: latest Ensembl version is 113!")
             sys.exit()
     #Remove last "/" from instal dir path
     pattern=re.compile('^(\S+)/$')
