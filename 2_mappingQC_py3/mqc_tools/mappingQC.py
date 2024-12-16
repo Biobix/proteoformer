@@ -1530,6 +1530,12 @@ def triplet_plots(data, outputfolder):
         df = df.sort_index(axis=0)
         labels_list = df[0].values.tolist()
         labels_list = list(map(format_thousands, labels_list))
+        #If no data for a triplet, skip to the next iteration
+        if (data[triplet]['0']==0) and (data[triplet]['1']==0) and (data[triplet]['2']==0):
+            plt.text(0.25, 0.5, triplet+': no data (all zero)')
+            plt.axis('off')
+            plt.grid(False)
+            continue
         df.plot(kind="pie", y=0, autopct='%.1f%%', ax=ax, legend=None, labels=labels_list, pctdistance=0.7, fontsize=16, textprops={'fontsize':16})
         #Individual legends off, subplots="True" for evading selecting y column error, autopercentage
         ax.set(ylabel='') #Do not plot y column label
@@ -1967,6 +1973,16 @@ def get_plot_data(db, treated):
             #Check if triplet is in the possible triplets
             if triplet in possible_triplets:
                 triplet_data[triplet][phase] = count
+
+        #Fill unoccuring triplets with zeroes
+        for triplet in possible_triplets:
+            if triplet not in triplet_data.keys():
+                for phase in range(0,3):
+                    triplet_data[triplet][str(phase)]=0
+            else:
+                for phase in range(0,3):
+                    if str(phase) not in triplet_data[triplet].keys():
+                        triplet_data[triplet][str(phase)]=0
 
         #Get arguments table variables
         query = "SELECT value FROM arguments WHERE variable=\"run_name\";"
