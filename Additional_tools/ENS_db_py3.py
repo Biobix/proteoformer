@@ -233,12 +233,12 @@ def main():
             print("supported ensembl versions: from 74 till 88 ")
             sys.exit()
     elif (species == 'saccharomyces_cerevisiae' or species == 'yeast'):
-        if(int(ens_v) >= 74 and int(ens_v) <= 90):
+        if(int(ens_v) >= 74 and int(ens_v) <= 113):
             core='/saccharomyces_cerevisiae_core_' + ens_v + '_4.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/saccharomyces_cerevisiae_core_' + ens_v +'_4/',core)
         else:
             print(("ERROR: unsupported ensembl version: " + ens_v))
-            print("supported ensembl versions: from 74 till 88")
+            print("supported ensembl versions: from 74 till 113")
             sys.exit()
     elif (species=='caenorhabditis_elegans' or species =="c.elegans"):
         if (int(ens_v) >= 91 and int(ens_v) <= 92):
