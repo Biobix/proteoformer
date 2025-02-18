@@ -1281,8 +1281,8 @@ sub get_multiprocess_info{
     my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : (uc($species) eq "CNECNA3") ? "cnecna3" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
     
     #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
-    my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
-    : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
+    my $assembly = (uc($species) eq "MOUSE" && $ensemblversion <= 102 ) ? "GRCm38"
+    : (uc($species) eq "MOUSE" && $ensemblversion > 102 ) ? "GRCm39"
     : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
     : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
     : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
@@ -1854,8 +1854,8 @@ sub construct_gtf_file_address{
     my $spec_short = ($species eq "mouse") ? "mmu" : ($species eq "human") ? "hsa" : (uc($species) eq "CNECNA3") ? "cnecna3" : ($species eq "arabidopsis") ? "ath" : ($species eq "fruitfly") ? "dme" : "";
 
     #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
-    my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 70 ) ? "GRCm38"
-    : (uc($species) eq "MOUSE" && $ensemblversion < 70 ) ? "NCBIM37"
+    my $assembly = (uc($species) eq "MOUSE" && $ensemblversion <= 102 ) ? "GRCm38"
+    : (uc($species) eq "MOUSE" && $ensemblversion > 102 ) ? "GRCm39"
     : (uc($species) eq "HUMAN" && $ensemblversion >= 76) ? "GRCh38"
     : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
     : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
