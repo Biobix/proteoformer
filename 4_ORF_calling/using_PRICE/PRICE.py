@@ -83,8 +83,8 @@ def main():
         "cnecna3" if table_args.species == "CNECNA3" else \
         "dme" if table_args.species == "fruitfly" else ""
     # Assembly
-    assembly = "GRCm38" if table_args.species == "mouse" and table_args.ens_v >= 70 else \
-        "NCBIM37" if table_args.species == "mouse" and table_args.ens_v < 70 else \
+    assembly = "GRCm38" if table_args.species == "mouse" and table_args.ens_v <= 102 else \
+	"GRCm39" if table_args.species == "mouse" and table_args.ens_v > 102 else \
         "GRCh38" if table_args.species == "human" and table_args.ens_v > 75 else \
         "GRCh37" if table_args.species == "human" and table_args.ens_v <= 75 else \
         "TAIR10" if table_args.species == "arabidopsis" else \
@@ -1129,28 +1129,28 @@ def prepare_genome_price(price_operatable, fasta, gtf, species, ens_v):
 def install_price(price_tmp):
 
     #Download
-    try:
-        os.system("wget --no-check-certificate --quiet https://github.com/erhard-lab/gedi/releases/download/Price_1.0.2/Price_1.0.2.tar.gz")
-    except:
-        print "Could not download PRICE 1.0.2"
-        sys.exit()
+    #try:
+    #    os.system("wget --no-check-certificate --quiet https://github.com/erhard-lab/gedi/releases/download/Price_1.0.2/Price_1.0.2.tar.gz")
+    #except:
+    #    print "Could not download PRICE 1.0.2"
+    #    sys.exit()
 
     #Move to tmp folder
-    os.system("mv Price_1.0.2.tar.gz "+price_tmp)
+    #os.system("mv Price_1.0.2.tar.gz "+price_tmp)
 
     #Unpack
-    try:
-        os.system("gunzip --quiet "+price_tmp+"/Price_1.0.2.tar.gz")
-    except:
-        print "Could not unpack with gunzip"
-        sys.exit()
-    try:
-        os.system("tar -xf "+price_tmp+"/Price_1.0.2.tar -C "+price_tmp)
-    except:
-        print "Could not unpack with tar"
-        sys.exit()
+    #try:
+    #    os.system("gunzip --quiet "+price_tmp+"/Price_1.0.2.tar.gz")
+    #except:
+    #    print "Could not unpack with gunzip"
+    #    sys.exit()
+    #try:
+    #    os.system("tar -xf "+price_tmp+"/Price_1.0.2.tar -C "+price_tmp)
+    #except:
+    #    print "Could not unpack with tar"
+    #    sys.exit()
     #Remove tar file
-    os.system("rm -rf "+price_tmp+"/Price_1.0.2.tar")
+    #os.system("rm -rf "+price_tmp+"/Price_1.0.2.tar")
 
     #Link to operatable
     price_operatable = price_tmp+"/Price_1.0.2/gedi"
