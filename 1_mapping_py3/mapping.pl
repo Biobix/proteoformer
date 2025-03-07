@@ -41,7 +41,7 @@ use Cwd;
 #mapping.pl --name "${experimentname}" --species "${organism}" --ensembl "${ensembl}" --cores "${cores}" --readtype $readtype.riboSinPair --unique "${unique}" --mapper "${mapper}" --readlength $readtype.readlength --adaptor $readtype.adaptor --inputfile1 $readtype.input_file1 --inputfile2 $readtype.input_file2 --out_bg_s_untr "${untreat_s_bg}"  --out_bg_as_untr "${untreat_as_bg}" --out_bg_s_tr "${treat_s_bg}" --out_bg_as_tr "${treat_as_bg}" --out_sam_untr "${untreat_sam}" --out_sam_tr "${treat_sam}" --out_sqlite "${out_sqlite}" --igenomes_root "${igenomes_root}"
 
 # get the command line arguments
-my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$phix,$rRNA,$snRNA,$tRNA,$save_unmapped,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset,$offset_file_untr,$offset_file_tr,$suite);
+my ($work_dir,$run_name,$species,$ensemblversion,$cores,$mapper,$readlength,$readtype,$truseq,$tmpfolder,$adaptorSeq,$unique,$seqFileName1,$seqFileName2,$fastqName,$min_l_plastid,$max_l_plastid,$offset_img_untr,$offset_img_tr,$min_l_parsing,$max_l_parsing,$out_bg_s_untr,$out_bg_as_untr,$out_bg_s_tr,$out_bg_as_tr,$out_sam_untr,$out_sam_tr,$out_bam_untr,$out_bam_tr,$out_sqlite,$IGENOMES_ROOT,$ref_loc,$clipper,$headcrop,$tailcrop,$phix,$rRNA,$snRNA,$tRNA,$save_unmapped,$tr_coord,$maxmultimap,$mismatch,$out_bam_tr_untr,$out_bam_tr_tr,$splicing,$FirstRankMultiMap,$rpf_split,$price_files,$price_sam_untr,$price_bam_untr,$price_sam_tr,$price_bam_tr,$cst_prime_offset,$min_cst_prime_offset,$max_cst_prime_offset,$offset_file_untr,$offset_file_tr,$suite);
 my $help;
 
 GetOptions(
@@ -77,6 +77,10 @@ GetOptions(
 "out_sqlite:s" =>\$out_sqlite,          	# sqlite DB output file                                             			optional  argument (default = results.db)
 "igenomes_root=s" =>\$IGENOMES_ROOT,    	# IGENOMES ROOT FOLDER                                              			mandatory argument
 "clipper:s" =>\$clipper,                	# what clipper is used (none or STAR or fastx or trimmomatic)          	        optional argument (default = none) or STAR or fastx or trimmomatic
+"headcrop:i"=>\$headcrop,                   # The number of bases to be trimmed of the 5prime of the read after clipping    optional  argument (default = 0)
+                                            # Will only be possible for STAR mapping in combination with trimmomatic
+"tailcrop:i"=>\$tailcrop,                   # The number of bases to be trimmed of the 3prime of the read after clipping    optional  argument (default = 0)
+                                            # Will only be possible for STAR mapping in combination with trimmomatic
 "phix:s" =>\$phix,                      	# map to phix DB prior to genomic mapping (Y or N)                  			optional argument (default = N)
 "rRNA:s" =>\$rRNA,                      	# map to rRNA DB prior to genomic mapping (Y or N)                  			optional argument (default = Y)
 "snRNA:s" =>\$snRNA,                    	# map to snRNA DB prior to genomic mapping (Y or N)                				optional argument (default = N)
@@ -288,6 +292,20 @@ if ($clipper){
 		#Choose default value for clipper
         $clipper = 'none';
 		print "The clipper used is                                      : $clipper\n";
+}
+if ($headcrop){
+    $headcrop = int($headcrop);
+    print "The number of bases trimmed from the 5prime is           : $headcrop\n";
+} else {
+    $headcrop = 0;
+    print "The number of bases trimmed from the 5prime is set to    : $headcrop\n";
+}
+if ($tailcrop){
+    $tailcrop = int($tailcrop);
+    print "The number of bases trimmed from the 3prime is           : $tailcrop\n";
+} else {
+    $tailcrop = 0;
+    print "The number of bases trimmed from the 3prime is set to    : $tailcrop\n";
 }
 if ($truseq){
     print "TruSeq strand assignment                                 : $truseq\n";
@@ -638,7 +656,7 @@ foreach (@loopfastQ) {
             map_topHat2($_,$fastqName,$clipper,$mismatch);
         }
         if (uc($readtype) eq 'SE_TOTAL') {
-            map_STAR($_,$fastqName,$clipper,$mismatch);
+            map_STAR($_,$fastqName,$clipper,$mismatch, $headcrop, $tailcrop);
         }
         my $end = time - $start;
         printf("runtime TopHat against genomic: %02d:%02d:%02d\n\n",int($end/3600), int(($end % 3600)/60), int($end % 60));
@@ -648,19 +666,19 @@ foreach (@loopfastQ) {
 		print "Mapping with STAR\n";
         my $start = time;
         if (uc($readtype) eq "RIBO") {
-            map_STAR($_,$fastqName,$clipper,$mismatch);
+            map_STAR($_,$fastqName,$clipper,$mismatch, $headcrop, $tailcrop);
         }
         if ($readtype eq "ribo_untr"){
-            map_STAR($_,$fastqName,$clipper,$mismatch);
+            map_STAR($_,$fastqName,$clipper,$mismatch, $headcrop, $tailcrop);
         }
         if (uc($readtype) eq "SE_POLYA") {
-            map_STAR($_,$fastqName,$clipper,$mismatch);
+            map_STAR($_,$fastqName,$clipper,$mismatch, $headcrop, $tailcrop);
         }
         if (uc($readtype) =~ m/PE/) {
-            map_STAR($_,$fastqName,$clipper,$mismatch);
+            map_STAR($_,$fastqName,$clipper,$mismatch, $headcrop, $tailcrop);
         }
         if (uc($readtype) eq 'SE_TOTAL') {
-            map_STAR($_,$fastqName,$clipper,$mismatch);
+            map_STAR($_,$fastqName,$clipper,$mismatch, $headcrop, $tailcrop);
         }
 
         my $end = time - $start;
@@ -863,6 +881,8 @@ sub map_STAR {
     my $seqFileName = $_[1];
     my $clipper = $_[2];
     my $mismatch = $_[3];
+    my $headcrop = $_[4];
+    my $tailcrop = $_[5];
     my @splitSeqFiles = split(/,/,$seqFiles);
     my $seqFile  = $splitSeqFiles[0];
     my $seqFile2 = $splitSeqFiles[1];
@@ -922,11 +942,24 @@ sub map_STAR {
     
         print "     Clipping $seqFileName"." using trimmomatic tool\n";
         # With length cut-off (23 bp) and adaptor presence
-        my $clip_command =  $trimmomatic_loc." SE -phred33 -threads ".$cores."  ".$fasta." ".$work_dir."/fastq/".$seqFileName."_clip.fastq ILLUMINACLIP:".$work_dir."/tmp/adaptor.fa:2:0:5 MINLEN:23";  
+        my $headcrop_command = "";
+        if ($headcrop!=0){
+            $headcrop_command = "HEADCROP:".$headcrop;
+        }
+        my $clip_command =  $trimmomatic_loc." SE -phred33 -threads ".$cores."  ".$fasta." ".$work_dir."/fastq/".$seqFileName."_clip.fastq ILLUMINACLIP:".$work_dir."/tmp/adaptor.fa:2:0:5 ".$headcrop_command." MINLEN:23";  
         my $clipper_log_file = $run_name."_".$seqFileName."_trimmomatic.log";
         print "     ".$clip_command."\n";
         system ($clip_command." 2>&1 | tee ".$clipper_log_file); #Tee writes stdout also to log file
         $fasta = $work_dir."/fastq/$seqFileName"."_clip.fastq";
+
+        #If necessary, perform tailcropping using fastx
+        if ($tailcrop!=0){
+            my $trim_command = "fastx_trimmer -t ".$tailcrop." -m 23 -i ".$fasta." -o ".$work_dir."/fastq/".$seqFileName."_clip_trim.fastq";
+            print "     Additional tail trimming:\n";
+            print "     ".$trim_command."\n";
+            system($trim_command);
+            $fasta = $work_dir."/fastq/".$seqFileName."_clip_trim.fastq";
+        }
 
         #Parse stats
         my ($inReads, $mappedReads, $unmappedReads) = parse_trimmomatic_stats($clipper_log_file);

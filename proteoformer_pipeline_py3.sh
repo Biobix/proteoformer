@@ -28,6 +28,8 @@ PRICE="Y"
 CORES="20"
 UNIQUEMAPPING="Y"
 CLIPPER="trimmomatic" 									# Mostly trimmomatic or fastx
+HEADCROP=0
+TAILCROP=0
 ADAPTORSEQ="TGGAATTCTCGGGTGCCAAGG"
 PHIX="Y"												# Y or N
 RRNA="Y"												# Y or N
@@ -129,7 +131,7 @@ OFFSET_IMG_UNTR=$BASEDIR/$ID/plastid/${ID}_untreated_p_offsets.png
 OFFSET_IMG_TR=$BASEDIR/$ID/plastid/${ID}_treated_p_offsets.png
 
 ## Start with basic mapping
-perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping.pl --inputfile1 $UNZIPFILE --readtype $READTYPE --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper $CLIPPER --adaptor $ADAPTORSEQ --phix $PHIX --rRNA $RRNA --snRNA $SNORNA --tRNA $TRNA --save_unmapped $SAVE_UNMAPPED --rpf_split N --tr_coord $TRCOORD --price_files $PRICE --suite $SUITE > $BASEDIR/$ID/mapping_$ID.txt 2>&1
+perl $SCRIPTDIR/proteoformer/1_mapping_py3/mapping.pl --inputfile1 $UNZIPFILE --readtype $READTYPE --name $ID --species $SPECIES --ensembl $ENSEMBL_ANNOT --cores $CORES --unique $UNIQUEMAPPING --igenomes_root $IGENOMESROOT --clipper $CLIPPER --headcrop $HEADCROP --tailcrop $TAILCROP --adaptor $ADAPTORSEQ --phix $PHIX --rRNA $RRNA --snRNA $SNORNA --tRNA $TRNA --save_unmapped $SAVE_UNMAPPED --rpf_split N --tr_coord $TRCOORD --price_files $PRICE --suite $SUITE > $BASEDIR/$ID/mapping_$ID.txt 2>&1
 
 ##Then, go over the different suite options
 if [[ $SUITE = "standard" ]] || [[ $SUITE = "cst_5prime" ]] || [[ $SUITE = "cst_3prime" ]]
