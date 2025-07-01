@@ -27,6 +27,7 @@ ARGUMENTS:
                                             MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
                                             CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
                                             earthmoss                   |   physcomitrium_patens
+                                            rapeseed                    |   brassica_napus
 
 -h | --help                                 Print this useful help message
 
@@ -105,13 +106,34 @@ def main():
     # Dictionary for 3letter abbreviation for species
     #
 
-    speciesdict = {'zebrafish': 'dre','danio_rerio': 'dre','human': 'hsa', 'mouse': 'mmu', 'horse': 'eca', 'chinese_hamster': 'cgr', 'fruitfly': 'dme',
-                   'yeast': 'sce', 'c.elegans': 'cel',
-                   'homo_sapiens': 'hsa', 'mus_musculus': 'mmu', 'equus_caballus': 'eca', 'arctic_squirrel': 'upa', 'drosophila_melanogaster': 'dme',
-                   'saccharomyces_cerevisiae': 'sce', 'caenorhabditis_elegans': 'cel','rat': 'rnv',
+    speciesdict = {'zebrafish': 'dre',
+                   'danio_rerio': 'dre',
+                   'human': 'hsa',
+                   'mouse': 'mmu',
+                   'horse': 'eca',
+                   'chinese_hamster': 'cgr',
+                   'fruitfly': 'dme',
+                   'yeast': 'sce',
+                   'c.elegans': 'cel',
+                   'homo_sapiens': 'hsa',
+                   'mus_musculus': 'mmu',
+                   'equus_caballus': 'eca',
+                   'arctic_squirrel': 'upa',
+                   'drosophila_melanogaster': 'dme',
+                   'saccharomyces_cerevisiae': 'sce',
+                   'caenorhabditis_elegans': 'cel',
+                   'rat': 'rnv',
                    'rattus_norvegicus': 'rnv',
-                   'MYC_ABS_ATCC_19977': 'MYC_ABS_ATCC_19977', 'mycobacterium_abscessus_atcc_19977': 'MYC_ABS_ATCC_19977',
-                   'SL1344': 'SL1344', 'CNECNA3' : 'CNECNA3', 'Cryptococcus_neoformans_var_grubii_h99_gca_000149245' : 'CNECNA3', 'earthmoss': 'ppa', 'physcomitrium_patens': 'ppa'};
+                   'MYC_ABS_ATCC_19977': 'MYC_ABS_ATCC_19977',
+                   'mycobacterium_abscessus_atcc_19977': 'MYC_ABS_ATCC_19977',
+                   'SL1344': 'SL1344',
+                   'CNECNA3' : 'CNECNA3',
+                   'Cryptococcus_neoformans_var_grubii_h99_gca_000149245' : 'CNECNA3',
+                   'earthmoss': 'ppa',
+                   'physcomitrium_patens': 'ppa',
+                   'rapeseed': 'bna',
+                   'brassica_napus': 'bna'
+                   };
 
 
     #
@@ -273,10 +295,13 @@ def main():
         if (int(ens_v) <= 51):
             core = 'physcomitrium_patens_core_'+ens_v+'_'+canEns_v+'_2.sql.gz'
             download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/plants/mysql/physcomitrium_patens_core_' + ens_v +'_' + canEns_v + '_2/', core)
-
+    elif (species=='brassica_napus' or species=='rapeseed'):
+        if (int(ens_v) <=61):
+            core = 'brassica_napus_core_'+ens_v+'_'+canEns_v+'_1.sql.gz'
+            download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/plants/mysql/brassica_napus_core_' + ens_v +'_' + canEns_v + '_1/', core)
     else:
         print(("Error: unsupported species: " +species ))
-        print("Supported species: human, fruitfy, mouse, horse, arctic_squirrel, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977, CNECNA3, Cryptococcus_neoformans_var_grubii_h99_gca_000149245")
+        print("Supported species: human, fruitfy, mouse, horse, arctic_squirrel, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977, CNECNA3, Cryptococcus_neoformans_var_grubii_h99_gca_000149245, earthmoss, rapeseed")
         sys.exit()
 
     #
@@ -516,6 +541,7 @@ ARGUMENTS:
                                             MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
                                             CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
                                             earthmoss                   |   physcomitrium_patens
+                                            rapeseed                    |   brassica_napus
 
 -h | --help                                 Print this useful help message
 
