@@ -48,7 +48,7 @@ GetOptions(
 "inputfile1=s"=>\$seqFileName1,         	# the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq                  mandatory argument
 "inputfile2=s"=>\$seqFileName2,         	# the fastq file of the treated data for RIBO-seq (PUR,LTM,HARR) or the 2nd fastq for paired-end RNA-seq                         mandatory argument
 "name=s"=>\$run_name,                   	# Name of the run,                                                  			mandatory argument
-"species=s"=>\$species,                 	# Species, eg mouse/rat/human/horse/chinese_hamster_picr/arctic_squirrel/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977/c.elegans/earthmoss       mandatory argument
+"species=s"=>\$species,                 	# Species, eg mouse/rat/human/horse/chinese_hamster_picr/arctic_squirrel/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977/c.elegans/earthmoss/rapeseed/l.maculans       mandatory argument
 "ensembl=i"=>\$ensemblversion,          	# Ensembl annotation version, eg 66 (Feb2012),                      			mandatory argument
 "cores=i"=>\$cores,                     	# Number of cores to use for Mapping,                               			mandatory argument
 "readtype=s"=>\$readtype,              		# The readtype (ribo, ribo_untr, PE_polyA, SE_polyA, PE_total, SE_total)       	optional argument (default = ribo)
@@ -477,11 +477,13 @@ my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus"
 : (uc($species) eq "ARCTIC_SQUIRREL") ? "Urocitellus_parryii"
 : (uc($species) eq "C.ELEGANS") ? "Caenorhabditis_elegans"
 : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" 
+: (uc($species) eq "L.MACULANS") ? "Leptosphaeria_maculans" 
 : (uc($species) eq "SL1344") ? "SL1344" 
 : (uc($species) eq "MYC_ABS_ATCC_19977") ? "mycobacterium_abscessus_atcc_19977" 
 : (uc($species) eq "HUMAN") ? "Homo_sapiens" 
 : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" 
 : (uc($species) eq "EARTHMOSS") ? "Physcomitrium_patens" 
+: (uc($species) eq "RAPESEED") ? "Brassica_napus" 
 : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" 
 : (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" 
 : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
@@ -490,12 +492,14 @@ my $spec_short = (uc($species) eq "MOUSE") ? "mmu"
 : (uc($species) eq "HORSE") ? "eca" 
 : (uc($species) eq "CHINESE_HAMSTER_PICR") ? "cgr"
 : (uc($species) eq "ARCTIC_SQUIRREL") ? "upa"
-: (uc($species) eq "CNECNA3") ? "cnecna3" 
+: (uc($species) eq "CNECNA3") ? "cnecna3"
+: (uc($species) eq "L.MACULANS") ? "lma" 
 : (uc($species) eq "SL1344") ? "sl1344" 
 :  (uc($species) eq "MYC_ABS_ATCC_19977") ? "MYC_ABS_ATCC_19977" 
 :(uc($species) eq "HUMAN") ? "hsa" 
 : (uc($species) eq "ARABIDOPSIS") ? "ath" 
-: (uc($species) eq "EARTHMOSS") ? "ppa" 
+: (uc($species) eq "EARTHMOSS") ? "ppa"
+: (uc($species) eq "RAPESEED") ? "bna"
 : (uc($species) eq "FRUITFLY") ? "dme" 
 : (uc($species) eq "YEAST") ? "sce" 
 : (uc($species) eq "ZEBRAFISH") ? "dre" : "";
@@ -513,11 +517,13 @@ my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 103 ) ? "GRCm39"
 : (uc($species) eq "HUMAN" && $ensemblversion < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
 : (uc($species) eq "EARTHMOSS") ? "Phypa_V3"
+: (uc($species) eq "RAPESEED") ? "AST_PRJEB5043_v1"
 : (uc($species) eq "SL1344") ? "ASM21085v2"
 : (uc($species) eq "MYC_ABS_ATCC_19977") ? "ASM6918v1"
 : (uc($species) eq "ZEBRAFISH") ? "GRCz10"
 : (uc($species) eq "YEAST") ? "R64-1-1"
 : (uc($species) eq "CNECNA3") ? "CNA3"
+: (uc($species) eq "L.MACULANS") ? "ASM23037v1"
 : (uc($species) eq "FRUITFLY" && $ensemblversion < 79) ? "BDGP5"
 : (uc($species) eq "FRUITFLY" && $ensemblversion >= 79 && $ensemblversion < 96) ? "BDGP6"
 : (uc($species) eq "FRUITFLY" && $ensemblversion >= 96 && $ensemblversion < 99) ? "BDGP6.22"
@@ -2156,7 +2162,7 @@ Example:
             --inputfile1                        the fastq file of the untreated data for RIBO-seq (no,CHX,EMT) or the 1st fastq for single/paired-end RNA-seq (mandatory)
             --inputfile2                        the fastq file of the treated data for RIBO-seq (PUR,LTM,HARR) or the 2nd fastq for paired-end RNA-seq (mandatory)
             --name                              Name of the run (mandatory)
-            --species                           Species: mouse/rat/horse/arctic_squirrel/chinese_hamster_picr/human/c.elegans/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977/earthmoss (mandatory)
+            --species                           Species: mouse/rat/horse/arctic_squirrel/chinese_hamster_picr/human/c.elegans/fruitfly/arabidopsis/zebrafish/yeast/SL1344/MYC_ABS_ATCC_19977/earthmoss/rapeseed/l.maculans (mandatory)
             --ensembl                           Ensembl annotation version (mandatory)
             --igenomes_root                     iGenomes root folder (mandatory)
             --cores                             Number of cores to use for Mapping (mandatory)

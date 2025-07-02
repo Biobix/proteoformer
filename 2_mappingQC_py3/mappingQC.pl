@@ -236,11 +236,13 @@ my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus"
 : (uc($species) eq "CHINESE_HAMSTER_PICR") ? "Cricetulus_griseus_picr"
 : (uc($species) eq "ARCTIC_SQUIRREL") ? "Urocitellus_parryii" 
 : (uc($species) eq "CNECNA3") ? "Cryptococcus_neoformans_var_grubii_h99_gca_000149245" 
+: (uc($species) eq "L.MACULANS") ? "Leptosphaeria_maculans" 
 : (uc($species) eq "SL1344") ? "SL1344" 
 : (uc($species) eq "MYC_ABS_ATCC_19977") ? "mycobacterium_abscessus_atcc_19977" 
 : (uc($species) eq "HUMAN") ? "Homo_sapiens" 
 : (uc($species) eq "ARABIDOPSIS") ? "Arabidopsis_thaliana" 
 : (uc($species) eq "EARTHMOSS") ? "Physcomitrium_patens" 
+: (uc($species) eq "RAPESEED") ? "Brassica_napus" 
 : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" 
 : (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" 
 : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
@@ -250,11 +252,13 @@ my $spec_short = (uc($species) eq "MOUSE") ? "mmu"
 : (uc($species) eq "CHINESE_HAMSTER_PICR") ? "cgr"
 : (uc($species) eq "ARCTIC_SQUIRREL") ? "upa" 
 : (uc($species) eq "CNECNA3") ? "cnecna3" 
+: (uc($species) eq "L.MACULANS") ? "lma" 
 : (uc($species) eq "SL1344") ? "sl1344" 
 :  (uc($species) eq "MYC_ABS_ATCC_19977") ? "MYC_ABS_ATCC_19977" 
 :(uc($species) eq "HUMAN") ? "hsa" 
 : (uc($species) eq "ARABIDOPSIS") ? "ath" 
 : (uc($species) eq "EARTHMOSS") ? "ppa" 
+: (uc($species) eq "RAPESEED") ? "bna"
 : (uc($species) eq "FRUITFLY") ? "dme" 
 : (uc($species) eq "YEAST") ? "sce" 
 : (uc($species) eq "ZEBRAFISH") ? "dre" : "";
@@ -271,11 +275,13 @@ my $assembly = (uc($species) eq "MOUSE" && $version >= 103 ) ? "GRCm39"
 : (uc($species) eq "HUMAN" && $version < 76) ? "GRCh37"
 : (uc($species) eq "ARABIDOPSIS") ? "TAIR10"
 : (uc($species) eq "EARTHMOSS") ? "Phypa_V3"
+: (uc($species) eq "RAPESEED") ? "AST_PRJEB5043_v1"
 : (uc($species) eq "SL1344") ? "ASM21085v2"
 : (uc($species) eq "MYC_ABS_ATCC_19977") ? "ASM6918v1"
 : (uc($species) eq "ZEBRAFISH") ? "GRCz10"
 : (uc($species) eq "YEAST") ? "R64-1-1"
 : (uc($species) eq "CNECNA3") ? "CNA3"
+: (uc($species) eq "L.MACULANS") ? "ASM23037v1"
 : (uc($species) eq "FRUITFLY" && $version < 79) ? "BDGP5"
 : (uc($species) eq "FRUITFLY" && $version >= 79 && $version < 96) ? "BDGP6"
 : (uc($species) eq "FRUITFLY" && $version >= 96 && $version < 99) ? "BDGP6.22"
@@ -289,6 +295,8 @@ my $assembly_type = (uc($species) eq "HORSE") ? 'primary_assembly'
 : (uc($species) eq "ARCTIC_SQUIRREL") ? 'primary_assembly'
 : (uc($species) eq "CHINESE_HAMSTER_PICR") ? 'primary_assembly'
 : (uc($species) eq "FRUITFLY" && $version >=103) ? 'primary_assembly'
+: (uc($species) eq "L.MACULANS") ? 'supercontig'
+: (uc($species) eq "RAPESEED") ? 'supercontig'
 : 'chromosome';
 
 
