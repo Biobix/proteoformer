@@ -37,6 +37,7 @@ __author__ = 'SV'
     c.elegans                   |   Caenorhabditis elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
     MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
+    l.maculans                  |   Leptosphaeria maculans (Brassica napus pathogen)
     CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
     
     EXAMPLE:
@@ -261,6 +262,9 @@ def main():
     elif(species=='MYC_ABS_ATCC_19977'):
         speciesLong='Mycobacterium_abscessus_atcc_19977'
         assembly='ASM6918v1'
+    elif(species=='l.maculans'):
+        speciesLong="Leptosphaeria_maculans"
+        assembly="ASM23037v1"
     elif(species=='CNECNA3'):
         speciesLong='Cryptococcus_neoformans_var_grubii_h99_gca_000149245'
         assembly='CNA3'
@@ -269,7 +273,7 @@ def main():
         sys.exit()
 
     print(("Assembly                                    : " + assembly))
-    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!='arctic_squirrel' and species!='earthmoss' and species!='chinese_hamster' and species!='rapeseed'):
+    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!="l.maculans" and species!='arctic_squirrel' and species!='earthmoss' and species!='chinese_hamster' and species!='rapeseed'):
         print(("UCSC code                                   : " + ucscCode))
     print("")
 
@@ -379,13 +383,16 @@ def main():
             m = pattern.search(line)
             if m:
                 chromList[m.group(1)]=m.group(2)
-    elif(species=='CNECNA3'):
+    elif(species=='CNECNA3' or species=="l.maculans"):
         #For Fungi, chromosome sizes can be fetched out of the files where the Ensembl DB is build from
-        collection = '1'
         canEns_v=str(ens_v+53) #Bacteria Ensembl releases are 53 less than the other species.
-        #first, search coord system id
-        #print ("wget -q ftp:ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
-        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
+        if(species=='CNECNA3'):
+            collection = '1'
+            #first, search coord system id
+            #print ("wget -q ftp:ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
+        elif(species=='l.maculans'):
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
         #print ("gzip -d coord_system.txt.gz")
         os.system("gzip -d coord_system.txt.gz")
         coord_system_id=0
@@ -398,8 +405,19 @@ def main():
                     if(m.group(2)==assembly):
                         coord_system_id=m.group(1)
                         print((m.group(1)+" "+m.group(2)))
+        elif(species=='l.maculans'):
+            for line in input: #For L. maculans we take the supercontig as coord_system (corresponds to "3" as last field)
+                pattern = re.compile('^(\d+)\t\d+\t\w+\t(\w+)\t3')
+                m = pattern.search(line)
+                if m:
+                    if(m.group(2)==assembly):
+                        coord_system_id=m.group(1)
+                        print((m.group(1)+" "+m.group(2)))
         #Then search for the chromosome in seq_region.txt
-        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/seq_region.txt.gz")
+        if(species=="CNECNA3"):
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/seq_region.txt.gz")
+        elif(species=="l.maculans"):
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_1/seq_region.txt.gz")
         os.system("gzip -d seq_region.txt.gz")
         input = open('seq_region.txt', 'r')
         regex = r"\b(?=\w)^\d+\t(\w+)\t"+re.escape(coord_system_id)+r"\t(\d+)\b(?!\w)"
@@ -458,12 +476,11 @@ def main():
     outFile.close()
     if(species=='arabidopsis' or species=='earthmoss' or species=='rapeseed'):
         os.system("rm -rf seq_region.txt")
-    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977' or species=='CNECNA3' or species=='arctic_squirrel' or species=='chinese_hamster'):
+    elif(species=='SL1344' or species=='MYC_ABS_ATCC_19977' or species=='CNECNA3' or species=='l.maculans' or species=='arctic_squirrel' or species=='chinese_hamster'):
         os.system("rm -rf coord_system.txt")
         os.system("rm -rf seq_region.txt")
     else:
         os.system("rm -rf tmpChromInfo.txt")
-
 
     ## Download chromosome files
     print("\n")
@@ -472,11 +489,14 @@ def main():
     os.system("mkdir Chromosomes")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes")
 
-    if species=="arctic_squirrel" or species=="chinese_hamster" or species=='rapeseed':
+    if species=="arctic_squirrel" or species=="chinese_hamster" or species=='rapeseed' or species=='l.maculans':
         #For arctic squirrel we need another way to access chromosomal fasta files. In fact we want a fasta file per scaffold, as the assembly is still in scaffold phase
         #The information of all scaffolds is placed in one file, download this file
         if species=='rapeseed':
-            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/plants/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.toplevel.fa.gz")
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.toplevel.fa.gz")
+            os.system("mv "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+speciesLong+"."+assembly+".dna.toplevel.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa.gz")
+        elif species=='l.maculans':
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.toplevel.fa.gz")
             os.system("mv "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+speciesLong+"."+assembly+".dna.toplevel.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa.gz")
         else:
             os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.toplevel.fa.gz "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa.gz")
@@ -499,7 +519,7 @@ def main():
     os.system("mkdir WholeGenomeFasta")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/WholeGenomeFasta")
 
-    if species=="arctic_squirrel" or species=="chinese_hamster" or species=="rapeseed":
+    if species=="arctic_squirrel" or species=="chinese_hamster" or species=="rapeseed" or species=='l.maculans':
         #The file containing all scaffolds can be used as Whole Genome Fasta file
         os.system("mv "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/toplevel.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/WholeGenomeFasta/genome.fa")
     else:
@@ -527,6 +547,9 @@ def main():
     elif(species=='CNECNA3'):
         os.system("wget -q ftp://ftp.ensemblgenomes.org:21//pub/release-"+stringEns_v+"/fungi/gtf/fungi_basidiomycota1_collection/cryptococcus_neoformans_var_grubii_h99_gca_000149245/Cryptococcus_neoformans_var_grubii_h99_gca_000149245."+assembly+"."+stringEns_v+".gtf.gz")
         os.system("mv Cryptococcus_neoformans_var_grubii_h99_gca_000149245."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
+    elif(species=='l.maculans'):
+        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/gtf/"+speciesLong.lower()+"/"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz")
+        os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     else:
         os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     os.system("gunzip genesTmp.gtf.gz")
@@ -551,7 +574,7 @@ def main():
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence")
     os.system("mkdir AbundantSequences")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/AbundantSequences")
-    if ens_v<109:
+    if((ens_v<56) or (ens_v<109 and (species!='earthmoss' and species!='rapeseed' and species!='arabidopsis' and species!='MYC_ABS_ATCC_19977' and species!='SL1344' and species!='CNECNA3' and species!='l.maculans'))):
         os.system("wget -q ftp://ftp.ncbi.nih.gov//genomes/Viruses/enterobacteria_phage_phix174_sensu_lato_uid14015/NC_001422.fna")
         os.system("mv NC_001422.fna phix.fa")
     else:
@@ -887,6 +910,7 @@ def print_help():
     c.elegans                   |   Caenorhabditis elegans
     SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
     MYC_ABS_ATCC_19977          |   Mycobacterium abscessus atcc 19977
+    l.maculans                  |   Leptosphaeria maculans (Brassica napus pathogen)
     CNECNA3                     |   Cryptococcus_neoformans_var_grubii_h99_gca_000149245
 
     EXAMPLE:
