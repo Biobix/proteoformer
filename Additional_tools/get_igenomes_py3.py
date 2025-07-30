@@ -783,9 +783,9 @@ def read_fasta(fasta):
 def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assembly, instalDir):
     if(species=='arabidopsis' or species=='earthmoss'):#Arabidopsis is on the site of ensembl Plants instead of normal Ensembl. This site cannot use rsync yet.
         if(chr=='MT'):#Ensembl uses 'Mt' for Arabidopsis mitochondrial genome
-            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
-            os.system("gunzip "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa.gz")
-            os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".dna.chromosome.Mt.fa MT.fa")
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome.Mt.fa.gz")
+            os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome.Mt.fa.gz")
+            os.system("mv "+speciesLong+"."+assembly+".dna.chromosome.Mt.fa MT.fa")
         else:
             os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/plants/release-"+stringEns_v+"/fasta/"+speciesLong.lower()+"/dna//"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")
             os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")

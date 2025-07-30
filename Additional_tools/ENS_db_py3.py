@@ -29,6 +29,7 @@ ARGUMENTS:
                                             l.maculans                  |   Leptosphaeria maculans
                                             earthmoss                   |   physcomitrium_patens
                                             rapeseed                    |   brassica_napus
+                                            arabidopsis                 |   arabidopsis_thaliana
 
 -h | --help                                 Print this useful help message
 
@@ -135,7 +136,9 @@ def main():
                    'earthmoss': 'ppa',
                    'physcomitrium_patens': 'ppa',
                    'rapeseed': 'bna',
-                   'brassica_napus': 'bna'
+                   'brassica_napus': 'bna',
+                   'arabidopsis_thaliana': 'ath',
+                   'arabidopsis': 'ath'
                    };
 
 
@@ -305,9 +308,13 @@ def main():
         if (int(ens_v) <=61):
             core = 'brassica_napus_core_'+ens_v+'_'+canEns_v+'_1.sql.gz'
             download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/plants/mysql/brassica_napus_core_' + ens_v +'_' + canEns_v + '_1/', core)
+    elif (species=='arabidopsis_thaliana' or species=='arabidopsis'):
+        if (int(ens_v) <=61):
+            core = 'arabidopsis_thaliana_core_'+ens_v+'_'+canEns_v+'_11.sql.gz'
+            download('ftp://ftp.ensemblgenomes.org/pub/release-' + ens_v +'/plants/mysql/arabidopsis_thaliana_core_' + ens_v +'_' + canEns_v + '_11/', core)
     else:
         print(("Error: unsupported species: " +species ))
-        print("Supported species: human, fruitfy, mouse, horse, arctic_squirrel, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977, CNECNA3, Cryptococcus_neoformans_var_grubii_h99_gca_000149245, earthmoss, rapeseed")
+        print("Supported species: human, fruitfy, mouse, horse, arctic_squirrel, saccharomyces_cerevisiae, caenorhabditis_elegans, SL1344, MYC_ABS_ATCC_19977, CNECNA3, Cryptococcus_neoformans_var_grubii_h99_gca_000149245, earthmoss, rapeseed, arabidopsis_thaliana")
         sys.exit()
 
     #
@@ -549,6 +556,7 @@ ARGUMENTS:
                                             l.maculans                  |   Leptosphaeria maculans
                                             earthmoss                   |   physcomitrium_patens
                                             rapeseed                    |   brassica_napus
+                                            arabidopsis                 |   arabidopsis_thaliana
 
 -h | --help                                 Print this useful help message
 

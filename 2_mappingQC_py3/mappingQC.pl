@@ -2653,6 +2653,8 @@ sub get_seq_region_id{
             }
         } elsif($species eq "yeast" && $chr eq "MT"){
             $chr = "Mito"
+        } elsif($species eq "arabidopsis" && $chr eq "MT"){
+            $chr = "Mt"
         }
         $query = "SELECT seq_region_id FROM seq_region WHERE coord_system_id = '$coord_system_id' AND name = '$chr';";
     }
