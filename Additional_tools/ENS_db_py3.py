@@ -269,7 +269,19 @@ def main():
             print("supported ensembl versions: from 74 till 113")
             sys.exit()
     elif (species=='caenorhabditis_elegans' or species =="c.elegans"):
-        if (int(ens_v) >= 91 and int(ens_v) <= 92):
+        if (int(ens_v) >= 108 and int(ens_v) <= 114):
+            core = '/caenorhabditis_elegans_core_' + ens_v + '_282.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-' + ens_v + '/mysql/caenorhabditis_elegans_core_' + ens_v + '_282/',
+                     core)
+        elif (int(ens_v) >= 106 and int(ens_v) <= 107):
+            core = '/caenorhabditis_elegans_core_' + ens_v + '_279.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-' + ens_v + '/mysql/caenorhabditis_elegans_core_' + ens_v + '_279/',
+                     core)
+        elif (int(ens_v) >= 97 and int(ens_v) <= 105):
+            core = '/caenorhabditis_elegans_core_' + ens_v + '_269.sql.gz'
+            download('ftp://ftp.ensembl.org/pub/release-' + ens_v + '/mysql/caenorhabditis_elegans_core_' + ens_v + '_269/',
+                     core)
+        elif (int(ens_v) >= 91 and int(ens_v) <= 96):
             core = '/caenorhabditis_elegans_core_' + ens_v + '_260.sql.gz'
             download('ftp://ftp.ensembl.org/pub/release-' + ens_v + '/mysql/caenorhabditis_elegans_core_' + ens_v + '_260/',
                      core)
@@ -278,7 +290,7 @@ def main():
             download('ftp://ftp.ensembl.org/pub/release-' + ens_v +'/mysql/caenorhabditis_elegans_core_' + ens_v +'_250/',core)
         else:
             print(("ERROR: unsupported ensembl version: " + ens_v))
-            print("supported ensembl versions: from 74 till 90")
+            print("supported ensembl versions: from 74 till 114c")
             sys.exit()
     elif (species=='danio_rerio' or species =="zebrafish"):
         if(int(ens_v) >= 74 and int(ens_v) <= 90):
