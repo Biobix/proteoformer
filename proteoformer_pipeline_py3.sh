@@ -11,7 +11,8 @@ echo '    \|__|     \|__|\|__|\|_______|    \|__|  \|_______|\|_______|\|__|    
 echo -e "\n\n"                                                                                                                                 
                                                                                                                                  
                                                                                                                                  
-
+#For STAR mapping
+ulimit -n 10000
 
 ## GLOBAL VARIABLES
 
