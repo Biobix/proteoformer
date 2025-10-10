@@ -674,6 +674,8 @@ def get_secs(gtf_file):
 
     with open(gtf_file) as FR:
         for line in FR:
+            if line.startswith('#') or not line.strip():
+                continue
             features = line.rsplit("\t")
             if features[2] == "Selenocysteine":
                 chr = features[0]
