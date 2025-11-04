@@ -151,6 +151,7 @@ my $spec = (uc($species) eq "MOUSE") ? "Mus_musculus"
 : (uc($species) eq "EARTHMOSS") ? "Physcomitrium_patens"
 : (uc($species) eq "RAPESEED") ? "Brassica_napus" 
 : (uc($species) eq "FRUITFLY") ? "Drosophila_melanogaster" 
+: (uc($species) eq "MALARIA_MOSQUITO") ? "Anopheles_gambiae" 
 : (uc($species) eq "YEAST") ? "Saccharomyces_cerevisiae" 
 : (uc($species) eq "ZEBRAFISH") ? "Danio_rerio" : "";
 my $spec_short = (uc($species) eq "MOUSE") ? "mmu" 
@@ -168,6 +169,7 @@ my $spec_short = (uc($species) eq "MOUSE") ? "mmu"
 : (uc($species) eq "EARTHMOSS") ? "ppa" 
 : (uc($species) eq "RAPESEED") ? "bna"
 : (uc($species) eq "FRUITFLY") ? "dme" 
+: (uc($species) eq "MALARIA_MOSQUITO") ? "aga" 
 : (uc($species) eq "YEAST") ? "sce" 
 : (uc($species) eq "ZEBRAFISH") ? "dre" : "";
 #Old mouse assembly = NCBIM37, new one is GRCm38. Old human assembly = GRCh37, the new one is GRCh38
@@ -197,6 +199,7 @@ my $assembly = (uc($species) eq "MOUSE" && $ensemblversion >= 103 ) ? "GRCm39"
 : (uc($species) eq "FRUITFLY" && $ensemblversion >= 99 && $ensemblversion < 103) ? "BDGP6.28"
 : (uc($species) eq "FRUITFLY" && $ensemblversion >= 103 && $ensemblversion < 110) ? "BDGP6.32" 
 : (uc($species) eq "FRUITFLY" && $ensemblversion >= 110) ? "BDGP6.46"
+: (uc($species) eq "MALARIA_MOSQUITO" && $ensemblversion >= 23) ? "AgamP4"
 : "";
 
 my $chromosome_sizes = $IGENOMES_ROOT."/".$spec."/Ensembl/".$assembly."/Annotation/Genes/ChromInfo.txt";

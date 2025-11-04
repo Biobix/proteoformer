@@ -29,6 +29,7 @@ __author__ = 'SV'
     arctic_squirrel             |   Urocitellus parryii
     chinese_hamster             |   Cricetulus griseus
     fruitfly                    |   Drosophila_melanogaster
+    malaria_mosquito            |   Anopheles gambiae
     yeast                       |   Saccharomyces cerevisiae
     zebrafish                   |   Danio rerio
     arabidopsis                 |   Arabidopsis thaliana
@@ -227,6 +228,13 @@ def main():
         else:
             assembly='BDGP5'
             ucscCode='dm3'
+    elif(species=='malaria_mosquito'):
+        speciesLong='Anopheles_gambiae'
+        if(ens_v>22):
+            assembly='AgamP4'
+        else:
+            print("Ensemblgenomes versions lower than 23 are not included in this pipeline for malaria mosquito!")
+            sys.exit()
     elif(species=='yeast'):
         speciesLong='Saccharomyces_cerevisiae'
         if(ens_v>74):
@@ -269,11 +277,11 @@ def main():
         speciesLong='Cryptococcus_neoformans_var_grubii_h99_gca_000149245'
         assembly='CNA3'
     else:
-        print("Species has to be one of the following list: human, mouse, horse, arctic squirrel, fruitfly, yeast, zebrafish, arabidopsis, earthmoss, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344, cryptococcus_neoformans_var_grubii_h99_gca_000149245, CNECNA3")
+        print("Species has to be one of the following list: human, mouse, horse, arctic squirrel, fruitfly, malaria mosquito, yeast, zebrafish, arabidopsis, earthmoss, c.elegans, mycobacterium_abscessus_atcc_19977, SL1344, cryptococcus_neoformans_var_grubii_h99_gca_000149245, CNECNA3")
         sys.exit()
 
     print(("Assembly                                    : " + assembly))
-    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!="l.maculans" and species!='arctic_squirrel' and species!='earthmoss' and species!='chinese_hamster' and species!='rapeseed'):
+    if(species!='arabidopsis' and species!='SL1344' and species!='CNECNA3' and species!="l.maculans" and species!='arctic_squirrel' and species!='earthmoss' and species!='chinese_hamster' and species!='rapeseed' and species!='malaria_mosquito'):
         print(("UCSC code                                   : " + ucscCode))
     print("")
 
@@ -383,7 +391,7 @@ def main():
             m = pattern.search(line)
             if m:
                 chromList[m.group(1)]=m.group(2)
-    elif(species=='CNECNA3' or species=="l.maculans"):
+    elif(species=='CNECNA3' or species=="l.maculans" or species=='malaria_mosquito'):
         #For Fungi, chromosome sizes can be fetched out of the files where the Ensembl DB is build from
         canEns_v=str(ens_v+53) #Bacteria Ensembl releases are 53 less than the other species.
         if(species=='CNECNA3'):
@@ -393,12 +401,14 @@ def main():
             os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
         elif(species=='l.maculans'):
             os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_1/coord_system.txt.gz")
+        elif(species=='malaria_mosquito'):
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/metazoa/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_4/coord_system.txt.gz")
         #print ("gzip -d coord_system.txt.gz")
         os.system("gzip -d coord_system.txt.gz")
         coord_system_id=0
         input = open('coord_system.txt', 'r')
-        if (species=='CNECNA3'):
-            for line in input: #For CNECNA3 we take the chromosome as coord_system (corresponds to "1" as last field)
+        if (species=='CNECNA3' or species=='malaria_mosquito'):
+            for line in input: #For CNECNA3 and Anopheles we take the chromosome as coord_system (corresponds to "1" as last field)
                 pattern = re.compile('^(\d+)\t\d+\t\w+\t(\w+)\t1')
                 m = pattern.search(line)
                 if m:
@@ -413,11 +423,14 @@ def main():
                     if(m.group(2)==assembly):
                         coord_system_id=m.group(1)
                         print((m.group(1)+" "+m.group(2)))
+        os.system("rm -rf coord_system.txt")
         #Then search for the chromosome in seq_region.txt
         if(species=="CNECNA3"):
             os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/fungi_basidiomycota"+collection+"_collection_core_"+stringEns_v+"_"+canEns_v+"_1/seq_region.txt.gz")
         elif(species=="l.maculans"):
             os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_1/seq_region.txt.gz")
+        elif(species=='malaria_mosquito'):
+            os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/metazoa/mysql/"+speciesLong.lower()+"_core_"+stringEns_v+"_"+canEns_v+"_4/seq_region.txt.gz")
         os.system("gzip -d seq_region.txt.gz")
         input = open('seq_region.txt', 'r')
         regex = r"\b(?=\w)^\d+\t(\w+)\t"+re.escape(coord_system_id)+r"\t(\d+)\b(?!\w)"
@@ -425,7 +438,9 @@ def main():
             pattern = re.compile(regex)
             m = pattern.search(line)
             if m:
-                chromList[m.group(1)]=m.group(2)
+                if m.group(1)!='UNKN' and m.group(1)!='Y_unplaced': #Exclude 'UNKN' and 'Y_unplaced' as chrs as they are not included in Ensembl chr FASTA files
+                    chromList[m.group(1)]=m.group(2)
+        os.system("rm -rf seq_region.txt")
     elif(species=='arctic_squirrel' or species=='chinese_hamster'):
         #Squirrel chromosome info file is not accessible yet at UCSC, the assembly is still in scaffold phase
         #So we get the scaffolds as chromosomes and we get them from Ensembl
@@ -550,6 +565,9 @@ def main():
     elif(species=='l.maculans'):
         os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/gtf/"+speciesLong.lower()+"/"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz")
         os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
+    elif(species=='malaria_mosquito'):
+        os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/metazoa/gtf/"+speciesLong.lower()+"/"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz")
+        os.system("mv "+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     else:
         os.system("rsync -avq rsync://ftp.ensembl.org/ensembl/pub/release-"+stringEns_v+"/gtf/"+speciesLong.lower()+"//"+speciesLong+"."+assembly+"."+stringEns_v+".gtf.gz genesTmp.gtf.gz")
     os.system("gunzip genesTmp.gtf.gz")
@@ -574,7 +592,7 @@ def main():
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence")
     os.system("mkdir AbundantSequences")
     os.chdir(instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/AbundantSequences")
-    if((ens_v<56) or (ens_v<109 and (species!='earthmoss' and species!='rapeseed' and species!='arabidopsis' and species!='MYC_ABS_ATCC_19977' and species!='SL1344' and species!='CNECNA3' and species!='l.maculans'))):
+    if((ens_v<56) or (ens_v<109 and (species!='earthmoss' and species!='rapeseed' and species!='arabidopsis' and species!='MYC_ABS_ATCC_19977' and species!='SL1344' and species!='CNECNA3' and species!='l.maculans' and species!='malaria_mosquito'))):
         os.system("wget -q ftp://ftp.ncbi.nih.gov//genomes/Viruses/enterobacteria_phage_phix174_sensu_lato_uid14015/NC_001422.fna")
         os.system("mv NC_001422.fna phix.fa")
     else:
@@ -837,6 +855,10 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
                 os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz ")
                 os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome.MT.fa.gz")
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome.MT.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa")
+            elif(species=='malaria_mosquito'): #Other name 'Mt' for Anopheles
+                os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/metazoa/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome.Mt.fa.gz ")
+                os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome.Mt.fa.gz")
+                os.system("mv "+speciesLong+"."+assembly+".dna.chromosome.Mt.fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/MT.fa")
             else:#MT for other species
                 if(ens_v>75):
                     if (species=="horse" or species=="rat"):
@@ -851,6 +873,10 @@ def downloadChromosomeFasta(chr, species, speciesLong, ens_v, stringEns_v, assem
             if (species=='CNECNA3'):
                 #print ("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
                 os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/fungi/fasta/fungi_basidiomycota1_collection/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
+                os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")
+                os.system("mv "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa")
+            elif (species=='malaria_mosquito'):
+                os.system("wget -q ftp://ftp.ensemblgenomes.org/pub/release-"+stringEns_v+"/metazoa/fasta/"+speciesLong.lower()+"/dna/"+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz ")
                 os.system("gunzip "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa.gz")
                 os.system("mv "+speciesLong+"."+assembly+".dna.chromosome."+chr+".fa "+instalDir+"/igenomes/"+speciesLong+"/Ensembl/"+assembly+"/Sequence/Chromosomes/"+chr+".fa")
             elif (species=="fruitfly"):
@@ -902,6 +928,7 @@ def print_help():
     arctic_squirrel             |   Urocitellus parryii
     chinese_hamster             |   Cricetulus griseus
     fruitfly                    |   Drosophila_melanogaster
+    malaria_mosquito            |   Anopheles gambiae
     yeast                       |   Saccharomyces cerevisiae
     zebrafish                   |   Danio rerio
     arabidopsis                 |   Arabidopsis thaliana

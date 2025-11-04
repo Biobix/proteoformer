@@ -21,6 +21,7 @@ ARGUMENTS:
                                             chinese_hamster             |   Cricetulus griseus
                                             arctic_squirrel             |   urocitellus_parryii
                                             fruitfly                    |   drosophila_melanogaster
+                                            malaria_mosquito            |   anopheles_gambiae
                                             saccharomyces_cerevisiae    |   yeast
                                             caenorhabditis_elegans      |   c.elegans
                                             SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
@@ -115,6 +116,7 @@ def main():
                    'horse': 'eca',
                    'chinese_hamster': 'cgr',
                    'fruitfly': 'dme',
+                   'malaria_mosquito': 'aga',
                    'yeast': 'sce',
                    'c.elegans': 'cel',
                    'homo_sapiens': 'hsa',
@@ -312,6 +314,9 @@ def main():
     elif (species=='l.maculans' or species=='leptosphaeria_maculans'):
         core = 'leptosphaeria_maculans_core_' + ens_v +'_' + canEns_v + '_1.sql.gz'
         download('ftp://ftp.ensemblgenomes.org/pub/fungi/release-' + ens_v +'/mysql/leptosphaeria_maculans_core_' + ens_v +'_' + canEns_v + '_1/', core)
+    elif (species=='malaria_mosquito' or species=='anopheles_gambiae'):
+        core = 'anopheles_gambiae_core_' + ens_v +'_' + canEns_v + '_4.sql.gz'
+        download('ftp://ftp.ensemblgenomes.org/pub/metazoa/release-' + ens_v +'/mysql/anopheles_gambiae_core_' + ens_v +'_' + canEns_v + '_4/', core)
     elif (species=='physcomitrium_patens' or species=='earthmoss'):
         if (int(ens_v) <= 51):
             core = 'physcomitrium_patens_core_'+ens_v+'_'+canEns_v+'_2.sql.gz'
@@ -560,6 +565,7 @@ ARGUMENTS:
                                             chinese_hamster             |   Cricetulus griseus
                                             arctic_squirrel             |   urocitellus_parryii
                                             fruitfly                    |   drosophila_melanogaster
+                                            malaria_mosquito            |   anopheles_gambiae
                                             saccharomyces_cerevisiae    |   yeast
                                             caenorhabditis_elegans      |   c.elegans
                                             SL1344                      |   Salmonella enterica subsp. enterica serovar Typhimurium str. SL1344
